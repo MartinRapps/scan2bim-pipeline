@@ -37,3 +37,6 @@ bin/
 *.fdb_latexmk
 *.bbl
 *.blg
+
+# Upload temp dir (streaming)
+.upload_tmp/

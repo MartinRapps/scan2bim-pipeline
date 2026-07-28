@@ -53,18 +53,31 @@ for dir in "$WORKSPACE_PATH"/sparse/*; do
     fi
 done
 
+# Best input model directory for both PLY and TXT export.
 if [ -n "$LARGEST_DIR" ]; then
-    echo "Exporting identified largest sub-model: $LARGEST_DIR ($MAX_SIZE bytes)"
-    colmap model_converter \
-        --input_path "$LARGEST_DIR" \
-        --output_path $WORKSPACE_PATH/points3D.ply \
-        --output_type PLY
+    BEST_INPUT="$LARGEST_DIR"
 elif [ -d "$WORKSPACE_PATH/sparse" ]; then
     echo "No custom sub-models found. Fallback to base sparse directory..."
+    BEST_INPUT="$WORKSPACE_PATH/sparse"
+else
+    BEST_INPUT=""
+fi
+
+if [ -n "$BEST_INPUT" ]; then
+    echo "Using model: $BEST_INPUT ($MAX_SIZE bytes)"
     colmap model_converter \
-        --input_path $WORKSPACE_PATH/sparse \
+        --input_path "$BEST_INPUT" \
         --output_path $WORKSPACE_PATH/points3D.ply \
         --output_type PLY
+    # TXT export (cameras.txt + images.txt + points3D.txt) for the GCP
+    # registration UI: image marking + triangulation needs the camera
+    # intrinsics and poses in a parseable text format.
+    mkdir -p $WORKSPACE_PATH/sparse_txt
+    colmap model_converter \
+        --input_path "$BEST_INPUT" \
+        --output_path $WORKSPACE_PATH/sparse_txt \
+        --output_type TXT
+    echo "Exported cameras/images TXT to $WORKSPACE_PATH/sparse_txt/ for GCP registration."
 else
     echo "Warning: No sparse model folders found."
 fi

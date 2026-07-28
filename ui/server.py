@@ -4,11 +4,13 @@ Pipeline Status Dashboard Server
 Serves the UI and API endpoints for the Scan-to-BIM pipeline.
 """
 import os
+import csv
 import json
 import mimetypes
 import pty
 import select
 import subprocess
+import tempfile
 import threading
 import queue
 import uuid
@@ -23,15 +25,122 @@ DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data')
 PUBLIC_DIR = os.path.join(os.path.dirname(__file__), 'public')
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# GCP registration paths (used by the /api/gcp/* endpoints).
+SFM_DIR = os.path.join(DATA_DIR, "04_sfm")
+SPARSE_TXT_DIR = os.path.join(SFM_DIR, "sparse_txt")
+GCP_OBS_PATH = os.path.join(SFM_DIR, "gcp_observations.json")
+GCP_REPORT_PATH = os.path.join(SFM_DIR, "gcp_report.json")
+RAW_DIR = os.path.join(DATA_DIR, "01_raw")
+GCP_RELATIVE_CSV = os.path.join(RAW_DIR, "gcp_relative.csv")
+GCP_COORDINATES_CSV = os.path.join(RAW_DIR, "gcp_coordinates.csv")
+FRAMES_DIR = os.path.join(DATA_DIR, "02_frames")
+
+
+def _quat_to_rotmat(q):
+    qw, qx, qy, qz = q
+    return [
+        [1 - 2 * (qy * qy + qz * qz), 2 * (qx * qy - qz * qw), 2 * (qx * qz + qy * qw)],
+        [2 * (qx * qy + qz * qw), 1 - 2 * (qx * qx + qz * qz), 2 * (qy * qz - qx * qw)],
+        [2 * (qx * qz - qy * qw), 2 * (qy * qz + qx * qw), 1 - 2 * (qx * qx + qy * qy)],
+    ]
+
+
+def _camera_center(qvec, tvec):
+    """World-space camera center C = -R^T @ t (pure python, no numpy)."""
+    R = _quat_to_rotmat(qvec)
+    Rt_t = [sum(R[r][c] * tvec[r] for r in range(3)) for c in range(3)]  # R^T @ t
+    return [-x for x in Rt_t]
+
+
+def _parse_cameras_txt_min(path):
+    cams = {}
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                parts = line.split()
+                cams[int(parts[0])] = {"model": parts[1], "width": int(parts[2]), "height": int(parts[3])}
+    except OSError:
+        pass
+    return cams
+
+
+def _parse_images_txt_min(path):
+    images = []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            lines = [line.rstrip("\n") for line in handle if not line.lstrip().startswith("#")]
+    except OSError:
+        return images
+    for i in range(0, len(lines), 2):
+        parts = lines[i].split()
+        if not parts:
+            continue
+        images.append({
+            "name": parts[9],
+            "camera_id": int(parts[8]),
+            "qvec": [float(x) for x in parts[1:5]],
+            "tvec": [float(x) for x in parts[5:8]],
+        })
+    return images
+
+
+def _parse_gcp_csv(path):
+    """Return {gcp_id: [x, y, z]} from a GCP coordinate CSV (id + x/y/z columns)."""
+    points = {}
+    if not os.path.isfile(path):
+        return points
+    try:
+        with open(path, encoding="utf-8") as handle:
+            reader = csv.reader(handle)
+            header = [h.strip() for h in next(reader)]
+            lower = [h.lower() for h in header]
+            id_idx = next((i for i, c in enumerate(lower) if c in ("id", "name", "gcp", "passpunkt")), None)
+            x_idx = next((i for i, c in enumerate(lower) if c in ("x", "east", "ost", "easting")), None)
+            y_idx = next((i for i, c in enumerate(lower) if c in ("y", "north", "nord", "northing")), None)
+            z_idx = next((i for i, c in enumerate(lower) if c in ("z", "height", "hoehe", "elevation")), None)
+            if None in (id_idx, x_idx, y_idx, z_idx):
+                return points
+            for row in reader:
+                if not row:
+                    continue
+                points[row[id_idx].strip()] = [float(row[x_idx]), float(row[y_idx]), float(row[z_idx])]
+    except (OSError, ValueError, StopIteration):
+        pass
+    return points
+
+
+def _read_observations():
+    if not os.path.isfile(GCP_OBS_PATH):
+        return []
+    try:
+        with open(GCP_OBS_PATH, encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return []
+
+
+def _write_observations(observations):
+    os.makedirs(os.path.dirname(GCP_OBS_PATH), exist_ok=True)
+    with open(GCP_OBS_PATH, "w", encoding="utf-8") as handle:
+        json.dump(observations, handle, indent=2)
+        handle.write("\n")
+
 
 def safe_write(self, data):
+    """Write data to the response stream; return True on success, False if the
+    client has disconnected. Callers that replay cached state must stop once
+    this returns False so they do not silently truncate the replay."""
     try:
         if isinstance(data, str):
             data = data.encode()
         self.wfile.write(data)
         self.wfile.flush()
+        return True
     except (ConnectionResetError, BrokenPipeError, OSError):
-        pass
+        return False
 
 
 def safe_send_json(self, data, status=200):
@@ -50,12 +159,13 @@ SCRIPTS_INFO = [
     {
         "id": "run_pipeline",
         "name": "run_pipeline.sh",
+        "args": [],
         "description": "F\u00fchrt die gesamte Scan-to-BIM Pipeline von der GCP-Vorbereitung bis zum GIS-Export aus. Inkludiert SAM 3.1 Segmentierung, COLMAP SfM, STS 3DGS Training, SuGaR Meshing und Post-Processing.",
         "steps": [
             "GCP-Vorbereitung",
             "SAM 3.1 Tracking & Masken",
             "COLMAP SfM",
-            "Manueller Breakpoint: GCP in CloudCompare",
+            "GCP-Registrierung (UI / CloudCompare Breakpoint)",
             "STS 3DGS Training",
             "SuGaR Meshing",
             "DGtal Centerline",
@@ -71,9 +181,30 @@ SCRIPTS_INFO = [
         ],
     },
     {
+        "id": "run_from_colmap",
+        "name": "run_pipeline.sh",
+        "args": ["--from", "colmap"],
+        "description": "Replay ab COLMAP SfM (run_pipeline.sh --from colmap). \u00dcberspringt die SAM 3.1 Maskengenerierung. N\u00fctzlich wenn die Masken bereits vorhanden sind und nur die 3D-Rekonstruktion wiederholt wird.",
+        "steps": [
+            "COLMAP SfM",
+            "GCP-Registrierung (UI / CloudCompare Breakpoint)",
+            "STS Workspace Setup",
+            "STS 3DGS Training",
+            "Punktwolken-Filterung",
+            "SuGaR Meshing",
+            "DGtal Centerline",
+            "GIS-Export",
+        ],
+        "inputs": [
+            {"prompt": "Autopilot-Modus (y/n)", "var": "AUTOPILOT", "type": "confirm"},
+            {"prompt": "STS Trainingsiterationen", "var": "ITERATIONS", "default": "7000"},
+        ],
+    },
+    {
         "id": "run_from_sts",
-        "name": "run_from_sts.sh",
-        "description": "F\u00fchrt die Pipeline ab dem STS-Training aus. \u00dcberspringt SAM 3.1 und COLMAP, startet direkt bei der 3DGS-Rekonstruktion. N\u00fctzlich wenn Masken und SfM bereits vorhanden sind.",
+        "name": "run_pipeline.sh",
+        "args": ["--from", "sts"],
+        "description": "Replay ab STS-Training (run_pipeline.sh --from sts). \u00dcberspringt SAM 3.1 und COLMAP, startet direkt bei der 3DGS-Rekonstruktion. N\u00fctzlich wenn Masken und SfM bereits vorhanden sind.",
         "steps": [
             "STS Workspace Setup",
             "STS 3DGS Training",
@@ -92,28 +223,10 @@ SCRIPTS_INFO = [
         ],
     },
     {
-        "id": "run_from_colmap",
-        "name": "run_from_colmap.sh",
-        "description": "F\u00fchrt die Pipeline ab COLMAP SfM aus. \u00dcberspringt die SAM 3.1 Maskengenerierung. N\u00fctzlich wenn die Masken bereits vorhanden sind und nur die 3D-Rekonstruktion wiederholt werden soll.",
-        "steps": [
-            "COLMAP SfM",
-            "Manueller Breakpoint: GCP in CloudCompare",
-            "STS Workspace Setup",
-            "STS 3DGS Training",
-            "Punktwolken-Filterung",
-            "SuGaR Meshing",
-            "DGtal Centerline",
-            "GIS-Export",
-        ],
-        "inputs": [
-            {"prompt": "Autopilot-Modus (y/n)", "var": "AUTOPILOT", "type": "confirm"},
-            {"prompt": "STS Trainingsiterationen", "var": "ITERATIONS", "default": "7000"},
-        ],
-    },
-    {
         "id": "run_from_sugar",
-        "name": "run_from_sugar.sh",
-        "description": "F\u00fchrt nur SuGaR-Meshing und Post-Processing aus. Ben\u00f6tigt einen fertigen STS-Checkpoint (point_cloud.ply). Ideal zum schnellen Testen des Meshing-Schritts.",
+        "name": "run_pipeline.sh",
+        "args": ["--from", "sugar"],
+        "description": "Replay ab SuGaR-Meshing (run_pipeline.sh --from sugar). Ben\u00f6tigt einen fertigen STS-Checkpoint. Ideal zum schnellen Testen des Meshing- und Post-Processing-Schritts.",
         "steps": [
             "SuGaR Coarse-Training + Meshing + Refinement",
             "DGtal Centerline",
@@ -126,44 +239,6 @@ SCRIPTS_INFO = [
             {"prompt": "Refinement-Dauer (short/medium/long oder EXPLAIN)", "var": "REFINEMENT_TIME"},
         ],
     },
-    {
-        "id": "run_sam3",
-        "name": "run_sam3.sh",
-        "description": "F\u00fchrt nur das SAM 3.1 Video-Preprocessing aus: Frame-Extraktion und Objekt-Maskierung mit dem SAM 3.1 Video Predictor.",
-        "steps": [
-            "HF Token Pr\u00fcfung",
-            "Video-Eingabe Konfiguration",
-            "SAM 3.1 Tracking",
-            "Masken-Extraktion",
-        ],
-        "inputs": [
-            {"prompt": "HuggingFace Token f\u00fcr SAM 3.1", "var": "HF_TOKEN", "type": "password"},
-            {"prompt": "Text-Prompt (z.B. 'cable', 'pipe')", "var": "TEXT_PROMPT"},
-            {"prompt": "Video verwenden / komprimieren", "var": "VIDEO_CONFIG", "type": "confirm"},
-        ],
-    },
-    {
-        "id": "clean_data",
-        "name": "clean_data_interactive.sh",
-        "description": "Interaktive Bereinigung von abgeleiteten Pipeline-Daten. L\u00f6scht ausgew\u00e4hlte Ausgabeordner (Frames, Masken, SfM, STS, Mesh, GIS, Evaluation) und optional den HF-Cache.",
-        "steps": [
-            "SAM3-Daten l\u00f6schen (02-03)",
-            "COLMAP-Daten l\u00f6schen (04)",
-            "STS-Daten l\u00f6schen (05)",
-            "Mesh/GIS/Evaluation l\u00f6schen (06-09)",
-            "Komprimiertes Video l\u00f6schen",
-            "HF Cache l\u00f6schen (optional)",
-        ],
-        "inputs": [
-            {"prompt": "SAM 3 Ausgabe zur\u00fccksetzen?", "var": "DELETE_SAM3", "type": "confirm"},
-            {"prompt": "COLMAP zur\u00fccksetzen?", "var": "DELETE_COLMAP", "type": "confirm"},
-            {"prompt": "STS/3DGS zur\u00fccksetzen?", "var": "DELETE_STS", "type": "confirm"},
-            {"prompt": "Mesh/Postprocess l\u00f6schen?", "var": "DELETE_LATE", "type": "confirm"},
-            {"prompt": "Komprimiertes Video l\u00f6schen?", "var": "DELETE_COMPRESSED", "type": "confirm"},
-            {"prompt": "HF Cache l\u00f6schen?", "var": "DELETE_CACHE", "type": "confirm"},
-            {"prompt": "Best\u00e4tigung (DELETE eingeben)", "var": "CONFIRM", "type": "text"},
-        ],
-    },
 ]
 
 # Script execution sessions
@@ -171,21 +246,24 @@ script_sessions = {}
 script_sessions_lock = threading.Lock()
 
 
-def run_script_thread(script_path, session_id):
+def run_script_thread(script_path, session_id, script_args=None):
     """Run a shell script inside a pseudo-terminal (PTY).
 
     A PTY (instead of plain pipes) is essential for interactive scripts:
     'read -p' prompts are written without a trailing newline and bash also
-    detects a TTY, so prompts are flushed immediately and appear live in
-    the browser terminal. It also lets us forward user answers to stdin.
+    detects a TTY, so prompts are flushed immediately and appear live in the
+    browser terminal. It also lets us forward user answers to stdin.
+    ``script_args`` is forwarded as argv after the script path (e.g. for
+    ``run_pipeline.sh --from sts``).
     """
     q = script_sessions[session_id]["queue"]
     proc = None
     master_fd = None
+    script_args = script_args or []
     try:
         master_fd, slave_fd = pty.openpty()
         proc = subprocess.Popen(
-            ["/bin/bash", script_path],
+            ["/bin/bash", script_path, *script_args],
             stdin=slave_fd,
             stdout=slave_fd,
             stderr=slave_fd,
@@ -327,7 +405,7 @@ PIPELINE_STEPS = [
         "label": "02 Frame-Extraktion",
         "dir": "02_frames",
         "container": "Container A (SAM 3)",
-        "scripts": ["extract_masks_notebook_flow.py", "extract_masks.py"],
+        "scripts": ["extract_masks_notebook_flow.py"],
         "outputs": ["*.jpg", "*.png"],
     },
     {
@@ -351,7 +429,7 @@ PIPELINE_STEPS = [
         "label": "05 STS 3DGS Training",
         "dir": "05_3dgs",
         "container": "Container C (STS)",
-        "scripts": ["prep_sts_scene.py", "train.py", "filter_cable_pc.py"],
+        "scripts": ["prep_sts_scene.py", "filter_cable_pc.py"],
         "outputs": ["output/point_cloud/*.ply", "output/*.pth"],
     },
     {
@@ -359,7 +437,7 @@ PIPELINE_STEPS = [
         "label": "06 SuGaR Meshing",
         "dir": "06_mesh",
         "container": "Container D (SuGaR)",
-        "scripts": ["extract_mesh.py"],
+        "scripts": ["run_masked_sugar.sh", "prepare_sugar_input.sh"],
         "outputs": ["*.ply", "*.obj"],
     },
     {
@@ -383,7 +461,7 @@ PIPELINE_STEPS = [
         "label": "09 Evaluation",
         "dir": "09_evaluation",
         "container": "Host",
-        "scripts": ["evaluation.py"],
+        "scripts": [],
         "outputs": ["*.json", "*.csv", "*.png", "*.pdf"],
     },
 ]
@@ -536,6 +614,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         elif self.path.startswith("/api/file/"):
             rel_path = unquote(self.path[len("/api/file/"):])
             abs_path = os.path.abspath(os.path.join(DATA_DIR, "..", rel_path))
+            # Confinement: never serve files outside the project root (blocks
+            # /api/file/../../etc/passwd style traversal from the URL).
+            if abs_path != PROJECT_ROOT and not abs_path.startswith(PROJECT_ROOT + os.sep):
+                self.send_json({"error": "Forbidden"}, 403)
+                return
             if os.path.isfile(abs_path):
                 try:
                     self.send_response(200)
@@ -553,6 +636,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         elif self.path.startswith("/api/dir/"):
             rel_path = unquote(self.path[len("/api/dir/"):])
             abs_path = os.path.abspath(os.path.join(DATA_DIR, rel_path))
+            # Confinement: restrict directory listings to the data directory.
+            if abs_path != DATA_DIR and not abs_path.startswith(DATA_DIR + os.sep):
+                self.send_json({"error": "Forbidden"}, 403)
+                return
             if os.path.isdir(abs_path):
                 self.send_json(scan_dir(abs_path))
             else:
@@ -563,6 +650,21 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "pipeline": "Scan-to-BIM mit SAM 3 + Gaussian Splatting",
                 "data_dir": DATA_DIR,
             })
+        elif self.path == "/api/gcp/frames":
+            self.send_json(self._gcp_frames())
+        elif self.path == "/api/gcp/points":
+            self.send_json(self._gcp_points())
+        elif self.path == "/api/gcp/observations":
+            self.send_json(_read_observations())
+        elif self.path == "/api/gcp/report":
+            if os.path.isfile(GCP_REPORT_PATH):
+                try:
+                    with open(GCP_REPORT_PATH, encoding="utf-8") as handle:
+                        self.send_json(json.load(handle))
+                except (OSError, ValueError) as e:
+                    self.send_json({"error": f"Report nicht lesbar: {e}"}, 500)
+            else:
+                self.send_json({"error": "Noch kein Report vorhanden. Bitte Matrix berechnen."}, 404)
         else:
             super().do_GET()
 
@@ -588,7 +690,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     "script_id": script_id,
                     "log": [] # Persistent log of terminal output for page refreshes
                 }
-            t = threading.Thread(target=run_script_thread, args=(script_path, session_id), daemon=True)
+            t = threading.Thread(target=run_script_thread, args=(script_path, session_id, script_info.get("args", [])), daemon=True)
             t.start()
             self.send_json({"session_id": session_id, "script_id": script_id})
         elif self.path.startswith("/api/script/input/"):
@@ -617,6 +719,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_json({"stopped": True})
         elif self.path == "/api/upload":
             self.handle_upload()
+        elif self.path == "/api/gcp/observation":
+            self._gcp_upsert_observation()
+        elif self.path == "/api/gcp/observation/delete":
+            self._gcp_delete_observation()
+        elif self.path == "/api/gcp/compute":
+            self._gcp_compute()
         else:
             self.send_json({"error": "Not found"}, 404)
 
@@ -649,10 +757,127 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         },
     }
 
+    def _stream_multipart(self, boundary, total_len, file_tmp_dir):
+        """Stream-parse a multipart/form-data body from self.rfile.
+
+        Writes the ``file`` part to a temp file in ``file_tmp_dir`` and returns
+        ``(target_value, file_tmp_path, filename, file_size)``. Only the small
+        ``target`` field is held in memory; the (potentially multi-GB) file
+        payload is streamed to disk in 64 KiB chunks so the upload never needs
+        to fit in RAM as a single blob.
+        """
+        delim = ("--" + boundary).encode()
+        end_marker = b"\r\n" + delim
+        crlfcrlf = b"\r\n\r\n"
+        remaining = total_len
+        buf = b""
+
+        def read_more():
+            nonlocal buf, remaining
+            if remaining <= 0:
+                return False
+            chunk = self.rfile.read(min(1 << 16, remaining))
+            if not chunk:
+                remaining = 0
+                return False
+            buf += chunk
+            remaining -= len(chunk)
+            return True
+
+        # Skip the preamble up to the first boundary line.
+        while delim not in buf:
+            if not read_more():
+                break
+        idx = buf.find(delim)
+        if idx < 0:
+            raise ValueError("Keine Multipart-Boundary gefunden")
+        buf = buf[idx + len(delim):]
+        if buf.startswith(b"\r\n"):
+            buf = buf[2:]
+
+        target_value = None
+        file_tmp_path = None
+        filename = None
+        file_size = 0
+
+        while True:
+            # Read this part's headers.
+            while crlfcrlf not in buf:
+                if not read_more():
+                    break
+            hidx = buf.find(crlfcrlf)
+            if hidx < 0:
+                break
+            raw_headers = buf[:hidx].decode("utf-8", errors="replace")
+            buf = buf[hidx + 4:]
+
+            field_name = None
+            is_file = False
+            part_filename = None
+            for line in raw_headers.split("\r\n"):
+                if line.lower().startswith("content-disposition:"):
+                    for tok in line.split(";"):
+                        tok = tok.strip()
+                        if tok.startswith("name="):
+                            field_name = tok[5:].strip('"')
+                        elif tok.startswith("filename="):
+                            part_filename = tok[9:].strip('"')
+                            is_file = True
+
+            if is_file:
+                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".upload", dir=file_tmp_dir)
+                file_tmp_path = tmp.name
+                file_size = 0
+                filename = part_filename
+                while True:
+                    eidx = buf.find(end_marker)
+                    if eidx >= 0:
+                        tmp.write(buf[:eidx])
+                        file_size += eidx
+                        buf = buf[eidx + len(end_marker):]
+                        break
+                    # Keep a tail as long as the marker to avoid splitting it
+                    # across reads, then flush the safe prefix to the temp file.
+                    safe = len(buf) - len(end_marker)
+                    if safe > 0:
+                        tmp.write(buf[:safe])
+                        file_size += safe
+                        buf = buf[safe:]
+                    if not read_more():
+                        # Truncated upload (no closing marker): flush the rest.
+                        tmp.write(buf)
+                        file_size += len(buf)
+                        buf = b""
+                        break
+                tmp.close()
+            else:
+                content = b""
+                while True:
+                    eidx = buf.find(end_marker)
+                    if eidx >= 0:
+                        content += buf[:eidx]
+                        buf = buf[eidx + len(end_marker):]
+                        break
+                    content += buf
+                    buf = b""
+                    if not read_more():
+                        break
+                if field_name == "target":
+                    target_value = content.decode("utf-8", errors="replace").strip()
+
+            # After the end marker: either '--' (closing) or '\r\n' (next part).
+            if buf.startswith(b"--"):
+                break
+            if buf.startswith(b"\r\n"):
+                buf = buf[2:]
+
+        return target_value, file_tmp_path, filename, file_size
+
     def handle_upload(self):
-        """Receive a multipart/form-data upload (drag & drop) and store it
-        into the whitelisted data folder. Streams to a temp file so large
-        videos do not need to fit in memory twice."""
+        """Receive a multipart/form-data upload (drag & drop) and store it into
+        the whitelisted data folder. The file payload is streamed to a temp file
+        in 64 KiB chunks so large videos never need to fit in memory."""
+        file_tmp_path = None
         try:
             content_type = self.headers.get("Content-Type", "")
             if "multipart/form-data" not in content_type:
@@ -666,37 +891,19 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             if content_len <= 0:
                 self.send_json({"error": "Leerer Upload"}, 400)
                 return
-            body = self.rfile.read(content_len)
 
-            # --- Parse multipart parts ---
-            delim = ("--" + boundary).encode()
-            parts = body.split(delim)
-            target_key = None
-            file_bytes = None
-            orig_filename = None
-            for part in parts:
-                if not part or part in (b"--", b"--\r\n"):
-                    continue
-                header_end = part.find(b"\r\n\r\n")
-                if header_end < 0:
-                    continue
-                raw_headers = part[:header_end].decode("utf-8", errors="replace")
-                content = part[header_end + 4:]
-                # Strip trailing CRLF of the part
-                if content.endswith(b"\r\n"):
-                    content = content[:-2]
-                if 'name="target"' in raw_headers:
-                    target_key = content.decode("utf-8", errors="replace").strip()
-                elif 'name="file"' in raw_headers:
-                    file_bytes = content
-                    for line in raw_headers.split("\r\n"):
-                        if "filename=" in line:
-                            orig_filename = line.split("filename=")[-1].strip().strip('"')
+            # Temp dir inside the project root -> the final os.replace is a fast
+            # same-filesystem rename, not a cross-mount copy.
+            upload_tmp_root = os.path.join(PROJECT_ROOT, ".upload_tmp")
+            os.makedirs(upload_tmp_root, exist_ok=True)
+            target_key, file_tmp_path, orig_filename, file_size = self._stream_multipart(
+                boundary, content_len, upload_tmp_root
+            )
 
             if not target_key or target_key not in self.UPLOAD_TARGETS:
                 self.send_json({"error": f"Unbekanntes Upload-Ziel: {target_key}"}, 400)
                 return
-            if file_bytes is None or not orig_filename:
+            if not file_tmp_path or not orig_filename:
                 self.send_json({"error": "Keine Datei empfangen"}, 400)
                 return
 
@@ -717,21 +924,148 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             dest_dir = os.path.join(DATA_DIR, target["dir"])
             os.makedirs(dest_dir, exist_ok=True)
             dest_path = os.path.join(dest_dir, final_name)
-            with open(dest_path, "wb") as f:
-                f.write(file_bytes)
+            os.replace(file_tmp_path, dest_path)
+            file_tmp_path = None  # consumed by the rename
 
             rel = os.path.relpath(dest_path, PROJECT_ROOT)
             self.send_json({
                 "saved": True,
                 "path": rel,
-                "size": len(file_bytes),
+                "size": file_size,
                 "target": target_key,
             })
         except Exception as e:
             self.send_json({"error": f"Upload fehlgeschlagen: {e}"}, 500)
+        finally:
+            if file_tmp_path and os.path.exists(file_tmp_path):
+                try:
+                    os.unlink(file_tmp_path)
+                except OSError:
+                    pass
 
     def send_json(self, data, status=200):
         safe_send_json(self, data, status)
+
+    def _read_json_body(self):
+        content_len = int(self.headers.get("Content-Length", 0))
+        if content_len <= 0:
+            return {}
+        try:
+            return json.loads(self.rfile.read(content_len).decode())
+        except (ValueError, OSError):
+            return {}
+
+    def _gcp_frames(self):
+        cams_path = os.path.join(SPARSE_TXT_DIR, "cameras.txt")
+        imgs_path = os.path.join(SPARSE_TXT_DIR, "images.txt")
+        if not (os.path.isfile(cams_path) and os.path.isfile(imgs_path)):
+            return {"error": "Kein COLMAP TXT-Export gefunden. Bitte COLMAP-SfM ausfuehren (erzeugt data/04_sfm/sparse_txt/).", "frames": []}
+        cams = _parse_cameras_txt_min(cams_path)
+        images = _parse_images_txt_min(imgs_path)
+        frames = []
+        for img in images:
+            cam = cams.get(img["camera_id"])
+            if cam is None:
+                continue
+            center = _camera_center(img["qvec"], img["tvec"])
+            frames.append({
+                "name": img["name"],
+                "width": cam["width"],
+                "height": cam["height"],
+                "center": [round(c, 4) for c in center],
+                "thumb": "/api/file/data/02_frames/" + img["name"],
+            })
+        frames.sort(key=lambda f: f["name"])
+        return {"frames": frames}
+
+    def _gcp_points(self):
+        rel = _parse_gcp_csv(GCP_RELATIVE_CSV)
+        utm = _parse_gcp_csv(GCP_COORDINATES_CSV)
+        ids = list(dict.fromkeys(list(rel.keys()) + list(utm.keys())))
+        points = []
+        for gid in ids:
+            r = rel.get(gid) or [None, None, None]
+            u = utm.get(gid) or [None, None, None]
+            points.append({
+                "gcp_id": gid,
+                "x_rel": r[0], "y_rel": r[1], "z_rel": r[2],
+                "x_utm": u[0], "y_utm": u[1], "z_utm": u[2],
+            })
+        return {"points": points, "has_relative": bool(rel), "has_utm": bool(utm)}
+
+    def _gcp_upsert_observation(self):
+        body = self._read_json_body()
+        gcp_id = str(body.get("gcp_id", ""))
+        image_name = str(body.get("image_name", ""))
+        u = body.get("u")
+        v = body.get("v")
+        if not gcp_id or not image_name or u is None or v is None:
+            self.send_json({"error": "gcp_id, image_name, u, v erforderlich"}, 400)
+            return
+        try:
+            u = float(u)
+            v = float(v)
+        except (TypeError, ValueError):
+            self.send_json({"error": "u und v muessen Zahlen sein"}, 400)
+            return
+        obs = _read_observations()
+        obs = [o for o in obs if not (str(o.get("gcp_id")) == gcp_id and str(o.get("image_name")) == image_name)]
+        obs.append({"gcp_id": gcp_id, "image_name": image_name, "u": u, "v": v})
+        _write_observations(obs)
+        self.send_json({"saved": True, "count": len(obs)})
+
+    def _gcp_delete_observation(self):
+        body = self._read_json_body()
+        gcp_id = str(body.get("gcp_id", ""))
+        image_name = str(body.get("image_name", ""))
+        if not gcp_id or not image_name:
+            self.send_json({"error": "gcp_id und image_name erforderlich"}, 400)
+            return
+        obs = _read_observations()
+        before = len(obs)
+        obs = [o for o in obs if not (str(o.get("gcp_id")) == gcp_id and str(o.get("image_name")) == image_name)]
+        _write_observations(obs)
+        self.send_json({"deleted": len(obs) < before, "count": len(obs)})
+
+    def _gcp_compute(self):
+        if not os.path.isfile(os.path.join(SPARSE_TXT_DIR, "cameras.txt")):
+            self.send_json({"error": "Kein COLMAP TXT-Export (data/04_sfm/sparse_txt/). Erst SfM ausfuehren."}, 400)
+            return
+        if not _read_observations():
+            self.send_json({"error": "Keine Beobachtungen. Bitte GCPs in Bildern markieren."}, 400)
+            return
+        try:
+            proc = subprocess.run(
+                ["docker", "compose", "run", "--rm", "post-processing",
+                 "python3", "/app/src/python/gcp_register.py"],
+                cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=180,
+            )
+        except FileNotFoundError:
+            self.send_json({"error": "docker nicht verfuegbar"}, 500)
+            return
+        except subprocess.TimeoutExpired:
+            self.send_json({"error": "Timeout bei der Berechnung (>180s)"}, 504)
+            return
+        if proc.returncode != 0:
+            self.send_json({"error": "gcp_register fehlgeschlagen",
+                            "stderr": proc.stderr[-2000:], "stdout": proc.stdout[-2000:]}, 500)
+            return
+        if os.path.isfile(GCP_REPORT_PATH):
+            try:
+                with open(GCP_REPORT_PATH, encoding="utf-8") as handle:
+                    self.send_json(json.load(handle))
+                return
+            except (OSError, ValueError) as e:
+                self.send_json({"error": f"Report nicht lesbar: {e}"}, 500)
+                return
+        self.send_json({"error": "Berechnung lief, aber kein Report geschrieben",
+                        "stdout": proc.stdout[-2000:]}, 500)
+
+    def do_DELETE(self):
+        if self.path == "/api/gcp/observation":
+            self._gcp_delete_observation()
+        else:
+            self.send_json({"error": "Not found"}, 404)
 
     def log_message(self, format, *args):
         pass

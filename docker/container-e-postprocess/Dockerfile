@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     gdal-bin \
     libgdal-dev \
     python3-pip \
+    python3-numpy \
     libgmp-dev \
     zlib1g-dev \
     tesseract-ocr \

@@ -16,6 +16,7 @@
       <span id="pipeline-title">KI-gestützte 3D-Rekonstruktion linearer Infrastruktur</span>
     </div>
     <div class="header-right">
+      <button id="btn-gcp" title="GCP-Registrierung in Bildern" onclick="toggleGcpView()">&#127919; GCP</button>
       <button id="btn-refresh" title="Daten neu laden" onclick="loadAll()">&#8635;</button>
       <span id="status-dot" class="status-dot" title="Pipeline Status"></span>
     </div>
@@ -104,6 +105,44 @@
   </footer>
 </div>
 
-<script src="app.js?v=1.2"></script>
+<!-- GCP Registration View (toggled by the header button) -->
+<div id="gcp-view" class="gcp-view" style="display:none">
+  <div class="gcp-toolbar">
+    <button class="gcp-btn" onclick="closeGcpView()">&#8592; Zur&uuml;ck zum Dashboard</button>
+    <span class="gcp-title">GCP-Registrierung (Passpunkte in Bildern markieren)</span>
+    <button class="gcp-btn gcp-primary" id="gcp-compute-btn" onclick="gcpCompute()">&#9881; Matrix berechnen</button>
+  </div>
+  <div class="gcp-body">
+    <div class="gcp-left">
+      <div class="gcp-section-title">Passpunkte</div>
+      <div id="gcp-point-list" class="gcp-list"></div>
+      <div class="gcp-section-title" style="margin-top:10px">Frames (registriert)</div>
+      <div id="gcp-frame-list" class="gcp-frame-list"></div>
+    </div>
+    <div class="gcp-center">
+      <div class="gcp-canvas-toolbar">
+        <span id="gcp-current-frame" class="gcp-muted">kein Frame geladen</span>
+        <span class="gcp-spacer"></span>
+        <button class="gcp-btn" onclick="gcpZoom(1.25)">+</button>
+        <button class="gcp-btn" onclick="gcpZoom(0.8)">&minus;</button>
+        <button class="gcp-btn" onclick="gcpResetView()">Fit</button>
+        <span id="gcp-cursor" class="gcp-muted"></span>
+      </div>
+      <div id="gcp-canvas-wrap" class="gcp-canvas-wrap">
+        <canvas id="gcp-canvas"></canvas>
+      </div>
+      <div class="gcp-hint">Klick = markieren (Subpixel). Mausrad = Zoom, Ziehen = Pan. Pro GCP &ge; 4 Bilder mit guter Parallaxe.</div>
+    </div>
+    <div class="gcp-right">
+      <div class="gcp-section-title">Beobachtungen</div>
+      <div id="gcp-obs-list" class="gcp-obs-list"></div>
+      <div class="gcp-section-title" style="margin-top:10px">Qualit&auml;tsreport</div>
+      <div id="gcp-report" class="gcp-report"></div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=1.3"></script>
+<script src="gcp.js?v=1.0"></script>
 </body>
 </html>

@@ -162,7 +162,7 @@ function renderFlowchart() {
     { id:'extractA', x:160, y:300, w:200, h:44, label:'Frame-Extraktion', sub:'6 FPS Masken + Bilder', color:'#cabeff' },
     { id:'extractB', x:540, y:300, w:200, h:44, label:'Maskengenerierung', sub:'6 FPS Masken', color:'#ffb4ab' },
     { id:'colmap', x:350, y:390, w:240, h:44, label:'COLMAP SfM', sub:'Sparse Punktwolke + Posen', color:'#c4c5da' },
-    { id:'cc', x:560, y:480, w:190, h:44, label:'CloudCompare (Host)', sub:'GCP Point Picking', color:'#ffb4ab' },
+    { id:'cc', x:560, y:480, w:190, h:44, label:'GCP-Registrierung', sub:'UI-Markierung / CloudCompare', color:'#ffb4ab' },
     { id:'sts', x:140, y:480, w:200, h:44, label:'Segment-then-Splat', sub:'Object-specific 3DGS', color:'#45dfa4' },
     { id:'sugar', x:240, y:570, w:220, h:44, label:'SuGaR Meshing', sub:'Poisson Reconstruction', color:'#cabeff' },
     { id:'dgtal', x:240, y:660, w:220, h:44, label:'DGtal Centerline', sub:'Kabel-Sub-Mesh -> 1D-Kurve', color:'#45dfa4' },
@@ -413,9 +413,10 @@ function renderPreview(step) {
   if (step.scripts && step.scripts.length) {
     html += `<div class="preview-section">
       <div class="preview-section-title">Verwendete Skripte</div>`;
+    const ROOT_SCRIPTS = new Set(['run_pipeline.sh','run_masked_sugar.sh','prepare_sugar_input.sh','run_multiview_crop.sh','run_coarse_mesh_ablation.sh']);
     step.scripts.forEach(s => {
       const scriptPath = s.endsWith('.sh')
-        ? '/api/file/src/scripts/' + s
+        ? (ROOT_SCRIPTS.has(s) ? '/api/file/' + s : '/api/file/src/scripts/' + s)
         : '/api/file/src/python/' + s;
       html += `<a class="preview-file" href="${scriptPath}" target="_blank">
         <span class="preview-file-icon">📜</span>
@@ -603,7 +604,7 @@ function renderScriptList() {
 }
 
 function getScriptIcon(id) {
-  return { run_pipeline: '▶', run_from_sts: '⏩', run_from_colmap: '📐', run_from_sugar: '🧊', run_sam3: '🎯', clean_data: '🧹' }[id] || '📜';
+  return { run_pipeline: '▶', run_from_colmap: '📐', run_from_sts: '⏩', run_from_sugar: '🧊' }[id] || '📜';
 }
 
 function selectScript(scriptId) {
@@ -705,12 +706,12 @@ function appendTerminal(text, className) {
 
 function sendQuick(answer) {
   if (!scriptSessionId) return;
+  // The PTY echoes the input back through the output stream, so we do not
+  // append a local echo line here (it would duplicate the typed answer).
   fetch('/api/script/input/' + scriptSessionId, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ input: answer })
-  }).then(() => {
-    appendTerminal('\n> ' + (answer === '' ? '[Enter]' : answer) + '\n', 'sent');
   }).catch(e => console.error('Quick input failed:', e));
 }
 
@@ -875,7 +876,7 @@ async function sendScriptInput() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ input: text })
     });
-    appendTerminal('> ' + text, 'prompt');
+    // No local echo: the PTY echoes the typed line back through the SSE stream.
   } catch (e) {
     console.error('Input failed:', e);
   }
