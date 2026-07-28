@@ -1,0 +1,102 @@
+services:
+  # Container A: Vorverarbeitung (SAM 3 Video Tracking / Mask Export)
+  sam3-preprocess:
+    build:
+      context: .
+      dockerfile: ./docker/container-a-sam3/Dockerfile
+    container_name: sam3_preprocess
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    gpus: all
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HF_HOME=/data/hf_cache
+      # Optimiere PyTorch CPU Multithreading (8 Threads = 8 P-Cores des i7-12700)
+      - OMP_NUM_THREADS=8
+      - MKL_NUM_THREADS=8
+      - OPENBLAS_NUM_THREADS=8
+      - MAX_JOBS=8
+      # Erlaube PyTorch, fragmentierten VRAM besser zu nutzen
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+    volumes:
+      - ./data:/data
+      - ./src:/app/src
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Container B: Structure from Motion (COLMAP CUDA 11.8/12.1)
+  colmap-sfm:
+    build:
+      context: .
+      dockerfile: ./docker/container-b-colmap/Dockerfile
+    container_name: colmap_sfm
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    gpus: all
+    volumes:
+      - ./data:/data
+      - ./src:/app/src
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Container C: Object-specific 3DGS (Segment-then-Splat STS CUDA 12.1)
+  sts-training:
+    build:
+      context: .
+      dockerfile: ./docker/container-c-sts/Dockerfile
+    container_name: sts_training
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    gpus: all
+    volumes:
+      - ./data:/data
+      - ./src:/app/src
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Container D: Meshing (SuGaR CUDA 11.8)
+  sugar-meshing:
+    build:
+      context: .
+      dockerfile: ./docker/container-d-sugar/Dockerfile
+    container_name: sugar_meshing
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    gpus: all
+    volumes:
+      - ./data:/data
+      - ./src:/app/src
+      # Map the container's internal output directory dynamically to the host
+      # so that all checkpoints, ply meshes, and textured obj models survive--rm
+      - ./data/sugar_output:/opt/sugar/output
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Container E: Post-Processing (DGtal C++ & GDAL / CPU-only)
+  post-processing:
+    build:
+      context: .
+      dockerfile: ./docker/container-e-postprocess/Dockerfile
+    container_name: post_processing
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    volumes:
+      - ./data:/data
+      - ./src:/app/src
+    # Pure CPU-container, no GPU reservation needed
+

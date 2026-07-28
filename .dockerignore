@@ -1,0 +1,43 @@
+# Build-context exclusions — keep `docker build` context small and avoid leaking
+# datasets, logs, virtualenvs and write-ups into the daemon. Bind mounts
+# (./data:/data, ./src:/app/src) are runtime mounts and are NOT affected by this
+# file, so pipeline data access is unchanged.
+
+# Datasets (bind-mounted at runtime, never COPYed into images)
+data/
+
+# Third-party submodule working tree (fetched inside the image via git clone)
+third_party/
+
+# Python caches / virtualenvs
+__pycache__/
+*.pyc
+.venv/
+venv/
+.conda/
+
+# C++ build artifacts
+src/cpp/build/
+bin/
+
+# Logs
+*.log
+
+# Write-up / non-pipeline directories (not present in this repo, kept for safety)
+Ausarbeitung/
+Vorlage/
+Themenfindung/
+
+# Agent / IDE / OS
+.agents/
+.idea/
+.vscode/
+.DS_Store
+
+# Git metadata
+.git/
+.gitmodules
+
+# Dockerfiles themselves do not need to be in the context they describe
+Dockerfile
+*.dockerignore

@@ -1,0 +1,3 @@
+# Placeholder so data/01_raw/ is tracked by git. Place your raw drone video
+# (e.g. *.mp4/*.mov) and gcp_coordinates.csv here. All other data/ subfolders
+# are created automatically by the pipeline and are git-ignored.

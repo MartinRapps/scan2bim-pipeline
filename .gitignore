@@ -1,0 +1,39 @@
+# Datasets — only the raw-input placeholder is tracked; everything else under
+# data/ is generated at runtime by the pipeline.
+data/*
+!data/01_raw/
+data/01_raw/*
+!data/01_raw/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.conda/
+
+# C++ build artifacts
+src/cpp/build/
+bin/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Secrets / local environment (copy .env.example to .env and fill in)
+.env
+.env.*.local
+
+# Logs
+*.log
+
+# LaTeX build artifacts (docs/Expose_PA_BA.tex itself is tracked)
+*.aux
+*.toc
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
