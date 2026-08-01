@@ -43,7 +43,7 @@ def main():
         x_idx = [i for i, c in enumerate(header) if c.lower() in ['x', 'east', 'ost', 'easting']][0]
         y_idx = [i for i, c in enumerate(header) if c.lower() in ['y', 'north', 'nord', 'northing']][0]
         z_idx = [i for i, c in enumerate(header) if c.lower() in ['z', 'height', 'hoehe', 'elevation']][0]
-        id_idx = [i for i, c in enumerate(header) if c.lower() in ['id', 'name', 'gcp', 'passpunkt']][0]
+        id_idx = [i for i, c in enumerate(header) if c.lower() in ['id', 'name', 'gcp', 'passpunkt', 'gcp_id']][0]
     except IndexError:
         print("Error: Could not detect GCP coordinate headers. Please ensure the CSV has columns: id, x, y, z")
         return

@@ -79,7 +79,7 @@ def parse_gcp_relative(path: str) -> Dict[str, np.ndarray]:
         reader = csv.reader(handle)
         header = [h.strip() for h in next(reader)]
         lower = [h.lower() for h in header]
-        id_idx = next((i for i, c in enumerate(lower) if c in ("id", "name", "gcp", "passpunkt")), None)
+        id_idx = next((i for i, c in enumerate(lower) if c in ("id", "name", "gcp", "passpunkt", "gcp_id")), None)
         x_idx = next((i for i, c in enumerate(lower) if c in ("x", "east", "ost", "easting")), None)
         y_idx = next((i for i, c in enumerate(lower) if c in ("y", "north", "nord", "northing")), None)
         z_idx = next((i for i, c in enumerate(lower) if c in ("z", "height", "hoehe", "elevation")), None)

@@ -97,7 +97,7 @@ def _parse_gcp_csv(path):
             reader = csv.reader(handle)
             header = [h.strip() for h in next(reader)]
             lower = [h.lower() for h in header]
-            id_idx = next((i for i, c in enumerate(lower) if c in ("id", "name", "gcp", "passpunkt")), None)
+            id_idx = next((i for i, c in enumerate(lower) if c in ("id", "name", "gcp", "passpunkt", "gcp_id")), None)
             x_idx = next((i for i, c in enumerate(lower) if c in ("x", "east", "ost", "easting")), None)
             y_idx = next((i for i, c in enumerate(lower) if c in ("y", "north", "nord", "northing")), None)
             z_idx = next((i for i, c in enumerate(lower) if c in ("z", "height", "hoehe", "elevation")), None)
@@ -1034,32 +1034,73 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not _read_observations():
             self.send_json({"error": "Keine Beobachtungen. Bitte GCPs in Bildern markieren."}, 400)
             return
+
+        # Common args for both paths.
+        common_args = [
+            "--sfm-txt", SPARSE_TXT_DIR,
+            "--observations", GCP_OBS_PATH,
+            "--gcp-relative", GCP_RELATIVE_CSV,
+            "--output-matrix", os.path.join(SFM_DIR, "matrix.txt"),
+            "--report", GCP_REPORT_PATH,
+        ]
+        docker_cmd = ["docker", "compose", "run", "--rm", "post-processing",
+                      "python3", "/app/src/python/gcp_register.py", *common_args]
+        native_cmd = ["python3",
+                      os.path.join(PROJECT_ROOT, "src", "python", "gcp_register.py"),
+                      *common_args]
+
+        proc, mode = None, None
         try:
-            proc = subprocess.run(
-                ["docker", "compose", "run", "--rm", "post-processing",
-                 "python3", "/app/src/python/gcp_register.py"],
-                cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=180,
-            )
+            proc = subprocess.run(docker_cmd, cwd=PROJECT_ROOT,
+                                  capture_output=True, text=True, timeout=180)
+            mode = "docker"
         except FileNotFoundError:
-            self.send_json({"error": "docker nicht verfuegbar"}, 500)
-            return
-        except subprocess.TimeoutExpired:
-            self.send_json({"error": "Timeout bei der Berechnung (>180s)"}, 504)
-            return
-        if proc.returncode != 0:
-            self.send_json({"error": "gcp_register fehlgeschlagen",
-                            "stderr": proc.stderr[-2000:], "stdout": proc.stdout[-2000:]}, 500)
-            return
-        if os.path.isfile(GCP_REPORT_PATH):
+            # docker is not installed / not in PATH; fall back to native python3.
             try:
-                with open(GCP_REPORT_PATH, encoding="utf-8") as handle:
-                    self.send_json(json.load(handle))
+                proc = subprocess.run(native_cmd, cwd=PROJECT_ROOT,
+                                      capture_output=True, text=True, timeout=60)
+                mode = "native"
+            except FileNotFoundError:
+                self.send_json({"error": "Weder 'docker' noch 'python3' sind verfuegbar."}, 500)
                 return
-            except (OSError, ValueError) as e:
-                self.send_json({"error": f"Report nicht lesbar: {e}"}, 500)
+        except subprocess.TimeoutExpired:
+            self.send_json({"error": "Timeout bei der Berechnung (docker >180s)"}, 504)
+            return
+
+        if proc.returncode != 0:
+            # docker failed -> try native as a fallback (e.g. WSL without docker integration,
+            # missing numpy inside container, etc.). Only fall back once.
+            if mode == "docker":
+                try:
+                    proc2 = subprocess.run(native_cmd, cwd=PROJECT_ROOT,
+                                           capture_output=True, text=True, timeout=60)
+                    if proc2.returncode == 0:
+                        proc, mode = proc2, "native"
+                    else:
+                        self.send_json({"error": "gcp_register fehlgeschlagen (docker + native)",
+                                        "docker_stderr": proc.stderr[-2000:],
+                                        "native_stderr": proc2.stderr[-2000:]}, 500)
+                        return
+                except FileNotFoundError:
+                    self.send_json({"error": "gcp_register fehlgeschlagen (docker); python3 fehlt fuer Fallback",
+                                    "stderr": proc.stderr[-2000:]}, 500)
+                    return
+            else:
+                self.send_json({"error": "gcp_register fehlgeschlagen",
+                                "stderr": proc.stderr[-2000:], "stdout": proc.stdout[-2000:]}, 500)
                 return
-        self.send_json({"error": "Berechnung lief, aber kein Report geschrieben",
-                        "stdout": proc.stdout[-2000:]}, 500)
+
+        if not os.path.isfile(GCP_REPORT_PATH):
+            self.send_json({"error": f"Berechnung lief ({mode}), aber kein Report geschrieben",
+                            "stdout": proc.stdout[-2000:]}, 500)
+            return
+        try:
+            with open(GCP_REPORT_PATH, encoding="utf-8") as handle:
+                report = json.load(handle)
+            report["compute_mode"] = mode
+            self.send_json(report)
+        except (OSError, ValueError) as e:
+            self.send_json({"error": f"Report nicht lesbar: {e}"}, 500)
 
     def do_DELETE(self):
         if self.path == "/api/gcp/observation":
