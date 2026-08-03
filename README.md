@@ -34,9 +34,28 @@ chmod +x run_pipeline.sh
 
 If you have already processed the video, extracted SAM 3.1 masks, and computed the COLMAP camera poses, you can bypass the early stages and run the pipeline specifically starting from Segment-then-Splat (STS) onwards:
 ```bash
-chmod +x run_from_sts.sh
-./run_from_sts.sh
+chmod +x run_pipeline.sh
+./run_pipeline.sh --from sts
 ```
+
+### COLMAP Frame Profile
+
+The validated default profile for the COLMAP SfM stage is:
+
+```text
+1280x720, 5 FPS, SIMPLE_RADIAL, Plain-SIFT with 4096 features,
+Sequential Matching overlap 15, Guided Matching disabled
+```
+
+By default, `FRAME_PROFILE_SCOPE=all` applies the generated frame set to
+SAM3, COLMAP, STS and SuGaR. This is the safe setting for a complete run,
+because STS requires masks that correspond exactly to the images used by
+COLMAP. Setting `FRAME_PROFILE_SCOPE=colmap` creates a benchmark-only stop
+mode: SAM3 still creates the frames and masks, but the pipeline stops after
+COLMAP. It must not be continued into STS unless a matching SAM3 mask set for
+that frame profile has been generated. An FHD experiment
+(1920x1080) for SAM3/STS is therefore a separate, explicitly documented
+experiment rather than an implicit change to the COLMAP baseline.
 
 ### Object-Only, Mask-Aware SuGaR (Recommended)
 

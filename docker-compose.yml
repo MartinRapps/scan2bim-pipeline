@@ -36,6 +36,12 @@ services:
     container_name: colmap_sfm
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     gpus: all
+    environment:
+      - COLMAP_CAMERA_MODEL=${COLMAP_CAMERA_MODEL:-SIMPLE_RADIAL}
+      - COLMAP_MAX_FEATURES=${COLMAP_MAX_FEATURES:-4096}
+      - COLMAP_SEQUENTIAL_OVERLAP=${COLMAP_SEQUENTIAL_OVERLAP:-15}
+      - COLMAP_GUIDED_MATCHING=${COLMAP_GUIDED_MATCHING:-0}
+      - COLMAP_SIFT_PEAK_THRESHOLD=${COLMAP_SIFT_PEAK_THRESHOLD:-0.003}
     volumes:
       - ./data:/data
       - ./src:/app/src
@@ -99,4 +105,3 @@ services:
       - ./data:/data
       - ./src:/app/src
     # Pure CPU-container, no GPU reservation needed
-

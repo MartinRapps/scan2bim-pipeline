@@ -20,6 +20,119 @@ fi
 
 RAW_DIR="data/01_raw"
 DEFAULT_SAM3_FRAME_MAX_SIDE=768
+FRAME_PROFILE_SCOPE="${FRAME_PROFILE_SCOPE:-all}"
+COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-SIMPLE_RADIAL}"
+COLMAP_MAX_FEATURES="${COLMAP_MAX_FEATURES:-4096}"
+COLMAP_SEQUENTIAL_OVERLAP="${COLMAP_SEQUENTIAL_OVERLAP:-15}"
+COLMAP_GUIDED_MATCHING="${COLMAP_GUIDED_MATCHING:-0}"
+COLMAP_SIFT_PEAK_THRESHOLD="${COLMAP_SIFT_PEAK_THRESHOLD:-0.003}"
+
+explain_frame_profile_scope() {
+    echo ""
+    echo "  all: Der Frame-Satz (standardmaessig 1280x720 bei 5 FPS) gilt fuer SAM3,"
+    echo "       COLMAP, STS und SuGaR. Das ist der sichere Vollpipeline-Modus."
+    echo "  colmap-stop: SAM3 erzeugt weiterhin den benoetigten Frame-/Maskensatz;"
+    echo "               danach stoppt die Pipeline vor GCP/STS/SuGaR."
+    echo "  Ein spaeterer FHD-Test fuer SAM3/STS ist eine getrennte Studie und wird"
+    echo "  nicht mit dem aktuellen COLMAP-Standard vermischt."
+    echo ""
+}
+
+explain_colmap_values() {
+    echo ""
+    echo "  SIMPLE_RADIAL: eine Brennweite plus Hauptpunkt und ein radialer"
+    echo "                  Verzeichnungsparameter; aktueller Datensatz-Kompromiss."
+    echo "  SIMPLE_PINHOLE: ideale Kamera ohne Verzeichnung; weniger Parameter,"
+    echo "                  aber bei Objektivverzeichnung potenziell ungenauer."
+    echo "  OPENCV: getrennte Brennweiten sowie radiale/tangentiale Parameter;"
+    echo "          flexibler, aber bei schwachen Merkmalen ueberanpassungsgefaehrdet."
+    echo "  max_features: SIFT-Merkmale pro Bild; 4096 ist der aktuelle Kompromiss."
+    echo "  overlap: Anzahl zeitlicher Nachbarbilder beim Sequential Matching."
+    echo "  guided_matching: zusaetzliche geometrisch gefuehrte Zuordnung; im"
+    echo "                   aktuellen Test langsamer ohne klaren Endvorteil."
+    echo "  peak_threshold: SIFT-Empfindlichkeit; kleiner findet schwachere Features."
+    echo ""
+}
+
+configure_frame_profile_scope() {
+    if [[ "$AUTOPILOT" == "true" ]]; then
+        FRAME_PROFILE_SCOPE="${FRAME_PROFILE_SCOPE:-all}"
+        echo "Frame-Profil: ${FRAME_PROFILE_SCOPE}"
+        return
+    fi
+
+    while true; do
+        read -r -p "Frame-/Pipeline-Profil: all oder colmap-stop/EXPLAIN [Default: all]: " USER_SCOPE
+        USER_SCOPE=${USER_SCOPE:-all}
+        if [[ "${USER_SCOPE^^}" == "EXPLAIN" ]]; then
+            explain_frame_profile_scope
+            USER_SCOPE=""
+            continue
+        fi
+        break
+    done
+    case "${USER_SCOPE,,}" in
+        all)
+            FRAME_PROFILE_SCOPE="all"
+            ;;
+        colmap|colmap-only|colmap-stop)
+            FRAME_PROFILE_SCOPE="colmap"
+            echo "COLMAP-only gewaehlt: Nach SfM wird gestoppt."
+            echo "Der Frame-Satz darf nicht ohne passende SAM3-Masken an STS weitergereicht werden."
+            ;;
+        *)
+            echo "Ungueltige Auswahl, verwende all."
+            FRAME_PROFILE_SCOPE="all"
+            ;;
+    esac
+}
+
+configure_colmap_values() {
+    if [[ "$AUTOPILOT" == "true" ]]; then
+        echo "COLMAP-Profil: ${COLMAP_CAMERA_MODEL}, ${COLMAP_MAX_FEATURES} SIFT-Merkmale, overlap=${COLMAP_SEQUENTIAL_OVERLAP}, guided=${COLMAP_GUIDED_MATCHING}"
+        return
+    fi
+
+    while true; do
+        read -r -p "COLMAP-Kameramodell (SIMPLE_RADIAL/SIMPLE_PINHOLE/PINHOLE/OPENCV oder EXPLAIN) [Default: $COLMAP_CAMERA_MODEL]: " value
+        value=${value:-$COLMAP_CAMERA_MODEL}
+        if [[ "${value^^}" == "EXPLAIN" ]]; then explain_colmap_values; continue; fi
+        if [[ "$value" =~ ^(SIMPLE_RADIAL|SIMPLE_PINHOLE|PINHOLE|OPENCV)$ ]]; then COLMAP_CAMERA_MODEL="$value"; break; fi
+        echo "Ungueltiges Kameramodell."
+    done
+
+    while true; do
+        read -r -p "COLMAP SIFT-Merkmale (positive Zahl oder EXPLAIN) [Default: $COLMAP_MAX_FEATURES]: " value
+        value=${value:-$COLMAP_MAX_FEATURES}
+        if [[ "${value^^}" == "EXPLAIN" ]]; then explain_colmap_values; continue; fi
+        if [[ "$value" =~ ^[1-9][0-9]*$ ]]; then COLMAP_MAX_FEATURES="$value"; break; fi
+        echo "Bitte eine positive ganze Zahl eingeben."
+    done
+
+    while true; do
+        read -r -p "Sequential-Matching-Overlap (positive Zahl oder EXPLAIN) [Default: $COLMAP_SEQUENTIAL_OVERLAP]: " value
+        value=${value:-$COLMAP_SEQUENTIAL_OVERLAP}
+        if [[ "${value^^}" == "EXPLAIN" ]]; then explain_colmap_values; continue; fi
+        if [[ "$value" =~ ^[1-9][0-9]*$ ]]; then COLMAP_SEQUENTIAL_OVERLAP="$value"; break; fi
+        echo "Bitte eine positive ganze Zahl eingeben."
+    done
+
+    while true; do
+        read -r -p "Guided Matching aktivieren? 0/1 oder EXPLAIN [Default: $COLMAP_GUIDED_MATCHING]: " value
+        value=${value:-$COLMAP_GUIDED_MATCHING}
+        if [[ "${value^^}" == "EXPLAIN" ]]; then explain_colmap_values; continue; fi
+        if [[ "$value" == "0" || "$value" == "1" ]]; then COLMAP_GUIDED_MATCHING="$value"; break; fi
+        echo "Bitte 0 oder 1 eingeben."
+    done
+
+    while true; do
+        read -r -p "SIFT-Peak-Threshold oder EXPLAIN [Default: $COLMAP_SIFT_PEAK_THRESHOLD]: " value
+        value=${value:-$COLMAP_SIFT_PEAK_THRESHOLD}
+        if [[ "${value^^}" == "EXPLAIN" ]]; then explain_colmap_values; continue; fi
+        if [[ "$value" =~ ^[0-9]+([.][0-9]+)?$ ]]; then COLMAP_SIFT_PEAK_THRESHOLD="$value"; break; fi
+        echo "Bitte eine nichtnegative Zahl eingeben."
+    done
+}
 
 configure_video_input() {
     local raw_video=""
@@ -88,7 +201,8 @@ configure_video_input() {
     else
         echo "Optional kann vor SAM3 ein komprimiertes Arbeitsvideo erzeugt werden."
         echo "Warum das sinnvoll ist: kleinere Aufloesung/FPS sparen VRAM, I/O und Laufzeit; das Rohvideo bleibt unveraendert erhalten."
-        echo "Empfohlene Defaults: transpose=0 (keine Rotation), fps=10, codec=libx264, crf=23, preset=medium"
+        echo "Empfohlene COLMAP-Defaults: 1280x720, 5 FPS, Plain-SIFT 4096, Guided Matching aus"
+        echo "Video-Defaults: transpose=0 (keine Rotation), fps=5, codec=libx264, crf=18, preset=medium"
         echo "Hinweis: Die Skalierung erhaelt das Seitenverhaeltnis und fuellt mit schwarzem Rand auf."
         if [[ "$orientation_hint" == "portrait" ]]; then
             echo "WICHTIG: Das Eingabevideo wirkt wie Hochkant. Bitte nur drehen, wenn das Bild sichtbar falsch ausgerichtet ist."
@@ -97,8 +211,8 @@ configure_video_input() {
     fi
 
     if [[ -z "$CREATE_COMPRESSED" || "$CREATE_COMPRESSED" =~ ^[Yy]$ ]]; then
-        local default_width=1920
-        local default_height=1080
+        local default_width=1280
+        local default_height=720
         if [[ "$orientation_hint" == "portrait" ]]; then
             default_width=1080
             default_height=1920
@@ -107,8 +221,8 @@ configure_video_input() {
         local transpose_value=0
         local target_width=$default_width
         local target_height=$default_height
-        local target_fps=10
-        local target_crf=23
+        local target_fps=5
+        local target_crf=18
         local target_preset="medium"
 
         if [[ "$AUTOPILOT" != "true" ]]; then
@@ -121,11 +235,11 @@ configure_video_input() {
             read -p "Zielhoehe [Default: ${default_height}]: " USER_HEIGHT
             target_height=${USER_HEIGHT:-$default_height}
 
-            read -p "Ziel-FPS [Default: 10]: " USER_FPS
-            target_fps=${USER_FPS:-10}
+            read -p "Ziel-FPS [Default: 5]: " USER_FPS
+            target_fps=${USER_FPS:-5}
 
-            read -p "CRF Qualitaet (kleiner = bessere Qualitaet, groesser = kleinere Datei) [Default: 23]: " USER_CRF
-            target_crf=${USER_CRF:-23}
+            read -p "CRF Qualitaet (kleiner = bessere Qualitaet, groesser = kleinere Datei) [Default: 18]: " USER_CRF
+            target_crf=${USER_CRF:-18}
 
             read -p "x264 Preset (ultrafast ... placebo) [Default: medium]: " USER_PRESET
             target_preset=${USER_PRESET:-medium}
@@ -516,8 +630,10 @@ else
 fi
 
 SELECTED_VIDEO=""
+configure_frame_profile_scope
 configure_video_input
 configure_sam3_frame_resolution
+configure_colmap_values
 
 # Step 1: Pre-processing (SAM 3 Tracking)
 echo "[Step 1/5] Extracting frames and generating SAM 3 masks for: $TEXT_PROMPT ..."
@@ -532,7 +648,20 @@ fi
 
 # Step 2: SfM (COLMAP camera poses & sparse point cloud)
 echo "[Step 2/5] Running COLMAP Structure from Motion..."
-docker compose run --rm colmap-sfm /app/src/scripts/run_sfm.sh
+docker compose run --rm \
+    -e COLMAP_CAMERA_MODEL="$COLMAP_CAMERA_MODEL" \
+    -e COLMAP_MAX_FEATURES="$COLMAP_MAX_FEATURES" \
+    -e COLMAP_SEQUENTIAL_OVERLAP="$COLMAP_SEQUENTIAL_OVERLAP" \
+    -e COLMAP_GUIDED_MATCHING="$COLMAP_GUIDED_MATCHING" \
+    -e COLMAP_SIFT_PEAK_THRESHOLD="$COLMAP_SIFT_PEAK_THRESHOLD" \
+    colmap-sfm /app/src/scripts/run_sfm.sh
+
+if [[ "$FRAME_PROFILE_SCOPE" == "colmap" ]]; then
+    echo "COLMAP-only-Profil abgeschlossen. Pipeline stoppt vor GCP/STS/SuGaR."
+    echo "Fuer einen vollstaendigen Lauf FRAME_PROFILE_SCOPE=all verwenden oder"
+    echo "einen exakt passenden SAM3-Maskensatz fuer diesen Frame-Satz bereitstellen."
+    exit 0
+fi
 
 echo "=========================================================="
 echo "BREAKPOINT: Please open the sparse point cloud in CloudCompare"

@@ -267,6 +267,98 @@ AMP/fp16 im STS-Trainer ($\sim$1{,}4$\times$ Speedup, $\sim$50\,\% weniger
 VRAM, numerisch validieren). Geschätzter Gewinn im Screening-Modus:
 ca.~60--80\,\%, im Produktivlauf ca.~30--40\,\%.
 
+\subsection{Vorläufige COLMAP-Parameterstudie}
+Ergänzend zur allgemeinen Effizienzanalyse wurde eine CPU-only-
+Parameterstudie mit COLMAP~4.1.1 und FFmpeg~8.1.2 unter Windows~11 ohne
+NVIDIA-GPU durchgeführt. Das Eingangsvideo besitzt eine Auflösung von
+$1920\times1080$ Pixeln, 30~FPS und eine Dauer von etwa 48~Sekunden. Die
+Studie bewertet ausschließlich die Sparse-SfM-Stufe; Dense-PatchMatch und die
+nachgelagerten STS-/SuGaR-Schritte wurden in diesen Läufen nicht ausgeführt.
+
+Die wichtigsten Vergleichswerte sind:
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{Xrrrrr}
+\textbf{Konfiguration} & \textbf{Punkte} & \textbf{Pkt./Bild} &
+\textbf{Tracks} & \textbf{Reproj.} & \textbf{Zeit}\\
+\hline
+5~FPS, 720p, Plain-SIFT, 4096 & 139\,449 & 581 & 6,69 & 0,693~px & 876~s\\
+5~FPS, 720p, SIFT, 4096, Guided & 142\,208 & 593 & 7,44 & 0,790~px & 1\,678~s\\
+5~FPS, 720p, Plain-SIFT, 8192 & 140\,594 & 586 & 6,71 & 0,698~px & 925~s\\
+5~FPS, 720p, CRF~18 & 94\,616 & 394 & 6,64 & 0,728~px & 677~s\\
+5~FPS, 720p, CRF~28 & 93\,703 & 390 & 6,43 & 0,761~px & 725~s\\
+\end{tabularx}
+\end{center}
+
+Alle fünf Läufe registrierten 240 von 240 Bildern. Gegenüber Plain-SIFT mit
+4096 Merkmalen erhöhte Guided Matching die Punktzahl jedoch nur um rund
+1,98\,\%, verdoppelte annähernd die Laufzeit und verschlechterte den mittleren
+Reprojektionsfehler. Eine Erhöhung auf 8192 Merkmale brachte lediglich rund
+0,82\,\% zusätzliche Punkte bei rund 5,5\,\% höherer Laufzeit und praktisch
+unverändertem Reprojektionsfehler. Für die nachgelagerte Pipeline wird deshalb
+vorläufig Plain-SIFT mit 4096 Merkmalen ohne Guided Matching verwendet.
+
+Die CRF-Läufe stammen aus einem separaten Kompressionsbenchmark und sind
+nicht ohne Weiteres mit der 4096-Merkmale-Variante gleichzusetzen, da die
+Benchmarkparameter separat dokumentiert werden müssen. CRF~18 zeigte gegenüber
+der Originalquelle nahezu gleiche Sparse-Ergebnisse bei deutlich kleinerer
+Videodatei. CRF~28 ist als speichersparender Kandidat interessant, muss jedoch
+wegen der nicht streng monotonen CRF-Ergebnisse wiederholt und anschließend im
+vollständigen Downstream validiert werden. Ein CRF-23-Lauf bei 10~FPS wurde
+nicht gewertet, da nur 5 von 480 Bildern registriert wurden; ein CRF-35-Lauf
+scheiterte an fehlendem Speicherplatz.
+
+Als vorläufiger COLMAP-Standard wird daher folgende Konfiguration festgelegt:
+
+\begin{center}
+\texttt{SIMPLE\_RADIAL}, 1280$\times$720 Pixel, 5~FPS, Plain-SIFT mit
+4096 Merkmalen, Sequential Matching mit Overlap~15 und Guided Matching aus.
+\end{center}
+
+Die Wahl gilt zunächst für die COLMAP-SfM-Evaluation. Für SAM3 und STS wird
+anschließend eine getrennte FHD-Studie mit $1920\times1080$ Pixeln durchgeführt,
+da höhere Bildauflösung die Segmentierung dünner Objekte und die
+Bildsupervision von 3DGS anders beeinflussen kann als die Sparse-SfM-Stufe.
+Im regulären Pipelinebetrieb gilt standardmäßig ein gemeinsamer Frame-Satz für
+SAM3, COLMAP und STS/SuGaR. Ein COLMAP-stop-Profil lässt SAM3 weiterhin den
+benötigten Frame- und Maskensatz erzeugen, stoppt jedoch nach COLMAP und ist
+damit ausschließlich für SfM-Benchmarks vorgesehen. Es darf nicht ohne exakt
+passenden SAM3-Maskensatz an STS weitergereicht werden.
+
+Die Parameterentscheidung ist in die Orchestrierung integriert. Im
+interaktiven Modus fragt das Master-Skript nach dem Geltungsbereich des
+Frame-Profils (gesamte Pipeline oder COLMAP-only) sowie nach Kameramodell,
+SIFT-Merkmalszahl, Sequential-Matching-Overlap, Guided Matching und
+SIFT-Peak-Threshold. Für jede dieser Entscheidungen kann das Schlüsselwort
+\texttt{EXPLAIN} eingegeben werden; das Skript erläutert dann die methodische
+Bedeutung und wiederholt die Abfrage. Im Autopilot-Modus werden die
+validierten Standardwerte ohne Rückfrage verwendet. Die Werte werden über
+Umgebungsvariablen an Container~B weitergereicht und im Laufprotokoll
+ausgegeben, sodass die Auswahl reproduzierbar dokumentiert ist. Die
+Implementierung schützt außerdem davor, ein COLMAP-only-Ergebnis ohne
+passende Masken automatisch an STS weiterzureichen.
+
+\subsubsection{Einordnung der COLMAP-Kameramodelle}
+\texttt{SIMPLE\_PINHOLE} beschreibt eine ideale Kamera mit einer gemeinsamen
+Brennweite $f$ und dem Hauptpunkt $(c_x,c_y)$, jedoch ohne
+Linsenverzeichnung. \texttt{SIMPLE\_RADIAL} ergänzt genau einen radialen
+Verzeichnungsparameter $k_1$ und stellt damit für dieses Video einen
+Kompromiss zwischen Modelltreue und numerischer Stabilität dar.
+\texttt{OPENCV} schätzt getrennte Brennweiten sowie mehrere radiale und
+tangentiale Verzeichnungsparameter. Das ist flexibler, aber nicht automatisch
+besser: Bei wenigen oder verrauschten Merkmalen können zusätzliche
+Freiheitsgrade überangepasst werden. Die Kameramodelle werden daher nicht nur
+nach dem Reprojektionsfehler, sondern gemeinsam mit Registrierungsquote,
+Punktabdeckung und der Qualität des finalen Centerline-Produkts bewertet.
+
+Die bisherigen Ergebnisse sind als vorläufige Voruntersuchung zu verstehen.
+Für eine belastbare Aussage sind Wiederholungen der Baseline, einheitliche
+Parameter über alle Vergleichsläufe sowie die Weiterverarbeitung der besten
+Kandidaten durch STS, SuGaR und DGtal erforderlich. Die in den Reports
+verwendeten heuristischen Qualitätsscores sind nur innerhalb eines gemeinsamen
+Benchmarks vergleichbar und stellen keinen Genauigkeitsnachweis dar.
+
 \subsection{Repository-Konsolidierung}
 Die bisherige Arbeitskopie vereint Pipeline-Code, Third-Party-Quellen,
 Datensätze, Web-UI, Schreibprojekte (\texttt{Ausarbeitung}, \texttt{Vorlage},

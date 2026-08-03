@@ -4,23 +4,30 @@ set -e
 echo "=== Running COLMAP SfM ==="
 WORKSPACE_PATH="/data/04_sfm"
 IMAGE_PATH="/data/02_frames"
+CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-SIMPLE_RADIAL}"
+MAX_FEATURES="${COLMAP_MAX_FEATURES:-4096}"
+SEQUENTIAL_OVERLAP="${COLMAP_SEQUENTIAL_OVERLAP:-15}"
+GUIDED_MATCHING="${COLMAP_GUIDED_MATCHING:-0}"
+SIFT_PEAK_THRESHOLD="${COLMAP_SIFT_PEAK_THRESHOLD:-0.003}"
 
 mkdir -p $WORKSPACE_PATH
 
 echo "1. Feature extraction..."
+echo "   camera_model=${CAMERA_MODEL}, max_features=${MAX_FEATURES}, peak_threshold=${SIFT_PEAK_THRESHOLD}"
 colmap feature_extractor \
     --database_path $WORKSPACE_PATH/database.db \
     --image_path $IMAGE_PATH \
-    --ImageReader.camera_model SIMPLE_PINHOLE \
+    --ImageReader.camera_model "$CAMERA_MODEL" \
     --ImageReader.single_camera 1 \
-    --SiftExtraction.max_num_features 16384 \
-    --SiftExtraction.peak_threshold 0.003
+    --SiftExtraction.max_num_features "$MAX_FEATURES" \
+    --SiftExtraction.peak_threshold "$SIFT_PEAK_THRESHOLD"
 
 echo "2. Feature matching (Sequential)..."
+echo "   overlap=${SEQUENTIAL_OVERLAP}, guided_matching=${GUIDED_MATCHING}"
 colmap sequential_matcher \
     --database_path $WORKSPACE_PATH/database.db \
-    --SequentialMatching.overlap 20 \
-    --FeatureMatching.guided_matching 1
+    --SequentialMatching.overlap "$SEQUENTIAL_OVERLAP" \
+    --FeatureMatching.guided_matching "$GUIDED_MATCHING"
 
 echo "3. Mapper..."
 mkdir -p $WORKSPACE_PATH/sparse

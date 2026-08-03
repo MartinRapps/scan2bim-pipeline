@@ -92,16 +92,16 @@ WSL2 ermöglicht es, ein vollwertiges Linux-System direkt unter Windows auszufü
    ```
 
 ⚙️ Zusatzschritt: WSL2-Ressourcen optimieren (.wslconfig)
-- **Warum:** Das Training von 3D Gaussian Splatting (STS, SuGaR) benötigt viel System-RAM. WSL2 limitiert standardmäßig die RAM-Nutzung auf 50% des Host-RAMs. Um Out-Of-Memory-Abstürze (OOM) zu verhindern, sollten Sie WSL2 explizit mehr RAM zuweisen.
+- **Wichtig:** Auf einem 16-GB-Laptop mit geöffneter IDE sollte WSL2 nicht einfach mehr RAM zugewiesen bekommen. Eine hohe IDE-Auslastung konkurriert direkt mit WSL2 und Windows. Für CPU-only-COLMAP, GCP-Registrierung und Container E reicht das Standardlimit zunächst aus; bei einem DGtal-Build sollte die Parallelität reduziert werden. STS/SuGaR benötigen weiterhin die vorgesehene CUDA-GPU-Maschine.
 - **Vorgehensweise (👤 [BENUTZER]):**
   1. Drücken Sie Windows-Taste + R, geben Sie `%USERPROFILE%` ein und drücken Sie Enter.
   2. Erstellen Sie in diesem Ordner eine Textdatei namens `.wslconfig` (achten Sie darauf, dass keine `.txt` Endung angehängt ist).
-  3. Fügen Sie folgenden Inhalt ein (Beispiel für ein System mit 64 GB RAM; passen Sie die Werte an Ihr System an):
-     ```ini
-     [wsl2]
-     memory=48GB  # Reserviert 48 GB RAM für Linux
-     processors=8 # Nutzt 8 CPU-Kerne
-     ```
+   3. Nur bei nachgewiesenem WSL-OOM eine angepasste Konfiguration verwenden (Beispiel für ein System mit 16 GB RAM; IDE vorher berücksichtigen):
+      ```ini
+      [wsl2]
+      memory=8GB   # Nicht höher setzen, wenn Windows/IDE bereits viel RAM nutzt
+      processors=4 # Reicht für CPU-only-Tests und reduziert Speicherspitzen
+      ```
   4. Um die Konfiguration zu übernehmen, öffnen Sie eine Windows-Eingabeaufforderung und beenden Sie WSL mit `wsl --shutdown`. Beim nächsten Start von WSL greifen die neuen Limits.
 
 ---
