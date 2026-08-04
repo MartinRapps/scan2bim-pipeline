@@ -32,6 +32,7 @@ async function gcpLoadAll() {
   gcpRenderPoints();
   gcpRenderFrames();
   gcpRenderObservations();
+  gcpRenderReport();
   if (!gcpSelectedPoint && gcpPoints.length) {
     gcpSelectPoint(gcpPoints[0].gcp_id);
   }
@@ -110,7 +111,7 @@ async function gcpLoadFrame(name) {
   $('#gcp-current-frame').textContent = name;
   gcpRenderFrames();
   const frame = gcpFrames.find(f => f.name === name);
-  const url = frame ? frame.thumb : ('/api/file/data/02_frames/' + name);
+  const url = frame ? frame.thumb : ('/api/file/data/02_frames/' + encodeURIComponent(name));
   gcpImg = new Image();
   gcpImg.onload = () => { gcpResetView(); gcpDraw(); };
   gcpImg.onerror = () => { gcpImg = null; gcpDraw(); };
@@ -238,31 +239,47 @@ function gcpSetupCanvasEvents() {
     if (gcpPanning) return;
     const [u, v] = gcpScreenToImg(e.offsetX, e.offsetY);
     const frame = gcpFrames.find(f => f.name === gcpCurrentFrame);
-    if (frame && (u < 0 || v < 0 || u > frame.width || v > frame.height)) return;
+    if (frame && (u < 0 || v < 0 || u >= frame.width || v >= frame.height)) return;
     gcpAddObservation(gcpSelectedPoint, gcpCurrentFrame, u, v);
   });
 }
 
 async function gcpAddObservation(gcpId, image, u, v) {
-  await fetch('/api/gcp/observation', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gcp_id: gcpId, image_name: image, u: Number(u.toFixed(3)), v: Number(v.toFixed(3)) })
-  });
-  await gcpLoadObservations();
-  gcpRenderPoints();
-  gcpRenderObservations();
-  gcpDraw();
+  try {
+    const res = await fetch('/api/gcp/observation', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gcp_id: gcpId, image_name: image, u: Number(u.toFixed(3)), v: Number(v.toFixed(3)) })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Observation konnte nicht gespeichert werden.');
+    gcpReport = null;
+    await gcpLoadObservations();
+    gcpRenderPoints();
+    gcpRenderObservations();
+    gcpRenderReport();
+    gcpDraw();
+  } catch (e) {
+    $('#gcp-report').innerHTML = `<div class="gcp-error">Fehler: ${e.message}</div>`;
+  }
 }
 
 async function gcpDeleteObservation(gcpId, image) {
-  await fetch('/api/gcp/observation', {
-    method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gcp_id: gcpId, image_name: image })
-  });
-  await gcpLoadObservations();
-  gcpRenderPoints();
-  gcpRenderObservations();
-  gcpDraw();
+  try {
+    const res = await fetch('/api/gcp/observation', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gcp_id: gcpId, image_name: image })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Observation konnte nicht geloescht werden.');
+    if (data.deleted) gcpReport = null;
+    await gcpLoadObservations();
+    gcpRenderPoints();
+    gcpRenderObservations();
+    gcpRenderReport();
+    gcpDraw();
+  } catch (e) {
+    $('#gcp-report').innerHTML = `<div class="gcp-error">Fehler: ${e.message}</div>`;
+  }
 }
 
 function gcpRenderObservations() {

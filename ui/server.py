@@ -6,6 +6,7 @@ Serves the UI and API endpoints for the Scan-to-BIM pipeline.
 import os
 import csv
 import json
+import math
 import mimetypes
 import pty
 import select
@@ -19,7 +20,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from pathlib import Path
 from datetime import datetime
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, parse_qs, quote, unquote
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
 PUBLIC_DIR = os.path.join(os.path.dirname(__file__), 'public')
@@ -34,6 +35,7 @@ RAW_DIR = os.path.join(DATA_DIR, "01_raw")
 GCP_RELATIVE_CSV = os.path.join(RAW_DIR, "gcp_relative.csv")
 GCP_COORDINATES_CSV = os.path.join(RAW_DIR, "gcp_coordinates.csv")
 FRAMES_DIR = os.path.join(DATA_DIR, "02_frames")
+GCP_OBS_LOCK = threading.Lock()
 
 
 def _quat_to_rotmat(q):
@@ -124,9 +126,26 @@ def _read_observations():
 
 def _write_observations(observations):
     os.makedirs(os.path.dirname(GCP_OBS_PATH), exist_ok=True)
-    with open(GCP_OBS_PATH, "w", encoding="utf-8") as handle:
-        json.dump(observations, handle, indent=2)
-        handle.write("\n")
+    temporary_path = f"{GCP_OBS_PATH}.tmp"
+    try:
+        with open(temporary_path, "w", encoding="utf-8") as handle:
+            json.dump(observations, handle, indent=2)
+            handle.write("\n")
+        os.replace(temporary_path, GCP_OBS_PATH)
+    finally:
+        try:
+            os.unlink(temporary_path)
+        except FileNotFoundError:
+            pass
+
+
+def _invalidate_gcp_registration():
+    """Remove derived registration outputs after observations change."""
+    for path in (GCP_REPORT_PATH, os.path.join(SFM_DIR, "matrix.txt")):
+        try:
+            os.unlink(path)
+        except FileNotFoundError:
+            pass
 
 
 def safe_write(self, data):
@@ -175,8 +194,8 @@ SCRIPTS_INFO = [
             {"prompt": "HuggingFace Token f\u00fcr SAM 3.1", "var": "HF_TOKEN", "type": "password"},
             {"prompt": "Text-Prompt (z.B. 'cable', 'pipe')", "var": "TEXT_PROMPT"},
             {"prompt": "Video verwenden / komprimieren", "var": "VIDEO_CONFIG", "type": "confirm"},
-            {"prompt": "STS Trainingsiterationen", "var": "ITERATIONS", "default": "7000"},
-            {"prompt": "Stage 2 Iterationen", "var": "STAGE2_ITERS"},
+            {"prompt": "STS Gesamtiterationen (Objektphase + All-Object-Phase)", "var": "ITERATIONS", "default": "7000"},
+            {"prompt": "Objekt-/Stage-2-Iterationen", "var": "STAGE2_ITERS", "default": "5000"},
             {"prompt": "On-the-fly GPU-Modus", "var": "ON_THE_FLY", "type": "confirm"},
         ],
     },
@@ -197,7 +216,7 @@ SCRIPTS_INFO = [
         ],
         "inputs": [
             {"prompt": "Autopilot-Modus (y/n)", "var": "AUTOPILOT", "type": "confirm"},
-            {"prompt": "STS Trainingsiterationen", "var": "ITERATIONS", "default": "7000"},
+            {"prompt": "STS Gesamtiterationen (Objektphase + All-Object-Phase)", "var": "ITERATIONS", "default": "7000"},
         ],
     },
     {
@@ -215,8 +234,8 @@ SCRIPTS_INFO = [
         ],
         "inputs": [
             {"prompt": "Autopilot-Modus (y/n)", "var": "AUTOPILOT", "type": "confirm"},
-            {"prompt": "STS Trainingsiterationen", "var": "ITERATIONS", "default": "7000"},
-            {"prompt": "Stage 2 Iterationen", "var": "STAGE2_ITERS"},
+            {"prompt": "STS Gesamtiterationen (Objektphase + All-Object-Phase)", "var": "ITERATIONS", "default": "7000"},
+            {"prompt": "Objekt-/Stage-2-Iterationen", "var": "STAGE2_ITERS", "default": "5000"},
             {"prompt": "On-the-fly GPU-Modus", "var": "ON_THE_FLY", "type": "confirm"},
             {"prompt": "Regularisierung (dn_consistency/density/sdf oder EXPLAIN)", "var": "REGULARIZATION"},
             {"prompt": "Refinement-Dauer (short/medium/long oder EXPLAIN)", "var": "REFINEMENT_TIME"},
@@ -234,7 +253,7 @@ SCRIPTS_INFO = [
         ],
         "inputs": [
             {"prompt": "Autopilot-Modus (y/n)", "var": "AUTOPILOT", "type": "confirm"},
-            {"prompt": "Checkpoint-Iteration", "var": "ITERATIONS", "default": "7000"},
+            {"prompt": "Checkpoint-Iteration (bestehender Replay-Default)", "var": "ITERATIONS", "default": "7000"},
             {"prompt": "Regularisierung (dn_consistency/density/sdf oder EXPLAIN)", "var": "REGULARIZATION"},
             {"prompt": "Refinement-Dauer (short/medium/long oder EXPLAIN)", "var": "REFINEMENT_TIME"},
         ],
@@ -973,7 +992,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "width": cam["width"],
                 "height": cam["height"],
                 "center": [round(c, 4) for c in center],
-                "thumb": "/api/file/data/02_frames/" + img["name"],
+                "thumb": "/api/file/data/02_frames/" + quote(img["name"], safe=""),
             })
         frames.sort(key=lambda f: f["name"])
         return {"frames": frames}
@@ -1008,10 +1027,34 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         except (TypeError, ValueError):
             self.send_json({"error": "u und v muessen Zahlen sein"}, 400)
             return
-        obs = _read_observations()
-        obs = [o for o in obs if not (str(o.get("gcp_id")) == gcp_id and str(o.get("image_name")) == image_name)]
-        obs.append({"gcp_id": gcp_id, "image_name": image_name, "u": u, "v": v})
-        _write_observations(obs)
+        if not math.isfinite(u) or not math.isfinite(v):
+            self.send_json({"error": "u und v muessen endliche Zahlen sein"}, 400)
+            return
+
+        relative_points = _parse_gcp_csv(GCP_RELATIVE_CSV)
+        if gcp_id not in relative_points:
+            self.send_json({
+                "error": f"Unbekannter GCP '{gcp_id}'. Erst gcp_relative.csv vorbereiten."
+            }, 400)
+            return
+
+        frame = next((item for item in self._gcp_frames().get("frames", [])
+                      if item["name"] == image_name), None)
+        if frame is None:
+            self.send_json({"error": f"Unbekannter registrierter Frame: {image_name}"}, 400)
+            return
+        if not (0 <= u < frame["width"] and 0 <= v < frame["height"]):
+            self.send_json({
+                "error": f"Pixelkoordinate ausserhalb des Frames ({frame['width']}x{frame['height']})"
+            }, 400)
+            return
+
+        with GCP_OBS_LOCK:
+            obs = _read_observations()
+            obs = [o for o in obs if not (str(o.get("gcp_id")) == gcp_id and str(o.get("image_name")) == image_name)]
+            obs.append({"gcp_id": gcp_id, "image_name": image_name, "u": u, "v": v})
+            _write_observations(obs)
+            _invalidate_gcp_registration()
         self.send_json({"saved": True, "count": len(obs)})
 
     def _gcp_delete_observation(self):
@@ -1021,10 +1064,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not gcp_id or not image_name:
             self.send_json({"error": "gcp_id und image_name erforderlich"}, 400)
             return
-        obs = _read_observations()
-        before = len(obs)
-        obs = [o for o in obs if not (str(o.get("gcp_id")) == gcp_id and str(o.get("image_name")) == image_name)]
-        _write_observations(obs)
+        with GCP_OBS_LOCK:
+            obs = _read_observations()
+            before = len(obs)
+            obs = [o for o in obs if not (str(o.get("gcp_id")) == gcp_id and str(o.get("image_name")) == image_name)]
+            if len(obs) < before:
+                _write_observations(obs)
+                _invalidate_gcp_registration()
         self.send_json({"deleted": len(obs) < before, "count": len(obs)})
 
     def _gcp_compute(self):

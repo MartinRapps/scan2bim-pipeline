@@ -25,12 +25,53 @@ Place your starting files in the local `data/` directory:
 1. Put the raw 4K drone video in `data/01_raw/video.mp4`.
 2. Put the measured GNSS GCP coordinates in `data/01_raw/gcp_coordinates.csv`.
 
+### SuGaR Fork Initialization
+
+The mask-aware SuGaR route uses the project fork pinned by the Git submodule.
+After cloning the repository, initialize the submodule before building or
+running the SuGaR stage:
+
+```bash
+git submodule update --init --recursive
+git -C third_party/SuGaR rev-parse HEAD
+```
+
+The expected commit is
+`48bbfddbb557725f14d0d8e32c30b94b5d95f0e2`. The SuGaR image is built from the
+same fork and commit. During development, `run_masked_sugar.sh` mounts the
+initialized local checkout through `docker-compose.sugar-dev.yml`; an empty
+submodule directory must not be used with that overlay. The current project
+worktree additionally contains the uncommitted `train.py` change that allows
+the segmented-object `c9000` route. Before a release or fresh clone, commit
+that change into the fork and update the parent submodule reference.
+
+The master scripts automatically export the invoking user's numeric
+`HOST_UID`/`HOST_GID` for Docker bind mounts. This is required when raw files
+use restrictive permissions such as mode `600`; explicit overrides can still
+be supplied in the shell.
+
 ### 3. Execution
 Run the master orchestration script on your GPU-enabled machine:
 ```bash
 chmod +x run_pipeline.sh
 ./run_pipeline.sh
 ```
+
+### Per-Run Logging
+
+Every master-pipeline run creates a dedicated directory below
+`data/10_runs/<video>_<YYYYMMDD_HHMMSS>/` containing:
+
+- `run.log`: complete terminal and Docker output from the run.
+- `run.md`: readable run report with input, timestamps, configuration values,
+  step status, step durations and exit status.
+
+The master scripts derive `HOST_UID` and `HOST_GID` automatically so the log
+and generated data remain owned by the invoking user. The run directory is
+ignored as local generated data and should be archived together with the
+corresponding experiment if reproducibility documentation is required. The
+Hugging-Face token is validated before SAM3; invalid saved tokens trigger a
+hidden replacement prompt and are never written to either report.
 
 If you have already processed the video, extracted SAM 3.1 masks, and computed the COLMAP camera poses, you can bypass the early stages and run the pipeline specifically starting from Segment-then-Splat (STS) onwards:
 ```bash
@@ -57,6 +98,13 @@ that frame profile has been generated. An FHD experiment
 (1920x1080) for SAM3/STS is therefore a separate, explicitly documented
 experiment rather than an implicit change to the COLMAP baseline.
 
+COLMAP retains its original `SIMPLE_RADIAL` reconstruction for GCP picking and
+SfM evaluation. After model export, `run_sfm.sh` automatically runs
+`colmap image_undistorter` and writes an ideal `PINHOLE` scene below
+`data/04_sfm/undistorted/`. STS consumes that undistorted scene because its
+loader does not accept radial camera models; the original COLMAP model remains
+unchanged for the GCP/UI workflow.
+
 ### Object-Only, Mask-Aware SuGaR (Recommended)
 
 For a segmented cable or pipe, an object-only Gaussian cloud must not be
@@ -78,11 +126,20 @@ After STS, the runner confirms or edits the filter thresholds and the
 high-opacity alpha, then confirms or edits the mask-aware SuGaR settings.
 `EXPLAIN` is accepted at each configuration prompt. The current geometry-first
 defaults are `min_opacity=0.01`, `black_threshold=0.08`,
-`alpha=0.999999`, `dn_consistency` at coarse counter `9001`, 200,000 mesh
+`alpha=0.999999`, `dn_consistency` at coarse counter `9000`, 200,000 mesh
 vertices, 5,000,000 surface samples, `medium` refinement, zero RGB/UV
-dilation, and no consensus crop. The full-scene STS checkpoint is never
+dilation, `NORMAL_MASK_LEVEL=middle`, and no consensus crop. The coarse target
+`9000` is intentional for the segmented object route; DN/SDF terms remain
+available for comparison runs above 9000. The full-scene STS checkpoint is never
 overwritten; SuGaR stages a private checkpoint and exports the refined PLY/OBJ
 under `data/06_mesh/<export-name>/`.
+
+The STS default uses 7,000 total iterations: 5,000 iterations for the
+small/middle object-mask curriculum followed by 2,000 iterations rendering all
+configured objects. `stage2_iters` is a curriculum window inside the total,
+not an additional 5,000 iterations after the total run. Container C runs with
+unbuffered Python output, so the stage-2/stage-3 markers appear in the log at
+their actual transition instead of being delayed behind the tqdm progress bar.
 
 For a standalone object-only run after STS, prepare the standard input first
 and then launch the mask-aware runner:
@@ -92,8 +149,22 @@ and then launch the mask-aware runner:
 ./run_masked_sugar.sh
 ```
 
+If SuGaR already finished but the short export was interrupted, recover the
+existing OBJ/MTL/texture without retraining and continue directly to
+post-processing:
+
+```bash
+EXPORT_ONLY=1 REPLACE=1 ./run_pipeline.sh --from sugar
+```
+
+The refined PLY is optional for the Centerline path; the textured OBJ is the
+required mesh input for Container E.
+
 The runner keeps separate tagged checkpoints below `data/sugar_output/` and
 refuses to overwrite an existing tag unless `REPLACE=1` is set deliberately.
+SuGaR writes its runtime outputs through the shared `/data` mount; this avoids
+permission problems caused by mounting a local development fork over
+`/opt/sugar`.
 
 ### Centerline and GIS export
 
@@ -102,12 +173,13 @@ interior fill, and topology-preserving thinning. On noisy thin meshes the
 voxel skeleton is bushy (2D medial sheets and spur twigs), so the default
 `CENTERLINE_MODE=single` deliberately reduces the largest skeleton component
 to its diameter path, which robustly follows the structure. The postprocessing
-then splits that path at real direction changes (window-based corner
-detection that suppresses the voxel staircase) and fits a clamped cubic
-B-spline to every retained segment. The postprocessing step writes:
+then fits a clamped degree-10 B-spline to the unsplit path. Corner detection is
+kept only as an optional experiment; it is disabled for the current smooth
+linear-object route. The postprocessing step writes:
 
 - `data/07_centerline/centerline_local_raw.csv` for the raw diameter path.
-- `data/07_centerline/centerline_local.csv` for the segmented B-spline branches.
+- `data/07_centerline/centerline_local.csv` for the degree-10 B-spline-smoothed
+  centerline path.
 - `data/08_gis/local_output.geojson` for the local (pre-georeferencing) 3D GeoJSON.
 - `data/07_centerline/centerline_utm.csv` and `data/08_gis/final_output.geojson`
   after the CloudCompare transform and anchor are applied (EPSG:25832).
@@ -121,14 +193,13 @@ Georeferencing runs at the END of the step (after the local GeoJSON). If
 tesseract OCR runs automatically to produce `matrix.txt`. The fallback
 anchor is configurable via `FALLBACK_ANCHOR`.
 
-All CSV rows carry `branch_id` and `component_id`; segments connect exactly at
-their shared corner points, so corners stay sharp. Tunables:
-`BSPLINE_DEGREE=3` sets the degree of the clamped uniform B-spline
-(1 = linear, 2 = quadratic, 3 = cubic), `BSPLINE_SAMPLES_PER_SEGMENT=4`
-controls the point density, and `SEGMENT_CORNERS=1` with
-`SEGMENT_CORNER_WINDOW=4` and `SEGMENT_CORNER_ANGLE=30` (degrees) controls
-the corner split. `MIN_PATH_LENGTH`, `MIN_PATH_POINTS`, `MIN_CYCLE_LENGTH`
-and `PERSISTENCE` are extractor-side filters.
+All CSV rows carry `branch_id` and `component_id`. Tunables:
+`BSPLINE_DEGREE=10` sets the degree of the clamped uniform B-spline for the
+current smooth linear-object route. `BSPLINE_SAMPLES_PER_SEGMENT=4` controls
+the point density. `SEGMENT_CORNERS=0` keeps the extracted path as one smooth
+curve; corner detection remains available for experiments. `MIN_PATH_LENGTH`,
+`MIN_PATH_POINTS`, `MIN_CYCLE_LENGTH` and `PERSISTENCE` are extractor-side
+filters.
 
 `CENTERLINE_MODE=network` instead decomposes the full skeleton graph into
 junction-to-junction branches. On noisy meshes most of those micro-branches

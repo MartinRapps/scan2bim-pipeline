@@ -16,7 +16,7 @@ Author: opencode assistant (glm-5.2)
 | Container | Base Image | Zweck | GPU |
 |---|---|---|---|
 | A (sam3-preprocess) | `nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04` | SAM-3-Masken, ffmpeg, GCP-Prep, STS-Scene-Prep, OCR (früher) | ja |
-| B (colmap-sfm) | `colmap/colmap:latest` (ungepinnt!) | COLMAP SfM | ja |
+| B (colmap-sfm) | `colmap/colmap:latest` (fuer die PA bewusst ungepinnt) | COLMAP SfM | ja |
 | C (sts-training) | `pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel` | STS 3DGS-Training, PLY-Filtering | ja |
 | D (sugar-meshing) | `nvidia/cuda:11.8.0-devel-ubuntu22.04` + Miniconda | SuGaR Meshing (CUDA 11.8, PyTorch 2.0.1, pytorch3d 0.7.4) | ja |
 | E (post-processing) | `ubuntu:22.04` | DGtal-Centerline, GDAL, tesseract OCR, B-Spline | nein |
@@ -33,7 +33,7 @@ Step 0: GCP-Prep (prepare_gcp.py → anchor.txt + gcp_relative.csv)
 Step 1: SAM3-Masken (extract_masks_notebook_flow.py)
 Step 2: COLMAP SfM (run_sfm.sh → sparse/0, points3D.ply)
   → Breakpoint: CloudCompare Point-Picking (Autopilot überspringt)
-Step 3: STS-Training (prep_sts_scene.py → train.py, 7000 Iter, Stage2 5000)
+Step 3: STS-Training (prep_sts_scene.py → train.py, 7000 Gesamtiterationen: 5000 Objekt-/Maskenphase + 2000 All-Object-Phase)
 Step 4: SuGaR-Meshing (filter_cable_pc.py → run_masked_sugar.sh → refined.obj)
 Step 5: Postprocess (postprocess.sh → Centerline + B-Spline + GeoJSON)
 ```
@@ -54,8 +54,8 @@ Step 5: Postprocess (postprocess.sh → Centerline + B-Spline + GeoJSON)
 ## B-Spline (`src/python/centerline_bspline.py`)
 
 - **Implementierung:** Geklemmter uniformer B-Spline via De-Boor-Algorithmus (`uniform_bspline_point`). Padding: `[points[0]] * degree + points + [points[-1]] * degree`. Endpunkte werden interpoliert (geklammert).
-- **Degree einstellbar** (`--degree`, Default 3): 1 = linear (Polylinie), 2 = quadratisch, 3 = kubisch. Env-Var `BSPLINE_DEGREE`. Regressionstest: Degree 3 weicht max. 4.77e-15 von alter kubischer Basis ab.
-- **Eckensegmentierung** (`--segment-corners`, Default an): Fensterbasierte Corner-Detection (Fenster `--corner-window` Default 4, Min-Winkel `--corner-min-angle` Default 30°) unterdrückt Voxel-Treppenrauschen (45°-Stufen). Split am Corner; Corner-Punkt gehört zu beiden Segmenten → schließen exakt (0 mm Spalt). Env-Vars: `SEGMENT_CORNERS`, `SEGMENT_CORNER_WINDOW`, `SEGMENT_CORNER_ANGLE`.
+- **Degree einstellbar** (`--degree`, Default 10): Der aktuelle Alurohr-/lineare-Objekt-Standard nutzt Grad 10 fuer eine moeglichst glatte Kurve; Grad 1 bleibt linear, hoehere Grade sind zulaessig. Env-Var `BSPLINE_DEGREE`. Endpunkte bleiben durch die geklemmte Konstruktion erhalten.
+- **Eckensegmentierung** (`--segment-corners`, im Produktionspfad Default aus): Die fruehere fensterbasierte Corner-Detection bleibt als Experiment verfuegbar, wird fuer die sanften linearen Erdkabelkurven aber nicht mehr verwendet. Env-Vars: `SEGMENT_CORNERS`, `SEGMENT_CORNER_WINDOW`, `SEGMENT_CORNER_ANGLE`.
 - **Punktdichte:** `--samples-per-segment` (Default 4), Env `BSPLINE_SAMPLES_PER_SEGMENT`.
 - **CSV-Schema:** `branch_id,component_id,x,y,z`. Wird von `transform_centerline.py` (Branch-Spalten durchgereicht), `centerline_geojson.py` (1 LineString pro Branch) konsumiert.
 - **4× duplizierte CSV-Parsing-Logik** in `transform_centerline.py`, `centerline_bspline.py`, `centerline_geojson.py`, `centerline_graph_simplify.py` → faktorisieren in `centerline_io.py` (geplant).
@@ -95,7 +95,7 @@ Step 5: Postprocess (postprocess.sh → Centerline + B-Spline + GeoJSON)
 
 ## STS / SuGaR
 
-- **Defaults (Autopilot):** `ITERATIONS=7000`, `STAGE2_ITERS=5000`, `COARSE_ITERATIONS=9001`, `MESH_VERTICES=200000`, `SURFACE_SAMPLE_COUNT=5000000`, `REFINEMENT_TIME=medium` (=7000 Refinement-Iter), `REGULARIZATION=dn_consistency`.
+- **Defaults (Autopilot):** `ITERATIONS=7000` Gesamtiterationen im STS-Curriculum (`STAGE2_ITERS=5000` Objekt-/Maskenphase, danach 2000 All-Object-Iterationen), `COARSE_ITERATIONS=9000`, `MESH_VERTICES=200000`, `SURFACE_SAMPLE_COUNT=5000000`, `REFINEMENT_TIME=medium` (=7000 Refinement-Iter), `REGULARIZATION=dn_consistency`, `MASK_LEVEL=default`, `NORMAL_MASK_LEVEL=middle`, `TEXTURE_MASK_LEVEL=default`, RGB/UV-Dilatation `0`.
 - **`STOP_AFTER_COARSE_MESH=1`** existiert, ist im Autopilot nicht verfügbar → skippt ~7000 Refinement + UV + Crop. Potenzieller „Screening"-Modus.
 - **6 sequenzielle `docker compose run` zwischen STS→SuGaR** (object_init, train, copy-ply, filter_cable, opacity-rewrite, filter_cameras, sugar_train) → jeweils ~10–30 s CUDA-Init.
 - **PLY wird 4× kopiert:** STS-Save → Full-Scene → gefiltert → Opazitäts-Rewrite → gestaged.
@@ -141,9 +141,9 @@ Step 5: Postprocess (postprocess.sh → Centerline + B-Spline + GeoJSON)
 | `CENTERLINE_MODE` | `single` | Extractor-Modus (single/network) |
 | `VOXEL_SIZE` | `0.1` | Voxelgröße in m |
 | `MIN_PATH_LENGTH` | `0.75` | Mindestastlänge in m |
-| `BSPLINE_DEGREE` | `3` | B-Spline-Grad (1/2/3) |
+| `BSPLINE_DEGREE` | `10` | B-Spline-Grad (mindestens 1; aktueller glatter Standard) |
 | `BSPLINE_SAMPLES_PER_SEGMENT` | `4` | Punkte pro Segment |
-| `SEGMENT_CORNERS` | `1` | Eckensegmentierung an/aus |
+| `SEGMENT_CORNERS` | `0` | Eckensegmentierung an/aus |
 | `SEGMENT_CORNER_WINDOW` | `4` | Fenstergröße Corner-Detection |
 | `SEGMENT_CORNER_ANGLE` | `30` | Min-Winkel in Grad |
 | `FALLBACK_ANCHOR` | `567028.563,5516784.082,177` | Fallback-Translation bei fehlender Georeferenzierung |
@@ -155,7 +155,7 @@ Step 5: Postprocess (postprocess.sh → Centerline + B-Spline + GeoJSON)
 | Datei | Änderung |
 |---|---|
 | `src/cpp/src/main.cpp` | `--one-isthmus`-Flag, Dangling-Reference-Fix |
-| `src/python/centerline_bspline.py` | De-Boor-Implementierung (Degree 1–5), Eckensegmentierung, `--degree`/`--segment-corners` |
+| `src/python/centerline_bspline.py` | De-Boor-Implementierung (Grad >=1, Standard 10), optionale Eckensegmentierung, `--degree`/`--segment-corners` |
 | `src/python/centerline_graph_simplify.py` | NEU (Spur-Pruning, Junction-Clustering für network-Modus) |
 | `src/scripts/postprocess.sh` | Georeferenzierung ans Ende, lokales GeoJSON, Fallback, OCR-Integration, Fehlerbehandlung |
 | `src/python/ocr_matrix.py` | Whitelist entfernt, Timestamp-Filter |
@@ -171,5 +171,22 @@ Step 5: Postprocess (postprocess.sh → Centerline + B-Spline + GeoJSON)
 - **`set -e` + nicht-leere Fehler-Datei:** Extractor schreibt CSV-Header, dann Exception → Datei nicht leer → `[[ ! -s ]]`-Check passiert → Pipeline fährt mit leerer CSV fort. Fix: `[[ $(wc -l) -lt 2 ]]` prüfen + stderr ausgeben.
 - **Docker `--break-system-packages`:** Ubuntu 22.04's pip (22.0.2) kennt diesen Flag nicht → Build fehlschlägt. Auf 22.04 weglassen, auf 24.04 notwendig.
 - **Float-Repräsentation Container vs. Host:** Dieselbe De-Boor-Berechnung liefert `-1.48082` (Host) vs. `-1.4808199999999998` (Container) — 1-ulp-Unterschied durch Summationsreihenfolge. Für Geometrie irrelevant (1e-15).
-- **SuGaR-Submodule:** Lokaler HEAD `48bbfdd` (Martins Fork mit Masken-Mods), Dockerfile pinnt auf `7c10c4ae` (Anttwo-Original). Dev-Overlay nutzt lokalen Fork-Stand. Für Image-Builds mit Fork-Stand: `SUGAR_REF=48bbfdd` im Dockerfile setzen.
-- **Exposé-Kompilieren:** Immer `pdflatex -interaction=nonstopmode -halt-on-error` ausführen nach Edits — fängt `_`-in-`\texttt{}`-Fehler ab.
+- **SuGaR-Submodule:** Der Parent-Gitlink und das Dockerfile verwenden `MartinRapps/SuGaR@48bbfdd` (Martins Fork mit Masken-Mods). Das Submodul muss nach einem frischen Clone mit `git submodule update --init --recursive` initialisiert werden, weil der Runner den lokalen Stand fuer den mask-aware Pfad ueber das Dev-Overlay mountet. `third_party/SuGaR/train.py` besitzt aktuell zusaetzlich eine uncommitted Working-Tree-Aenderung fuer die c9000-Zulassung; vor einem Release muss diese Aenderung in Martins Fork committed und der Parent-Gitlink aktualisiert werden.
+- **Exposé-Kompilieren:** Auf dem Host ist kein `pdflatex` installiert. Die offizielle MiKTeX-Docker-Idee ist korrekt, aber `miktex/miktex:essential` beziehungsweise `basic` (MiKTeX 23.10) scheitert am 04.08.2026 beim Aufbau von `pdflatex.fmt`, weil das geladene `miktex-latex`-Paket die erwartete `pdflatex.ini` nicht enthält. Verifiziert funktionierend ist `texlive/texlive:latest-small` mit `--user $(id -u):$(id -g)`, `HOME=/tmp`, `TEXMFVAR=/tmp/texlive-var`, `TEXMFCONFIG=/tmp/texlive-config` und `TEXMFHOME=/tmp/texlive-home`: aus `docs/` `pdflatex -file-line-error -interaction=nonstopmode -halt-on-error Expose_PA_BA.tex` ausführen.
+
+## Entscheidungen nach FAQ (08/2026)
+
+- **Projektumfang:** Das Alurohr ist der aktuelle lineare Testdatensatz fuer die Projektarbeit. Sonnenbrillen-Laeufe dienten vor allem der SuGaR-Entwicklung. Reale Rohr-/Kabelaufnahmen in Graeben gehoeren zur spaeteren Bachelorarbeit; die +/-10-cm-Metrik gilt dort, nicht als aktueller Projektarbeitsnachweis.
+- **Produktionsweg:** Docker mit GPU ist der Zielweg. Die Windows-11-COLMAP-Laeufe ohne CUDA sind getrennte Vergleichstests. In der aktuellen Ubuntu-Umgebung sind RTX 4000 Ada, Docker und `--gpus all` funktionsfaehig; `nvidia-smi` meldet rund 20 GB VRAM.
+- **Bind-Mount-Berechtigungen:** Der Ubuntu-Benutzer verwendet UID `190290584` und GID `190200513`, waehrend Compose ohne gesetzte Variablen auf `1000:1000` zurueckfaellt. Bei Eingabedateien mit Modus `600` fuehrt das zu `Permission denied`. `run_pipeline.sh` und `pipeline_lib.sh` exportieren deshalb standardmaessig die aktuelle `id -u`/`id -g`; `prepare_gcp.py` beendet sich bei Lese- oder Schreibfehlern jetzt mit einem Fehlercode statt die Pipeline fortzusetzen.
+- **Per-Run-Logging:** Jeder Masterlauf erzeugt `data/10_runs/<video>_<YYYYMMDD_HHMMSS>/run.log` mit kompletter Terminal-/Docker-Ausgabe und `run.md` mit Input, Konfiguration, Schrittzeitpunkten, Status und Laufzeiten. Das Logging wird auch bei Fehlern ueber einen EXIT-Trap abgeschlossen.
+- **Frame-/COLMAP-Standard:** Der aktuelle Default ist 1280x720, 5 FPS, unmaskierte Bilder, `SIMPLE_RADIAL`, 4096 Plain-SIFT-Merkmale, Sequential-Overlap 15, Guided Matching aus und Peak-Threshold 0.003. Nach dem SfM erzeugt `run_sfm.sh` automatisch `data/04_sfm/undistorted/` mit idealen `PINHOLE`-Kameras fuer STS; das originale radiale Modell bleibt fuer GCP/UI und SfM-Auswertung erhalten. Spaetere Fast-/High-Quality-Profile sind Erweiterungen, nicht der Projektarbeitsstandard.
+- **SuGaR-Standard:** STS laeuft mit 7000 Gesamtiterationen: 5000 Iterationen fuer die Objekt-/Maskenphase und anschliessend 2000 Iterationen fuer alle Objekte. Der mask-aware SuGaR-Standard nutzt `dn_consistency`, Coarse-Zielzaehler `9000`, `MASK_LEVEL=default`, `NORMAL_MASK_LEVEL=middle`, `TEXTURE_MASK_LEVEL=default`, null RGB-/UV-Dilatation, 200000 Mesh-Vertices, 5000000 Oberflaechenstichproben, mittleres Refinement und keinen Consensus-Crop. Die fruehere harte `>9000`-Sperre wurde aufgehoben. Fuer `c9000` werden die spaeteren DN-/SDF-Terme nicht erreicht; sie bleiben fuer Vergleichslaeufe oberhalb 9000 verfuegbar. Ein schnellerer `density`-Modus ist fuer spaeter vorgesehen.
+- **Centerline-Standard:** Der `single`-Modus bleibt fuer die einzelne Trasse im Scope. Der aktuelle Produktionspfad verwendet keine Eckensegmentierung und einen geklemmten uniformen B-Spline mit Grad 10; der Grad ist im Code ab 1 frei waehlbar. Der Network-Modus bleibt ausserhalb des Projektarbeitsumfangs.
+- **GCP/UI:** Die UI markiert GCPs in registrierten COLMAP-Bildern, trianguliert sie und berechnet die relative SfM-zu-UTM-Aehnlichkeitstransformation. `prepare_gcp.py` setzt standardmaessig den ersten GCP als Anchor und subtrahiert ihn fuer `gcp_relative.csv`. Observationen werden serverseitig auf bekannte relative GCPs, registrierte Frames und endliche Bildkoordinaten begrenzt; bei einer Aenderung werden alter Report und `matrix.txt` invalidiert. Eine explizite Anchor-Auswahl in der UI ist noch ein Verbesserungsziel. Die aktuelle Test-CSV ist ein synthetisches lokales Raster und daher kein echter UTM-Nachweis.
+- **`postprocess_mesh`:** Die SuGaR-Funktion ist eine optionale Bereinigung des finalen refined OBJ. Sie entfernt iterativ topologische Randdreiecke mit niedriger Gaussian-Dichte und kann dadurch duenne Strukturen oder relevante Raender verlieren. Sie ist nicht mit dem Multi-View-Crop identisch und bleibt bis zu einer kontrollierten Ablation deaktiviert.
+- **SuGaR-Output-Berechtigungen:** Der mask-aware Runner schreibt seine Ausgaben unter `/data/sugar_output/<run-tag>` statt unter dem vom lokalen Fork-Overlay verdeckten `/opt/sugar/output`. Der verschachtelte Compose-Mount wurde entfernt, damit `docker compose up -d` kein root-owned `data/sugar_output` anlegt.
+- **Poisson-Hintergrundschutz:** Bei der Alurohr-Coarse-Extraktion kann die kamera-basierte Bounding-Box fast alle Surface-Samples als Foreground klassifizieren; der Background enthielt im Befund nur 1--2 Punkte. `sugar_extractors/coarse_mesh.py` ueberspringt Poisson jetzt bei zu kleinen oder ungueltigen Punktwolken/Normalen und verwendet das gueltige Foreground-Mesh weiter.
+- **SuGaR-Recovery:** `EXPORT_ONLY=1 REPLACE=1 ./run_pipeline.sh --from sugar` kopiert einen bereits vorhandenen OBJ/MTL/Texture-Export nach `data/06_mesh/` und startet danach Container E ohne erneutes SuGaR-Training. Eine Refined-PLY ist fuer die Centerline nicht erforderlich.
+- **STS-Curriculum-Logging:** `stage2_iters=5000` liegt innerhalb von `iterations=7000`: Iterationen 1--5000 rendern Small/Middle-Objektmasken, Iterationen 5001--7000 rendern alle Objekte. Container C verwendet `PYTHONUNBUFFERED=1`, damit die Stage-2-/Stage-3-Marker im Run-Log zeitlich korrekt sichtbar sind.
+- **COLMAP-Image:** Fuer die Projektarbeit bleibt `colmap/colmap:latest` bewusst bestehen. Der dokumentierte Tag `4.0.4-cuda` ist im offiziellen Repository nicht vorhanden; ein beobachteter `latest`-Digest vom 04.08.2026 war `sha256:b809882552887b6471094dcadd2f2eb01656b010663564c43a5e7f04c0a08f2f`.

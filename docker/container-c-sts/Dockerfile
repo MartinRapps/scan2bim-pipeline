@@ -3,6 +3,7 @@ FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel
 
 # Vermeide interaktive Prompts während apt-get
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 ENV FORCE_CUDA=1
 ENV TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;8.9;9.0"
 
@@ -20,6 +21,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Klone das offizielle Segment-then-Splat Repository inklusive Submodule
 RUN git clone https://github.com/luyr/Segment-then-Splat.git --recursive /app/STS
+
+# Make the stage boundary explicit: with stage1=0 and stage2=5000, iterations
+# 1..5000 are the object-mask curriculum and 5001..N render all objects.
+COPY docker/container-c-sts/sts_stage_boundary.patch /tmp/sts_stage_boundary.patch
+RUN cd /app/STS && patch -p1 < /tmp/sts_stage_boundary.patch && rm /tmp/sts_stage_boundary.patch
 
 WORKDIR /app/STS
 

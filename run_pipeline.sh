@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# Bind-mounted data files may be mode 600. Run Compose services with the
+# invoking host user's numeric identity unless explicitly overridden.
+export HOST_UID="${HOST_UID:-$(id -u)}"
+export HOST_GID="${HOST_GID:-$(id -g)}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=src/scripts/run_logging.sh
+source "$SCRIPT_DIR/src/scripts/run_logging.sh"
+run_logging_init "data/01_raw"
+
 # Replay the pipeline from a given step via the shared library (pipeline_lib.sh).
 # Usage: ./run_pipeline.sh --from <step>
 # Steps: gcp | sam3 | colmap | sts | sugar | postprocess
@@ -10,7 +20,6 @@ if [[ "${1:-}" == "--from" ]]; then
         echo "Usage: $0 --from <step>   (steps: gcp|sam3|colmap|sts|sugar|postprocess)" >&2
         exit 2
     fi
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     # shellcheck source=src/scripts/pipeline_lib.sh
     source "$SCRIPT_DIR/src/scripts/pipeline_lib.sh"
     load_env
@@ -26,6 +35,16 @@ COLMAP_MAX_FEATURES="${COLMAP_MAX_FEATURES:-4096}"
 COLMAP_SEQUENTIAL_OVERLAP="${COLMAP_SEQUENTIAL_OVERLAP:-15}"
 COLMAP_GUIDED_MATCHING="${COLMAP_GUIDED_MATCHING:-0}"
 COLMAP_SIFT_PEAK_THRESHOLD="${COLMAP_SIFT_PEAK_THRESHOLD:-0.003}"
+CENTERLINE_MODE="${CENTERLINE_MODE:-single}"
+VOXEL_SIZE="${VOXEL_SIZE:-0.1}"
+MIN_PATH_LENGTH="${MIN_PATH_LENGTH:-0.75}"
+BSPLINE_DEGREE="${BSPLINE_DEGREE:-10}"
+BSPLINE_SAMPLES_PER_SEGMENT="${BSPLINE_SAMPLES_PER_SEGMENT:-4}"
+SEGMENT_CORNERS="${SEGMENT_CORNERS:-0}"
+GEOJSON_SRS="${GEOJSON_SRS:-EPSG:25832}"
+FALLBACK_ANCHOR="${FALLBACK_ANCHOR:-567028.563,5516784.082,177}"
+STS_IMAGES_DIR="${STS_IMAGES_DIR:-/data/04_sfm/undistorted/images}"
+STS_SFM_DIR="${STS_SFM_DIR:-/data/04_sfm/undistorted}"
 
 explain_frame_profile_scope() {
     echo ""
@@ -257,10 +276,12 @@ configure_video_input() {
         vf_chain+="scale=${target_width}:${target_height}:force_original_aspect_ratio=decrease,pad=${target_width}:${target_height}:(ow-iw)/2:(oh-ih)/2:black,fps=${target_fps}"
 
         echo "Erzeuge komprimiertes Arbeitsvideo unter $RAW_DIR/output.mp4 ..."
+        run_step_start "Video-Preprocessing"
         docker compose run --rm sam3-preprocess ffmpeg -y -i "/data/01_raw/$(basename "$raw_video")" \
             -vf "$vf_chain" \
             -c:v libx264 -crf "$target_crf" -preset "$target_preset" \
             -an "/data/01_raw/output.mp4"
+        run_step_end 0
 
         SELECTED_VIDEO="$RAW_DIR/output.mp4"
         return
@@ -359,9 +380,11 @@ explain_object_filtering() {
 explain_coarse_iterations() {
     echo ""
     echo "  Der Coarse-Wert ist der finale lokale SuGaR-Zaehler und startet bei"
-    echo "  6999. Bei 9001 wird nach der harten Pruning-Grenze nur der erste"
-    echo "  DN/SDF-Schritt ausgefuehrt. Dieser Wert ist der aktuelle"
-    echo "  geometrieorientierte Standard; laengere Laeufe bleiben Vergleichslaeufe."
+    echo "  6999. c9000 ist der Standard fuer den segmentierten Objektpfad:"
+    echo "  maskierter RGB-/Dichteaufbau wird abgeschlossen, aber die spaeter"
+    echo "  startenden DN-/SDF-Terme werden bewusst nicht benoetigt."
+    echo "  Werte ueber 9000 aktivieren diese zusaetzliche Phase und bleiben"
+    echo "  optionale Vergleichslaeufe fuer SuGaR-Ablationen."
     echo ""
 }
 
@@ -487,13 +510,13 @@ configure_object_filter() {
 
 configure_sugar_values() {
     REGULARIZATION="${REGULARIZATION:-dn_consistency}"
-    COARSE_ITERATIONS="${COARSE_ITERATIONS:-9001}"
+    COARSE_ITERATIONS="${COARSE_ITERATIONS:-9000}"
     MESH_VERTICES="${MESH_VERTICES:-200000}"
     SURFACE_SAMPLE_COUNT="${SURFACE_SAMPLE_COUNT:-5000000}"
     REFINEMENT_TIME="${REFINEMENT_TIME:-medium}"
     MASK_LEVEL="${MASK_LEVEL:-default}"
     MASK_DILATION_PX="${MASK_DILATION_PX:-0}"
-    NORMAL_MASK_LEVEL="${NORMAL_MASK_LEVEL:-default}"
+    NORMAL_MASK_LEVEL="${NORMAL_MASK_LEVEL:-middle}"
     TEXTURE_MASK_LEVEL="${TEXTURE_MASK_LEVEL:-default}"
     TEXTURE_MASK_DILATION_PX="${TEXTURE_MASK_DILATION_PX:-0}"
     STOP_AFTER_COARSE_MESH="${STOP_AFTER_COARSE_MESH:-0}"
@@ -564,6 +587,7 @@ configure_sugar_values() {
 echo "=== Starting Scan-to-BIM Reconstruction Pipeline ==="
 
 # Step 0: GCP Coordinate Preparation (Relative Coordinates)
+run_step_start "GCP-Vorbereitung"
 echo "[Step 0/5] Preparing relative GCP coordinates..."
 SKIP_GCP_PREP="false"
 while true; do
@@ -598,25 +622,16 @@ done
 if [[ "$SKIP_GCP_PREP" != "true" ]]; then
     docker compose run --rm sam3-preprocess python3 /app/src/python/prepare_gcp.py
 fi
+run_step_end 0
 
 # Load environment variables if .env exists
 if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
 fi
 
-# HuggingFace Token Check for SAM 3.1
-if [ -z "$HF_TOKEN" ]; then
-    echo "=========================================================="
-    echo "HINWEIS: SAM 3.1 ist ein geschütztes (gated) Modell auf HuggingFace."
-    echo "Dein Token wird sicher in der .env-Datei gespeichert."
-    echo "=========================================================="
-    read -p "Bitte HuggingFace Token eingeben (oder Enter drücken, falls bereits gespeichert): " INPUT_TOKEN
-    if [ ! -z "$INPUT_TOKEN" ]; then
-        echo "HF_TOKEN=$INPUT_TOKEN" >> .env
-        export HF_TOKEN=$INPUT_TOKEN
-        echo "Token erfolgreich in .env gespeichert!"
-    fi
-fi
+# HuggingFace Token Check for SAM 3.1. The check is silent with respect to the
+# token value and rejects invalid saved tokens before the expensive SAM step.
+ensure_hf_token
 
 read -p "Geben Sie den Begriff ein, der maskiert werden soll (z.B. 'cable', 'pipe'): " TEXT_PROMPT
 
@@ -634,8 +649,10 @@ configure_frame_profile_scope
 configure_video_input
 configure_sam3_frame_resolution
 configure_colmap_values
+run_log_pipeline_settings
 
 # Step 1: Pre-processing (SAM 3 Tracking)
+run_step_start "SAM3-Maskenextraktion"
 echo "[Step 1/5] Extracting frames and generating SAM 3 masks for: $TEXT_PROMPT ..."
 if [[ -n "$SELECTED_VIDEO" ]]; then
     echo "Verwendetes Eingabevideo fuer SAM3: $SELECTED_VIDEO"
@@ -645,8 +662,10 @@ if [[ -n "$SELECTED_VIDEO" ]]; then
 else
     docker compose run --rm -e SAM3_FRAME_MAX_SIDE="$SAM3_FRAME_MAX_SIDE" sam3-preprocess python3 /app/src/python/extract_masks_notebook_flow.py --prompt "$TEXT_PROMPT"
 fi
+run_step_end 0
 
 # Step 2: SfM (COLMAP camera poses & sparse point cloud)
+run_step_start "COLMAP-SfM"
 echo "[Step 2/5] Running COLMAP Structure from Motion..."
 docker compose run --rm \
     -e COLMAP_CAMERA_MODEL="$COLMAP_CAMERA_MODEL" \
@@ -655,6 +674,7 @@ docker compose run --rm \
     -e COLMAP_GUIDED_MATCHING="$COLMAP_GUIDED_MATCHING" \
     -e COLMAP_SIFT_PEAK_THRESHOLD="$COLMAP_SIFT_PEAK_THRESHOLD" \
     colmap-sfm /app/src/scripts/run_sfm.sh
+run_step_end 0
 
 if [[ "$FRAME_PROFILE_SCOPE" == "colmap" ]]; then
     echo "COLMAP-only-Profil abgeschlossen. Pipeline stoppt vor GCP/STS/SuGaR."
@@ -663,6 +683,7 @@ if [[ "$FRAME_PROFILE_SCOPE" == "colmap" ]]; then
     exit 0
 fi
 
+run_step_start "GCP-Picking / CloudCompare"
 echo "=========================================================="
 echo "BREAKPOINT: Please open the sparse point cloud in CloudCompare"
 echo "on the host system. Pick the GCP coordinate points, compute"
@@ -684,10 +705,15 @@ if [[ "$AUTOPILOT" == "true" ]]; then
 else
     read -p "Press [Enter] once the matrix is ready (or to skip and use the fallback)..."
 fi
+run_step_end 0
 
 # Step 3: Object-Specific 3DGS (Segment-then-Splat STS)
+run_step_start "STS-Training und Objektfilterung"
 echo "[Step 3/5] Setting up Segment-then-Splat (STS) workspace structure..."
-docker compose run --rm sam3-preprocess python3 /app/src/python/prep_sts_scene.py
+    docker compose run --rm \
+        -e STS_IMAGES_DIR="$STS_IMAGES_DIR" \
+        -e STS_SFM_DIR="$STS_SFM_DIR" \
+        sam3-preprocess python3 /app/src/python/prep_sts_scene.py
 
 echo "[Step 3/5] Running STS object-specific 3D point cloud initialization..."
 docker compose run --rm sts-training python3 helpers/object_specific_initialization.py --scene_root /data/05_3dgs
@@ -700,15 +726,16 @@ if [[ "$AUTOPILOT" == "true" ]]; then
     DEFAULT_STAGE2=5000
     STAGE2_ITERS=5000
     ON_THE_FLY=""
-    echo "Autopilot aktiv: Setze standardmaessig 7000 Iterationen (Stage 2: 5000) ohne On-The-Fly-Laden."
+        echo "Autopilot aktiv: Setze 7000 Gesamtiterationen (5000 Objektphase + 2000 All-Object-Phase) ohne On-The-Fly-Laden."
 else
-    read -p "Enter total training iterations (recommended: 7000 to 15000) [Default: 7000]: " USER_ITERATIONS
-    ITERATIONS=${USER_ITERATIONS:-7000}
+        read -p "Enter total training iterations (5000 Objektphase + 2000 All-Object-Phase = 7000) [Default: 7000]: " USER_ITERATIONS
+        ITERATIONS=${USER_ITERATIONS:-7000}
 
-    # Suggest Stage 2 iteration limit based on total iterations
-    DEFAULT_STAGE2=$(( ITERATIONS * 5 / 7 )) # Scales stage 2 to be roughly 5/7th of total iterations (like 5000/7000)
-    read -p "Enter Stage 2 fine-tuning iterations [Default: $DEFAULT_STAGE2]: " USER_STAGE2
-    STAGE2_ITERS=${USER_STAGE2:-$DEFAULT_STAGE2}
+        # STS uses stage2_iters as the object-mask curriculum window inside the
+        # total run. The remaining iterations render all configured objects.
+        DEFAULT_STAGE2=5000
+        read -p "Enter Objekt-/Stage-2-Iterationen innerhalb des Gesamttrainings [Default: $DEFAULT_STAGE2]: " USER_STAGE2
+        STAGE2_ITERS=${USER_STAGE2:-$DEFAULT_STAGE2}
 
     # Densification coordinates and scaling
     read -p "Enable GPU-saving 'on-the-fly' image loading? (y/n) [Default: n]: " USER_LY
@@ -751,9 +778,12 @@ FILTER_MIN_OPACITY="$FILTER_MIN_OPACITY" \
 FILTER_BLACK_THRESHOLD="$FILTER_BLACK_THRESHOLD" \
 SUGAR_INPUT_ALPHA="$SUGAR_INPUT_ALPHA" \
 ./prepare_sugar_input.sh
+run_log_pipeline_settings
+run_step_end 0
 
 # Step 4: Run the local mask-aware SuGaR fork using the prepared high-opacity
 # object input. It exports refined.ply and refined.obj into a short mesh folder.
+run_step_start "SuGaR-Meshing"
 echo "[Step 4/5] Running mask-aware SuGaR (Coarse Training -> Mesh Extraction -> Refinement)..."
 MASKED_SUGAR_INTERACTIVE=0 \
 ITERATIONS="$ITERATIONS" \
@@ -773,9 +803,22 @@ SUGAR_RUN_TAG="$SUGAR_RUN_TAG" \
 SUGAR_MESH_EXPORT_NAME="$SUGAR_MESH_EXPORT_NAME" \
 FILTERED_PLY="data/05_3dgs/output/point_cloud/iteration_${ITERATIONS}/point_cloud_filtered_opacity999999.ply" \
 ./run_masked_sugar.sh
+run_step_end 0
 
 # Step 5: Post-Processing & Georeferencing (DGtal & Python & GDAL)
+run_step_start "Centerline und Georeferenzierung"
 echo "[Step 5/5] Extracting centerline and georeferencing to UTM..."
-docker compose run --rm -e INPUT_MESH="/data/06_mesh/${SUGAR_MESH_EXPORT_NAME}/refined.obj" post-processing /app/src/scripts/postprocess.sh
+docker compose run --rm \
+    -e INPUT_MESH="/data/06_mesh/${SUGAR_MESH_EXPORT_NAME}/refined.obj" \
+    -e CENTERLINE_MODE="$CENTERLINE_MODE" \
+    -e VOXEL_SIZE="$VOXEL_SIZE" \
+    -e MIN_PATH_LENGTH="$MIN_PATH_LENGTH" \
+    -e BSPLINE_DEGREE="$BSPLINE_DEGREE" \
+    -e BSPLINE_SAMPLES_PER_SEGMENT="$BSPLINE_SAMPLES_PER_SEGMENT" \
+    -e SEGMENT_CORNERS="$SEGMENT_CORNERS" \
+    -e GEOJSON_SRS="$GEOJSON_SRS" \
+    -e FALLBACK_ANCHOR="$FALLBACK_ANCHOR" \
+    post-processing /app/src/scripts/postprocess.sh
+run_step_end 0
 
 echo "=== Pipeline Completed Successfully. Final outputs saved in data/08_gis/ ==="

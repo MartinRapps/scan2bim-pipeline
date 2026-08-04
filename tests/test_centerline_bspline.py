@@ -30,6 +30,12 @@ class BsplineTests(unittest.TestCase):
         self.assertEqual(smoothed[-1], [2.0, 0.0, 0.0])
         self.assertGreaterEqual(len(smoothed), 2)
 
+    def test_high_degree_preserves_endpoints(self):
+        points = [[float(i), 0.0, 0.0] for i in range(20)]
+        smoothed = bspline(points, samples_per_segment=4, degree=10)
+        self.assertEqual(smoothed[0], points[0])
+        self.assertEqual(smoothed[-1], points[-1])
+
     def test_remove_consecutive_duplicates(self):
         points = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
         self.assertEqual(remove_consecutive_duplicates(points), [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])

@@ -64,7 +64,7 @@ Um die Automatisierung zu maximieren, wird die Pipeline über ein zentrales Mast
 \textbf{Autopilot-Modus für unterbrechungsfreie Verarbeitung:}\\
 Um den wissenschaftlichen Workflow anwenderfreundlich zu gestalten und manuelle Interaktionen auf ein Minimum zu reduzieren, wurde ein optionaler **Autopilot-Modus** in die Orchestrierungskonfiguration integriert. Direkt nach der Eingabe des Semantik-Prompts (z.\,B. \texttt{"cable"}) kann dieser aktiviert werden. 
 *   **Wirkungsweise:** Alle nachgelagerten Parameterentscheidungen werden vollautomatisch mit vordefinierten, wissenschaftlich erprobten Standardwerten belegt. 
-*   **Automatisierte Parameter:** Das FFMPEG-Pre-Processing erzwingt im Autopilot ein komprimiertes Arbeitsvideo im optimalen Kompromiss von $1920 \times 1080$ Pixeln bei $10$\,FPS, einem Constant Rate Factor (CRF) von $23$ und dem $x264$-Preset \texttt{medium}. Das STS-Training wird auf standardmäßig $7000$ Gesamt-Optimierungsiterationen (bzw. $5000$ Iterationen in Stage 2) mit klassischer Speicherallokation festgelegt.
+*   **Automatisierte Parameter:** Das FFMPEG-Pre-Processing erzeugt im aktuellen Projektarbeitsstandard ein komprimiertes Arbeitsvideo mit $1280 \times 720$ Pixeln bei $5$\,FPS, CRF $18$ und dem x264-Preset \texttt{medium}. Das STS-Training verwendet standardmäßig $7000$ Gesamtiterationen: $5000$ Iterationen fuer die Objekt-/Maskenphase und anschliessend $2000$ Iterationen fuer alle konfigurierten Objekte. Die Stage-2-Angabe ist dabei ein Curriculum-Fenster innerhalb der Gesamtzahl und kein zusaetzlicher Block nach dem Gesamttraining.
 *   **Anwendervorteil:** Bis auf den zwingenden physikalischen Messschritt (Breakpoint für das GCP-Point-Picking in CloudCompare) ist kein Benutzereingriff mehr erforderlich. Die Pipeline steuert alle fünf Microservices automatisiert an, führt den neuen Teilmodell-Wechsler (Best-Model-Resolver) selbständig aus und exportiert die georeferenzierten GIS-Daten fix und fertig in das Zielverzeichnis.
 
 Es kommen fünf dedizierte Container zum Einsatz:
@@ -148,6 +148,104 @@ Mehrere kritische Punkte und prozessuale Hürden erfordern besondere Aufmerksamk
           Die ursprünglich geplante Zerlegung des Voxel-Skeletts in ein Ästenetz (\texttt{network}-Modus) lieferte auf dem realen Gestell-Mesh zunächst \emph{keine} Centerline: Das topologieerhaltende Thinning erzeugt auf den unebenen, dünnwandigen Röhren 2D-Medialflächen und Stachel-Äste, sodass der Skelett-Graph alle ein bis zwei Voxel eine Verzweigung aufweist. Sämtliche $\sim$300 resultierenden Teiläste fielen damit unter die Mindestlänge (\texttt{MIN\_PATH\_LENGTH}), und der Graph-Filter verwarf das komplette Ergebnis. Ebenso klärte sich die anfangs irritierende Beobachtung, dass die extrahierte Linie nur aus zwei exakt gegenüberliegenden Blickrichtungen wie ein geschlossener Loop aussah: Start- und Endpunkt des Pfades liegen rund 24\,cm auseinander, und lediglich bei Blickrichtung (anti-)parallel zu diesem Verbindungsvektor projizieren beide Punkte auf denselben Bildpunkt. Als robuste Lösung reduziert der \texttt{single}-Modus die größte Skelettkomponente auf ihren Durchmesser-Pfad, der Stachel-Äste automatisch ignoriert; dieser Pfad wird anschließend an echten Richtungswechseln segmentiert und pro Segment B-Spline-geglättet (siehe \textit{Datenformate \& GIS-Export}). Für eine spätere Netzwerk-Variante stehen mit dem Extractor-Flag \texttt{-{}-one-isthmus} (rein 1D-Skelettierung, kollabiert Medialflächen zu Kurven) und einem Python-Graph-Vereinfachungsskript Bausteine bereit; begrenzender Faktor bleibt dabei die Skelettqualität des verrauschten Meshes.
 \end{enumerate}
 
+\subsection*{Verbindlicher Projektarbeitsstand nach FAQ (08/2026)}
+Die folgenden Festlegungen bilden den aktuellen operativen Standard fuer die
+Projektarbeit. Auch die vorangehende Workflow-v4-Beschreibung enthaelt an
+einzelnen Stellen fruehere Zwischenstaende, etwa B-Spline-Grad 3 und
+Eckensegmentierung; die folgende Liste hat bei solchen Abweichungen Vorrang.
+Historische Ablationen und fruehere Zwischenstaende in den nachfolgenden
+Abschnitten bleiben als Versuchsdokumentation erhalten, werden aber nicht mehr
+als aktuelle Default-Konfiguration interpretiert.
+
+\begin{itemize}
+    \item \textbf{Datensatz und Ziel:} Das Alurohr ist der aktuelle lineare
+          Testdatensatz fuer die Projektarbeit. Das primaere Produkt ist die
+          Centerline; Zwischenprodukte wie Masken, COLMAP-SfM, STS-Checkpoint,
+          SuGaR-Mesh und lokale beziehungsweise georeferenzierte CSV-/GeoJSON-
+          Dateien bleiben fuer Diagnose und spaetere Auswertung erhalten. Die
+          Toleranz von $\pm 10\,\mathrm{cm}$ ist ein Ziel der Bachelorarbeit
+          und wird dort gegen eingemessene Referenzpunkte bewertet.
+    \item \textbf{Ausfuehrung:} Der Produktionsweg ist die Docker-Pipeline mit
+          GPU unter Linux beziehungsweise WSL. Die Windows-11-COLMAP-Laeufe
+          ohne CUDA sind getrennte Vergleichslaeufe. Der lokale SuGaR-Fork ist
+          als Git-Submodul auf \texttt{MartinRapps/SuGaR@48bbfdd} festgelegt.
+          Nach einem frischen Clone ist deshalb
+          \texttt{git submodule update --init --recursive} erforderlich. Die
+          aktuelle Projektarbeitskopie enthaelt zusaetzlich eine noch nicht in
+          einem Fork-Commit festgeschriebene Aenderung in
+          \texttt{third\_party/SuGaR/train.py}, welche die c9000-Route erlaubt.
+          Vor einem Release muss diese Aenderung in den Fork uebernommen und
+          der Parent-Gitlink aktualisiert werden.
+    \item \textbf{Host-UID/GID bei Bind-Mounts:} Die Pipeline darf nicht von
+          der Standardannahme UID/GID $1000:1000$ ausgehen. Auf dem aktuellen
+          Ubuntu-System haben Benutzer und Gruppe die numerischen IDs
+          $190290584:190200513$; die Eingabedateien koennen mit Modus 600 nur
+          von diesem Benutzer gelesen werden. Die Master-Skripte exportieren
+          deshalb automatisch die aktuelle Host-UID/GID an Docker Compose.
+          Fehler in der GCP-Vorbereitung werden als nicht-null Exit-Code
+          weitergegeben, damit die Pipeline nicht trotz fehlender Leserechte
+          in spaetere Schritte laeuft.
+    \item \textbf{Frame- und COLMAP-Standard:} Der aktuelle Default ist
+          $1280\times720$ bei $5$ FPS, unmaskierten Bildern,
+          \texttt{SIMPLE\_RADIAL}, 4096 Plain-SIFT-Merkmalen,
+          Sequential-Overlap 15, deaktiviertem Guided Matching und
+          SIFT-Peak-Threshold 0.003. Weitere Fast-/High-Quality-Profile sind
+          spaetere Erweiterungen. Das Docker-Image bleibt fuer die
+          Projektarbeit bewusst \texttt{colmap/colmap:latest}; der in frueheren
+          Fassungen genannte Tag \texttt{4.0.4-cuda} ist im offiziellen
+          Docker-Hub-Repository nicht vorhanden. Das originale
+          \texttt{SIMPLE\_RADIAL}-Modell bleibt fuer GCP/UI und SfM-Auswertung
+          erhalten; danach erzeugt \texttt{run\_sfm.sh} automatisch eine
+          separate ideale \texttt{PINHOLE}-Szene unter
+          \texttt{data/04\_sfm/undistorted/}, die wegen der STS-Einschraenkung
+          auf undistortierte Kameramodelle an STS uebergeben wird.
+    \item \textbf{Segmentiertes SuGaR:} STS verwendet 7000 Gesamtiterationen,
+          davon 5000 Iterationen fuer die Objekt-/Maskenphase und 2000 fuer die
+          anschliessende All-Object-Phase. Der mask-aware SuGaR-Standard verwendet
+          \texttt{dn\_consistency} mit dem Coarse-Zielzaehler $c=9000$,
+          \texttt{MASK\_LEVEL=default},
+          \texttt{NORMAL\_MASK\_LEVEL=middle},
+          \texttt{TEXTURE\_MASK\_LEVEL=default}, null RGB-/UV-Dilatation,
+          200000 Mesh-Vertices, 5000000 Oberflaechenstichproben, mittleres
+          Refinement und keinen Consensus-Crop. Bei $c=9000$ werden die im
+          lokalen Fork erst fuer Zaehler $>9000$ aktivierten DN-/SDF-Terme
+          bewusst nicht erreicht. Dafuer sind keine externen Tiefendaten
+          erforderlich; die im DN-Term verwendete Tiefe wird intern aus den
+          Gaussians gerendert. Die fruehere harte $>9000$-Eingabesperre wurde
+          aufgehoben. Ein schnellerer \texttt{density}-Lauf bleibt eine
+          spaetere Erweiterung. Die Laufzeitausgaben werden unter
+           \texttt{/data/sugar\_output/<run-tag>} geschrieben, damit das lokale
+           SuGaR-Dev-Overlay keine Berechtigungsprobleme am internen
+           \texttt{/opt/sugar/output}-Pfad erzeugt. Fuer die Poisson-Extraktion
+           werden Background-Punktwolken mit weniger als drei Punkten oder
+           ungueltigen Normalen uebersprungen; bei der Alurohr-Geometrie kann
+           der Background durch die kamera-basierte Bounding-Box auf nur ein
+           oder zwei Punkte schrumpfen, waehrend das Foreground-Mesh gueltig
+           bleibt.
+    \item \textbf{Centerline:} Fuer die einzelne Trasse bleibt der robuste
+          \texttt{single}-Modus im Scope. Die Eckensegmentierung ist im
+          Produktionspfad deaktiviert. Die lokale Kurve wird mit einem
+          geklemmten uniformen B-Spline des Grades 10 geglaettet;
+          \texttt{BSPLINE\_SAMPLES\_PER\_SEGMENT} steuert weiterhin nur die
+          Ausgabepunktdichte. Der Network-Modus bleibt ausserhalb des
+          Projektarbeitsumfangs.
+    \item \textbf{GCP und Georeferenzierung:} Der bevorzugte Workflow markiert
+          die GCPs in registrierten COLMAP-Bildern ueber die UI, trianguliert
+          deren SfM-Positionen und berechnet die relative SfM-zu-UTM-
+          Aehnlichkeitstransformation. Der erste GCP ist standardmaessig der
+          Anchor; eine explizite Auswahl in der UI ist ein noch offener
+          Verbesserungsbaustein. Die aktuelle GCP-Testdatei ist ein
+          synthetisches lokales Raster und daher kein echter UTM-
+          Genauigkeitsnachweis. Der Fallback bleibt fuer Laeufe ohne Matrix
+          oder Anchor erhalten.
+          \item \textbf{Mesh-Postprocessing:} \texttt{postprocess\_mesh} ist eine
+          optionale Bereinigung des finalen refined OBJ. Sie entfernt
+          iterativ topologische Randdreiecke mit niedriger Gaussian-Dichte und
+          kann duenne Strukturen oder relevante Raender verlieren. Sie ist
+          nicht mit dem Multi-View-Crop identisch und bleibt bis zu einer
+          kontrollierten Ablation deaktiviert.
+\end{itemize}
+
 \section{Effizienzanalyse und Optimierungspotenzial}
 
 Im Verlauf der Implementierung erwies sich die Pipeline als funktionstüchtig,
@@ -197,9 +295,11 @@ Centerline-Funktionen (\texttt{bspline}, \texttt{find\_corners},
 \subsection{Docker-Optimierung}
 Es existiert keine \texttt{.dockerignore}, sodass jeder Build den gesamten
 Projektbaum inklusive \texttt{data/}, Logs und \texttt{.venv/} an den Daemon
-sendet. Das COLMAP-Image ist auf \texttt{colmap/colmap:latest} gepinnt und damit
-nicht reproduzierbar; der STS-\texttt{git clone} ist nicht auf einen Commit
-festgelegt. Die Container A, C und D nutzen \texttt{devel}-Basisimages, obwohl
+sendet. Das COLMAP-Image verwendet fuer die Projektarbeit bewusst
+\texttt{colmap/colmap:latest} und ist damit noch nicht reproduzierbar; der
+frueher vorgeschlagene Tag \texttt{4.0.4-cuda} ist im offiziellen Docker-Hub-
+Repository nicht vorhanden. Der STS-\texttt{git clone} ist nicht auf einen
+Commit festgelegt. Die Container A, C und D nutzen \texttt{devel}-Basisimages, obwohl
 zur Laufzeit nur die kompilierten CUDA-Erweiterungen benötigt werden;
 \texttt{TORCH\_CUDA\_ARCH\_LIST} baut sechs Architekturen
 (\texttt{7.0;7.5;8.0;8.6;8.9;9.0}), was die CUDA-Kompilierung ca.~6-fach
@@ -231,8 +331,10 @@ durch \texttt{-{}-Mapper.max\_num\_models 1} entfällt. \textbf{Maßnahme:}
 unveränderten Bildern bereits vorliegt), \texttt{max\_num\_features} auf
 $\sim$8000 senken, \texttt{max\_image\_size} auf $\sim$2000 begrenzen,
 \texttt{guided\_matching} bei hochüberlappendem Video deaktivieren,
-\texttt{-{}-num\_threads} explizit setzen und COLMAP auf
-\texttt{colmap/colmap:4.0.4-cuda} pinnen. Geschätzter Iterationsgewinn bei
+\texttt{-{}-num\_threads} explizit setzen und fuer einen spaeteren Release-
+Build auf einen verifizierten Datumstag oder Digest pinnen. Fuer die aktuelle
+Projektarbeit bleibt \texttt{colmap/colmap:latest} bestehen. Geschätzter
+Iterationsgewinn bei
 Replay: ca.~50--70\,\%. Zwei Maßnahmen sind qualitätskritisch und nicht
 als reiner Speedup zu lesen: Das Setzen von \texttt{mask\_path} beschränkt die
 Feature-Extraktion auf das Objekt und beschleunigt zwar die Extraktion, entfernt
@@ -522,6 +624,44 @@ Um die Robustheit und Präzision der entwickelten Pipeline unter realen Bedingun
 \section{Anhang: Single Source of Truth (SSOT) -- Pipeline Installation}
 Dieses Dokument dient als zentrale Wahrheit (SSOT) für die Installation und Orchestrierung der gesamten 5-Container-Pipeline. Es fasst alle Hard- und Software-Abhängigkeiten zusammen, um Reproduzierbarkeit zu gewährleisten.
 
+\subsection*{Reproduzierbare LaTeX-Kompilation}
+Auf dem Ubuntu-Host muss keine lokale LaTeX-Installation vorhanden sein. Der
+offizielle MiKTeX-Docker-Workflow ist grundsätzlich geeignet:
+
+\begin{verbatim}
+docker run -ti \
+  -v miktex:/var/lib/miktex \
+  -v "$(pwd)":/miktex/work \
+  -e MIKTEX_UID="$(id -u)" \
+  miktex/miktex:essential pdflatex Expose_PA_BA.tex
+\end{verbatim}
+
+Mit dem am 04.08.2026 verfügbaren MiKTeX-Image $23.10$ schlug dieser Aufruf
+jedoch beim Aufbau von \texttt{pdflatex.fmt} fehl, weil das aus dem gewählten
+Paket-Repository geladene \texttt{miktex-latex}-Paket die erwartete
+\texttt{pdflatex.ini} nicht enthielt. Als reproduzierbarer Fallback wurde
+deshalb ein TeX-Live-Container erfolgreich verifiziert:
+
+\begin{verbatim}
+docker run --rm -i \
+  --user "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -e TEXMFVAR=/tmp/texlive-var \
+  -e TEXMFCONFIG=/tmp/texlive-config \
+  -e TEXMFHOME=/tmp/texlive-home \
+  -v "$(pwd)":/work -w /work \
+  texlive/texlive:latest-small \
+  pdflatex -file-line-error -interaction=nonstopmode \
+  -halt-on-error Expose_PA_BA.tex
+\end{verbatim}
+
+Der TeX-Live-Aufruf erzeugt die PDF sowie die LaTeX-Hilfsdateien im aktuellen
+\texttt{docs/}-Verzeichnis, ohne Root-Dateien im Projekt anzulegen. Nach
+inhaltlichen Aenderungen sollte der Aufruf mindestens einmal, bei geaenderten
+Querverweisen zweimal ausgefuehrt werden. Warnungen wie \textit{Overfull hbox}
+sind Layoutwarnungen; ein nicht-null Exit-Code ist dagegen ein echter
+Kompilationsfehler.
+
 \subsection*{Hardware-Grundvoraussetzungen}
 \begin{itemize}[noitemsep]
     \item \textbf{GPU:} CUDA-kompatible Nvidia GPU (Compute Capability 7.0+).
@@ -630,13 +770,18 @@ predictor.handle_request(
 \end{verbatim}
 
 \subsection*{Container B: COLMAP (Structure from Motion)}
-Generiert die Kameraposen und die Sparse Point Cloud aus den maskierten Drohnenbildern.
-Aufgrund der massiven Architekturänderungen (Einführung von GLOMAP) in Release 4.0.0, wird explizit zur stabileren Patch-Version \textbf{4.0.4} geraten, welche kritische Bugs (Speicherlecks, Race-Conditions in der Datenbank) behebt.
+Generiert die Kameraposen und die Sparse Point Cloud aus den unmaskierten
+Originalbildern. Die unmaskierten Hintergrund- und Anker-Features sind fuer
+die stabile Orientierung duenn strukturierter Objekte und fuer das spaetere
+GCP-Picking erforderlich. Die Docker-Pipeline verwendet in der Projektarbeit
+weiterhin bewusst das offizielle Image \texttt{colmap/colmap:latest}; die
+frueher dokumentierte Bezeichnung \texttt{4.0.4-cuda} ist aktuell nicht als
+Docker-Hub-Tag verfuegbar und bleibt eine spaetere Versionsoption.
 
 \textbf{Quellen \& Docker-Image:}
 \begin{itemize}[noitemsep]
     \item \textbf{Releases:} \url{https://github.com/colmap/colmap/releases}
-    \item \textbf{Docker-Image:} \texttt{docker pull colmap/colmap:4.0.4-cuda}
+    \item \textbf{Docker-Image:} \texttt{docker pull colmap/colmap:latest}
 \end{itemize}
 
 \textbf{Ausführung \& PLY-Export (für CloudCompare):}\\
@@ -856,7 +1001,7 @@ Beim anschließenden UV-Baking werden nur die von der jeweiligen Kamera als Obje
 \left[1-\mathbf{n}_{\mathrm{depth}}(p)^{\top}\mathbf{n}_{\mathrm{Gauss}}(p)\right]}
 {\sum_{p} M_{\mathrm{middle}}(p)+\varepsilon}.
 \]
-Der verzögerte Start ist ein lokales Curriculum: Zunächst soll sich die photometrisch passende Dichteverteilung stabilisieren, bevor eine geometrische Normalenrestriktion auf möglicherweise noch unsichere Oberflächen wirkt. Ein Zielwert von $7500$ ergäbe dadurch nur rund $501$ neue Updates und noch keinen DN-Term; $12000$ ergibt rund $5001$ neue Updates, davon etwa $3000$ nach Aktivierung der DN- und SDF-Terme. Die Untergrenze $9001$ im Runner verhindert daher einen formal als \texttt{dn\_consistency} bezeichneten, praktisch aber DN-freien Lauf. Diese Schwelle ist eine Implementierungseigenschaft des lokalen Trainers, keine allgemein bewiesene Mindestiterationszahl für jedes SuGaR-Projekt.
+Der verzögerte Start ist ein lokales Curriculum: Zunächst soll sich die photometrisch passende Dichteverteilung stabilisieren, bevor eine geometrische Normalenrestriktion auf möglicherweise noch unsichere Oberflächen wirkt. Ein Zielwert von $7500$ ergäbe dadurch nur rund $501$ neue Updates und noch keinen DN-Term; $12000$ ergibt rund $5001$ neue Updates, davon etwa $3000$ nach Aktivierung der DN- und SDF-Terme. Für den segmentierten Projektarbeitsstandard wird deshalb bewusst der Zielwert $9000$ verwendet: Die DN-/SDF-Phase beginnt erst bei $iteration>9000$ und wird damit nicht benötigt. Die frühere Eingabeuntergrenze $9001$ wurde aufgehoben; Werte über $9000$ bleiben als optionale Vergleichsläufe möglich. Diese Schwelle ist eine Implementierungseigenschaft des lokalen Trainers und keine allgemein bewiesene Mindestiterationszahl für jedes SuGaR-Projekt.
 
 Die $699$ registrierten Ansichten werden im aktuellen Lauf nicht zufällig geteilt. Mit \texttt{-{}-eval True} legt der Wrapper jede achte Ansicht mit Index $i \bmod 8 = 0$ in die Testmenge. Das sind die Indizes $0,8,\ldots,696$, also $88$ Eval- und die übrigen $611$ Trainingsansichten. Diese in SuGaR übliche Aufteilung reserviert Ansichten für eine spätere, von den Trainingsbildern getrennte Rendering-Evaluation; die Aufteilung selbst ist jedoch kein geometrischer Genauigkeitsnachweis. Coarse- und Refinement-Training übernehmen die Einstellung \texttt{-{}-eval True}; die aktuelle Coarse-Mesh-Extraktion verwendet denselben Achtel-Split intern ebenfalls. Für einen kontrollierten Vergleich mit dem Referenzlauf bleibt dieser Split unverändert. Ein späterer All-View-Lauf mit allen $699$ Ansichten wäre eine eigene Ablation und darf nicht mit dem RGB-Dilatationstest vermischt werden.
 
@@ -980,6 +1125,11 @@ Als aktuelle Arbeitshypothese wird daher \texttt{default + 0\,px} als geometrisc
 Der nächste sinnvolle Schritt ist ein getrennt gespeicherter Mesh-Bereinigungstest auf der bevorzugten Basis. Der lokale SuGaR-Pfad stellt bereits ein optionales \texttt{postprocess\_mesh} bereit, das iterativ schwach dichte Randdreiecke anhand der Mesh-Konnektivität entfernt und anschließend ausgewählte Dreiecke mit ausreichender Dichte wieder zulässt. Diese Funktion wurde in den beiden bisherigen Läufen noch nicht als Lösung aktiviert. Sie darf nicht blind mit den Standardwerten eingesetzt werden, weil sie ebenfalls Löcher oder relevante dünne Strukturen entfernen kann. Stattdessen werden das unveränderte \texttt{default + 0\,px}-Mesh, eine konservative Postprocessing-Variante und der unveränderte \texttt{middle + 0\,px}-Vergleich separat gespeichert. Bewertet werden die Entfernung eindeutig abgelöster Flächen, die Randstabilität, die Anzahl beziehungsweise Lage der Glaslöcher und die Abweichung der georeferenzierten Referenzpunkte. Das unveränderte Mesh bleibt als wissenschaftlicher Ausgangsbefund erhalten; das bereinigte Mesh wird als abgeleitetes Produkt gekennzeichnet.
 
 \subsection*{Iterations- und Opazitätsbefund an kontaktkritischen Bereichen}
+
+Die folgenden $9001$-, $10000$- und $18000$-Laeufe sind historische
+SuGaR-Ablationen aus der Sonnenbrillen-Untersuchung. Sie dokumentieren die
+Wirkung der spaeteren DN-/SDF-Phase, bilden aber nicht den aktuellen
+Projektarbeitsstandard $c=9000$ fuer das segmentierte Alurohr.
 
 Eine weitere kontrollierte Serie verwendet durchgehend die undilatierte \texttt{default}-RGB-Maske, die \texttt{middle}-DN-Maske, fünf Millionen Oberflächenstichproben, ein Ziel von $200000$ Mesh-Vertices, mittleres Refinement und keinen nachgeschalteten Crop. Variiert wird nur der Coarse-Zielzähler. In der qualitativen Gegenüberstellung erzeugt der Lauf bis $18000$ gegenüber $9001$ und $10000$ deutlich geschlossenere und konsistentere Brillenbügel. Die zuvor beobachteten Restflächen verschwinden jedoch nicht vollständig, sondern treten an weitgehend denselben Kontakt- beziehungsweise Ansatzbereichen zwischen Sonnenbrille und Untergrund wieder auf. Ihre Lage und Ausdehnung wirken bei der längeren Optimierung stabiler. Der Befund ist daher nicht als zufälliges Rauschen zu interpretieren, aber auch noch kein Beweis dafür, dass Poisson allein die Flächen erzeugt.
 

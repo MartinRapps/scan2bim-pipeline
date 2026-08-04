@@ -52,15 +52,16 @@ explain_checkpoint_iteration() {
     It must match point_cloud_filtered_opacity999999.ply and cameras.json from
     the same STS run. The source point_cloud_filtered.ply is retained separately
     with its original opacity values.
-    The current object experiment uses 7000.
+    The current object experiment uses the STS checkpoint at 7000 by default.
 EOF
 }
 
 explain_regularization() {
         cat <<'EOF'
 
-    dn_consistency : Current object route. Uses masked RGB supervision plus
-                                     density/SDF terms and a depth-normal consistency term.
+    dn_consistency : Current object route. Uses masked RGB supervision and the
+                                     local density schedule. DN/SDF terms are only
+                                     activated for targets above 9000.
     density        : Density/SDF regularization without the DN-specific schedule.
     sdf            : Alternative upstream regularization route.
     Keep dn_consistency for comparisons with the current reference run.
@@ -78,10 +79,11 @@ explain_coarse_iterations() {
         7000-9000 : masked RGB optimization; entropy regularization is active.
         >9000     : depth-normal consistency and SDF-related geometric terms start.
 
-    9001 is the current geometry-oriented standard. It retains the STS-derived
-    surface support and adds the first DN/SDF update after the hard pruning
-    boundary. Longer runs remain separate comparisons because they can improve
-    thin temples while also consolidating contact-region artifacts.
+    9000 is the current geometry-oriented standard for segmented objects. It
+    retains the STS-derived surface support without requiring the later DN/SDF
+    phase or external depth data. Targets above 9000 activate DN/SDF and remain
+    separate comparisons because they can improve thin parts while also
+    consolidating contact-region artifacts.
 EOF
 }
 
@@ -170,11 +172,21 @@ export_refined_model() {
     local texture_reference
     local source_texture
 
-    REFINED_PLY="$(find "$OUTPUT_HOST_DIR/refined_ply" -type f -name '*.ply' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2-)"
-    FINAL_MESH="$(find "$OUTPUT_HOST_DIR/refined_mesh" -type f -name '*.obj' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2-)"
-    if [[ -z "$REFINED_PLY" || ! -f "$REFINED_PLY" || -z "$FINAL_MESH" || ! -f "$FINAL_MESH" ]]; then
-        echo "Error: The mask-aware SuGaR run completed without both refined PLY and textured OBJ outputs." >&2
+    REFINED_PLY=""
+    if [[ -d "$OUTPUT_HOST_DIR/refined_ply" ]]; then
+        REFINED_PLY="$(find "$OUTPUT_HOST_DIR/refined_ply" -type f -name '*.ply' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2- || true)"
+    fi
+    FINAL_MESH=""
+    if [[ -d "$OUTPUT_HOST_DIR/refined_mesh" ]]; then
+        FINAL_MESH="$(find "$OUTPUT_HOST_DIR/refined_mesh" -type f -name '*.obj' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2- || true)"
+    fi
+    if [[ -z "$FINAL_MESH" || ! -f "$FINAL_MESH" ]]; then
+        echo "Error: The mask-aware SuGaR run completed without a textured OBJ output." >&2
         exit 2
+    fi
+    if [[ -z "$REFINED_PLY" || ! -f "$REFINED_PLY" ]]; then
+        echo "Warning: No refined PLY found; continuing with OBJ/MTL/texture export only." >&2
+        REFINED_PLY=""
     fi
 
     MESH_EXPORT_DIR="data/06_mesh/$MESH_EXPORT_NAME"
@@ -188,9 +200,12 @@ export_refined_model() {
     fi
     mkdir -p "$MESH_EXPORT_DIR"
 
-    EXPORTED_REFINED_PLY="$MESH_EXPORT_DIR/refined.ply"
+    EXPORTED_REFINED_PLY=""
     EXPORTED_OBJ="$MESH_EXPORT_DIR/refined.obj"
-    cp "$REFINED_PLY" "$EXPORTED_REFINED_PLY"
+    if [[ -n "$REFINED_PLY" ]]; then
+        EXPORTED_REFINED_PLY="$MESH_EXPORT_DIR/refined.ply"
+        cp "$REFINED_PLY" "$EXPORTED_REFINED_PLY"
+    fi
     cp "$FINAL_MESH" "$EXPORTED_OBJ"
 
     source_mtl="${FINAL_MESH%.*}.mtl"
@@ -246,7 +261,7 @@ ITERATIONS="${ITERATIONS:-7000}"
 REGULARIZATION="${REGULARIZATION:-dn_consistency}"
 REFINEMENT_TIME="${REFINEMENT_TIME:-medium}"
 MASK_LEVEL="${MASK_LEVEL:-default}"
-NORMAL_MASK_LEVEL="${NORMAL_MASK_LEVEL:-default}"
+NORMAL_MASK_LEVEL="${NORMAL_MASK_LEVEL:-middle}"
 TEXTURE_MASK_LEVEL="${TEXTURE_MASK_LEVEL:-default}"
 MASK_DILATION_PX="${MASK_DILATION_PX:-0}"
 TEXTURE_MASK_DILATION_PX="${TEXTURE_MASK_DILATION_PX:-0}"
@@ -255,7 +270,7 @@ MESH_VERTICES="${MESH_VERTICES:-200000}"
 SURFACE_SAMPLE_COUNT="${SURFACE_SAMPLE_COUNT:-5000000}"
 COARSE_ITERATIONS="${COARSE_ITERATIONS:-}"
 if [[ "$REGULARIZATION" == "dn_consistency" && -z "$COARSE_ITERATIONS" ]]; then
-    COARSE_ITERATIONS=9001
+    COARSE_ITERATIONS=9000
 fi
 STOP_AFTER_COARSE_MESH="${STOP_AFTER_COARSE_MESH:-0}"
 RUN_CONSENSUS_CROP="${RUN_CONSENSUS_CROP:-0}"
@@ -270,7 +285,7 @@ if [[ "$INTERACTIVE" == "1" ]]; then
         "Regularization (sdf/density/dn_consistency, or EXPLAIN)" "$REGULARIZATION" explain_regularization
     if [[ "$REGULARIZATION" == "dn_consistency" ]]; then
         ask_value COARSE_ITERATIONS \
-            "Coarse final iteration counter (or EXPLAIN)" "${COARSE_ITERATIONS:-15000}" explain_coarse_iterations
+            "Coarse final iteration counter (or EXPLAIN)" "${COARSE_ITERATIONS:-9000}" explain_coarse_iterations
     else
         COARSE_ITERATIONS=""
     fi
@@ -356,12 +371,14 @@ if [[ -n "$COARSE_ITERATIONS" && "$REGULARIZATION" != "dn_consistency" ]]; then
     echo "Error: COARSE_ITERATIONS is currently supported only with REGULARIZATION=dn_consistency." >&2
     exit 2
 fi
-if [[ -n "$COARSE_ITERATIONS" && "$COARSE_ITERATIONS" -le 9000 ]]; then
-    echo "Error: dn_consistency starts after coarse iteration 9000; COARSE_ITERATIONS must be at least 9001." >&2
+if [[ -n "$COARSE_ITERATIONS" && "$COARSE_ITERATIONS" -le 6999 ]]; then
+    echo "Error: COARSE_ITERATIONS must exceed the loaded STS counter 6999." >&2
     exit 2
 fi
-if [[ -n "$COARSE_ITERATIONS" && "$COARSE_ITERATIONS" -le 10000 ]]; then
-    echo "Notice: This target has at most 1000 DN/SDF-phase updates; c9001 is the selected geometry-first standard." >&2
+if [[ -n "$COARSE_ITERATIONS" && "$COARSE_ITERATIONS" -le 9000 ]]; then
+    echo "Notice: DN/SDF phase is not reached; this is intentional for the segmented-object default." >&2
+elif [[ -n "$COARSE_ITERATIONS" ]]; then
+    echo "Notice: DN/SDF phase is active for this comparison run (about $((COARSE_ITERATIONS - 9000)) updates)." >&2
 fi
 case "$RUN_CONSENSUS_CROP" in
     0|1)
@@ -405,7 +422,22 @@ MASKS_DIR="${MASKS_DIR:-data/03_masks}"
 CHECKPOINT_HOST_DIR="data/05_3dgs/masked_sugar_input/${RUN_TAG}"
 CHECKPOINT_CONTAINER_DIR="/data/05_3dgs/masked_sugar_input/${RUN_TAG}/"
 OUTPUT_HOST_DIR="data/sugar_output/${RUN_TAG}"
-OUTPUT_CONTAINER_ROOT="./output/${RUN_TAG}"
+# The local SuGaR dev overlay replaces /opt/sugar, so the image's nested
+# /opt/sugar/output volume is hidden. Keep all runtime outputs on the shared
+# /data bind mount instead.
+OUTPUT_CONTAINER_ROOT="/data/sugar_output/${RUN_TAG}"
+
+if [[ "${EXPORT_ONLY:-0}" == "1" ]]; then
+    echo "=== Exporting existing SuGaR mesh without retraining ==="
+    export_refined_model
+    echo "Refined OBJ export: $EXPORTED_OBJ"
+    if [[ -n "$EXPORTED_REFINED_PLY" ]]; then
+        echo "Refined PLY export: $EXPORTED_REFINED_PLY"
+    else
+        echo "Refined PLY export: not available (OBJ export is usable for post-processing)"
+    fi
+    exit 0
+fi
 
 if [[ ! -f "$FILTERED_PLY" && "$FILTERED_PLY" == "$DEFAULT_FILTERED_PLY" ]]; then
     echo "Standard high-opacity SuGaR input is missing; preparing it from the STS checkpoint..."
@@ -428,6 +460,8 @@ fi
 
 if [[ ( -e "$OUTPUT_HOST_DIR" || -e "$CHECKPOINT_HOST_DIR" ) && "${REPLACE:-0}" != "1" ]]; then
     echo "Error: Output or private staged checkpoint already exists for tag: $RUN_TAG" >&2
+    [[ -e "$OUTPUT_HOST_DIR" ]] && echo "  Existing output: $OUTPUT_HOST_DIR" >&2
+    [[ -e "$CHECKPOINT_HOST_DIR" ]] && echo "  Existing staged checkpoint: $CHECKPOINT_HOST_DIR" >&2
     echo "Set SUGAR_RUN_TAG to a new value, or set REPLACE=1 to deliberately replace this run." >&2
     exit 2
 fi
@@ -447,7 +481,11 @@ echo "Stop after Coarse mesh: $STOP_AFTER_COARSE_MESH"
 echo "Short refined-model export: data/06_mesh/$MESH_EXPORT_NAME"
 if [[ "$REGULARIZATION" == "dn_consistency" ]]; then
     echo "Coarse target counter: $COARSE_TARGET (starts at 6999; about $((COARSE_TARGET - 6999)) new updates)"
-    echo "DN/SDF-phase updates: about $((COARSE_TARGET - 9000)) after activation above 9000"
+    if (( COARSE_TARGET > 9000 )); then
+        echo "DN/SDF-phase updates: about $((COARSE_TARGET - 9000)) after activation above 9000"
+    else
+        echo "DN/SDF-phase updates: 0 (not reached for the segmented-object default)"
+    fi
 else
     echo "Coarse iterations: implementation default for $REGULARIZATION"
 fi

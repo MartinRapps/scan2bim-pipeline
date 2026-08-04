@@ -156,14 +156,14 @@ def write_paths(output_csv, paths, samples_per_segment, segment_corners,
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Fit clamped uniform B-spline curves (degree 1-5, default cubic) '
+        description='Fit clamped uniform B-spline curves (degree >= 1) '
         'independently to centerline branches.'
     )
     parser.add_argument('--input_csv', required=True)
     parser.add_argument('--output_csv', required=True)
     parser.add_argument('--samples-per-segment', type=int, default=4)
-    parser.add_argument('--degree', type=int, default=3,
-                        help='B-spline degree: 1 = linear, 2 = quadratic, 3 = cubic (default)')
+    parser.add_argument('--degree', type=int, default=10,
+                        help='B-spline degree; the current Alurohr default is 10')
     parser.add_argument('--keep-top-components', type=int, default=0)
     parser.add_argument('--segment-corners', action='store_true',
                         help='split each branch at real direction changes first')
@@ -174,8 +174,8 @@ def main():
     args = parser.parse_args()
     if args.samples_per_segment < 1:
         parser.error('--samples-per-segment must be at least 1')
-    if not 1 <= args.degree <= 5:
-        parser.error('--degree must be between 1 and 5')
+    if args.degree < 1:
+        parser.error('--degree must be at least 1')
     if args.keep_top_components < 0:
         parser.error('--keep-top-components must be at least 0')
     if args.corner_window < 1:

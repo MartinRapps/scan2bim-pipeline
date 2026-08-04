@@ -80,9 +80,18 @@ def main():
     print("=== Preparing Segment-then-Splat (STS) Scene Structure ===")
     
     scene_root = "/data/05_3dgs"
-    frames_dir = "/data/02_frames"
+    frames_dir = os.environ.get("STS_IMAGES_DIR", "/data/04_sfm/undistorted/images")
     masks_dir = "/data/03_masks"
-    sfm_dir = "/data/04_sfm"
+    sfm_dir = os.environ.get("STS_SFM_DIR", "/data/04_sfm/undistorted")
+
+    # STS accepts only ideal PINHOLE/SIMPLE_PINHOLE cameras. Older replays may
+    # not have the derived scene yet, so retain a clear fallback for already
+    # undistorted inputs and let STS report the model mismatch otherwise.
+    if not os.path.isdir(frames_dir) or not os.path.isdir(os.path.join(sfm_dir, "sparse")):
+        frames_dir = "/data/02_frames"
+        sfm_dir = "/data/04_sfm"
+    print(f"STS image input: {frames_dir}")
+    print(f"STS COLMAP input: {sfm_dir}")
     
     # 1. Clean and setup directories
     print("Setting up directory structure under /data/05_3dgs...")

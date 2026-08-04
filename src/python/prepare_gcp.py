@@ -24,8 +24,9 @@ def main():
     out_anchor_path = '/data/01_raw/anchor.txt'
     
     if not csv_path:
-        print(f"Error: No CSV file found in {raw_dir}. Please upload any GCP coordinate CSV there.")
-        return
+        raise FileNotFoundError(
+            f"No CSV file found in {raw_dir}. Please upload any GCP coordinate CSV there."
+        )
         
     print(f"Reading global GCP coordinates from {csv_path}...")
     
@@ -35,8 +36,7 @@ def main():
             header = [h.strip() for h in next(reader)]
             rows = [row for row in reader if row]
     except Exception as e:
-        print(f"Error reading CSV: {e}")
-        return
+        raise RuntimeError(f"Error reading CSV: {e}") from e
     
     # Detect column names for coordinates (robust matching for German/English headers)
     try:
@@ -45,12 +45,13 @@ def main():
         z_idx = [i for i, c in enumerate(header) if c.lower() in ['z', 'height', 'hoehe', 'elevation']][0]
         id_idx = [i for i, c in enumerate(header) if c.lower() in ['id', 'name', 'gcp', 'passpunkt', 'gcp_id']][0]
     except IndexError:
-        print("Error: Could not detect GCP coordinate headers. Please ensure the CSV has columns: id, x, y, z")
-        return
+        raise ValueError(
+            "Could not detect GCP coordinate headers. "
+            "Please ensure the CSV has columns: id, x, y, z"
+        )
     
     if not rows:
-        print("Error: The GCP coordinate CSV file is empty.")
-        return
+        raise ValueError("The GCP coordinate CSV file is empty.")
     
     # Select the first GCP in the file as the anchor point
     anchor_id = rows[0][id_idx]
@@ -59,8 +60,7 @@ def main():
         anchor_y = float(rows[0][y_idx])
         anchor_z = float(rows[0][z_idx])
     except ValueError as e:
-        print(f"Error parsing coordinates as floats: {e}")
-        return
+        raise ValueError(f"Error parsing coordinates as floats: {e}") from e
     
     print(f"Selected anchor point '{anchor_id}': X={anchor_x}, Y={anchor_y}, Z={anchor_z}")
     
@@ -86,7 +86,10 @@ def main():
         print(f"Relative GCP coordinates saved to {out_rel_path} for CloudCompare.")
         print("Success! You can now load these relative coordinates in CloudCompare.")
     except Exception as e:
-        print(f"Error writing relative coordinates: {e}")
+        raise RuntimeError(f"Error writing relative coordinates: {e}") from e
  
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except (OSError, ValueError, RuntimeError) as error:
+        raise SystemExit(f"Error: {error}")

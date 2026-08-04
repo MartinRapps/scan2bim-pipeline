@@ -137,9 +137,25 @@ Für maximale Schreib-/Lesegeschwindigkeit (I/O) und um Berechtigungskonflikte z
    git clone <repository-url> Projektarbeit
    cd Projektarbeit
    ```
-3. 👤 **[BENUTZER]** Erstellen Sie die für die Pipeline benötigten Datenordner:
+3. 👤 **[BENUTZER]** Initialisieren Sie den projektspezifischen SuGaR-Fork:
+   ```bash
+   git submodule update --init --recursive
+   git -C third_party/SuGaR rev-parse HEAD
+   ```
+   Erwarteter Commit: `48bbfddbb557725f14d0d8e32c30b94b5d95f0e2`.
+   Der mask-aware SuGaR-Runner verwendet im Entwicklungsbetrieb dieses lokale
+   Submodul als Overlay. Ein leerer Ordner `third_party/SuGaR` darf deshalb
+   nicht als Overlay geladen werden.
+4. 👤 **[BENUTZER]** Erstellen Sie die für die Pipeline benötigten Datenordner:
    ```bash
    mkdir -p data/01_raw data/02_frames data/03_masks data/04_sfm data/05_3dgs data/06_mesh data/07_centerline data/08_gis data/09_evaluation
+   ```
+   Die Master-Skripte verwenden automatisch die aktuelle Linux-UID/GID des
+   Benutzers fuer die Docker-Bind-Mounts. Falls die Werte manuell gesetzt
+   werden muessen, verwenden Sie vor dem Start:
+   ```bash
+   export HOST_UID="$(id -u)"
+   export HOST_GID="$(id -g)"
    ```
 
 ---
@@ -184,9 +200,35 @@ Nach **Schritt 2 (SfM - COLMAP)** pausiert das Skript automatisch:
 3. 👤 **[BENUTZER]** Führen Sie das Point Picking anhand Ihrer GCPs durch, berechnen Sie die 4x4-Transformationsmatrix (relative Georeferenzierung) und speichern Sie diese als Textdatei in `data/04_sfm/matrix.txt`.
 4. 👤 **[BENUTZER]** Gehen Sie zurück ins Ubuntu-Terminal und drücken Sie **[Enter]**, um das Training (STS) und Meshing (SuGaR) fortzusetzen.
 
+Nach dem COLMAP-Export wird automatisch eine zweite, undistortierte Szene unter
+`data/04_sfm/undistorted/` erzeugt. Die ursprüngliche `SIMPLE_RADIAL`-Szene
+bleibt für GCP-Picking und SfM-Auswertung erhalten; STS verwendet die daraus
+erzeugte `PINHOLE`-Szene, weil STS keine radialen Kameramodelle akzeptiert.
+
+#### Laufprotokolle
+
+Jeder Start von `run_pipeline.sh` erzeugt unter
+`data/10_runs/<video>_<YYYYMMDD_HHMMSS>/` zwei Dateien:
+
+- `run.log` mit der vollständigen Terminal- und Docker-Ausgabe.
+- `run.md` mit Input, Start-/Endzeit, allen erfassten Einstellungen sowie
+  Start, Ende, Status und Dauer jedes Pipeline-Schritts.
+
+Der Hugging-Face-Token wird vor SAM3 validiert. Ist der gespeicherte Token
+ungueltig, fordert die Pipeline einen neuen Token verborgen an und ersetzt die
+`HF_TOKEN`-Zeile in `.env` sicher.
+
+Falls SuGaR bereits ein OBJ erzeugt hat, aber der kurze Export unter
+`data/06_mesh/` fehlte, kann ohne erneutes Training fortgesetzt werden:
+```bash
+EXPORT_ONLY=1 REPLACE=1 ./run_pipeline.sh --from sugar
+```
+Die Refined-PLY ist fuer die Centerline nicht zwingend; Container E benoetigt
+das exportierte OBJ.
+
 Nach erfolgreichem Abschluss erzeugt Container E den rohen Centerline-Pfad
-unter `data/07_centerline/centerline_local_raw.csv`, die an echten
-Richtungswechseln segmentierten und B-Spline-geglätteten Äste unter
+unter `data/07_centerline/centerline_local_raw.csv` und den mit einem Grad-10-
+B-Spline geglätteten Centerline-Pfad unter
 `data/07_centerline/centerline_local.csv`, ein lokales GeoJSON unter
 `data/08_gis/local_output.geojson` und – sofern `matrix.txt` und `anchor.txt`
 vorliegen – die transformierte CSV unter `data/07_centerline/centerline_utm.csv`
@@ -197,11 +239,9 @@ und die Ausgaben mit `_fallback_georeferenced` gekennzeichnet. Ist
 `matrix.txt` nicht vorhanden, aber ein Screenshot unter
 `data/01_raw/matrix_screenshot.png`, wird dieser per Tesseract OCR automatisch
 eingelesen. Standardmäßig läuft die Extraktion im robusten Modus
-`CENTERLINE_MODE=single` (Durchmesser-Pfad der größten Skelettkomponente) mit
-anschließender Eckensegmentierung (`SEGMENT_CORNERS=1`,
-`SEGMENT_CORNER_WINDOW=4`, `SEGMENT_CORNER_ANGLE=30` Grad);
-`BSPLINE_DEGREE=3` wählt den Grad des geklemmten uniformen B-Splines
-(1 = linear, 2 = quadratisch, 3 = kubisch) und
+`CENTERLINE_MODE=single` (Durchmesser-Pfad der größten Skelettkomponente)
+ohne Eckensegmentierung (`SEGMENT_CORNERS=0`); `BSPLINE_DEGREE=10` wählt den
+Grad des geklemmten uniformen B-Splines und
 `BSPLINE_SAMPLES_PER_SEGMENT` steuert die Punktdichte der geglätteten Kurven.
 Der Modus `CENTERLINE_MODE=network` zerlegt alternativ den gesamten
 Skelettgraphen in Einzeläste, liefert bei verrauschten dünnen Meshes aber oft
