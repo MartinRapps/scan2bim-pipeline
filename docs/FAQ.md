@@ -325,6 +325,10 @@ zentraler Pipeline-Library und `--from`-Einstieg ist dokumentiert, aber noch
 nicht ausgefuehrt. Soll dieser Refactor vor der weiteren Evaluation erfolgen,
 oder erst nach Abschluss der wissenschaftlichen Versuche?
 
+### A-26:
+NEIN!!!
+Das ist schon passiert, das ist schon das umgezogene! Ich muss eben nur noch den feinschliff machen. 
+
 ## Nachtraegliche technische Rueckfragen
 
 Die folgenden Punkte blieben nach dem Abgleich der Antworten mit dem aktuellen
@@ -332,7 +336,7 @@ Code und den Referenzen noch offen.
 
 ### Q-27: Welche SuGaR-Iterationsroute ist der Standard?
 
-Vor der Umsetzung erzwingt der Fork bei `REGULARIZATION=dn_consistency`
+Der Fork erzwingt bei `REGULARIZATION=dn_consistency` aktuell
 `COARSE_ITERATIONS > 9000`; die Depth-Normal- und SDF-Terme starten erst bei
 `iteration > 9000`. `c9001` fuehrt daher genau den ersten Schritt dieser Phase
 aus. Externe Tiefendaten werden dabei nicht benoetigt, weil die Tiefe intern
@@ -345,17 +349,23 @@ als `dn_consistency`, bei der die spaetere DN-/SDF-Phase bewusst nicht erreicht
 wird? Zusaetzlich muss bestaetigt werden, ob `NORMAL_MASK_LEVEL=middle` der
 verbindliche Default neben `MASK_LEVEL=default` und null RGB-/UV-Dilatation ist.
 
+### A-27:
+Ja bitte dnconsistency und c9000 als default + die >9000 Sperre aufheben aber den hinweis belassen aber auch anpassen, dass es nicht bei segmentierten nötig ist. 
+Plus schneller lauf mit density später einführen. die anderen defaults passen
+
 ### Q-28: Was bedeutet „B-Spline von mindestens 10“ genau?
 
-Der Code unterscheidet zwischen `BSPLINE_DEGREE` und
-`BSPLINE_SAMPLES_PER_SEGMENT`. Der aktuelle Default ist Grad 10; die
-Punktdichte steht auf 4. Die Frage war, ob „mindestens 10“ den Grad, die
-Kontrollpunktzahl oder die Ausgabepunktdichte meint. Meinst du mit
+Der aktuelle Code unterscheidet zwischen `BSPLINE_DEGREE` und
+`BSPLINE_SAMPLES_PER_SEGMENT`. Der Grad ist derzeit auf 1 bis 5 begrenzt und
+steht standardmaessig auf 3; die Punktdichte steht auf 4. Meinst du mit
 „mindestens 10“ mindestens 10 Samples pro Segment, mindestens 10
 Kontrollpunkte fuer die Kurve oder tatsaechlich den B-Spline-Grad 10? Fuer
 sanfte Erdkabel waere technisch wahrscheinlich eine hoehere Sample-Dichte bei
 Grad 3 sinnvoller als Grad 10. Zusaetzlich soll `SEGMENT_CORNERS=0` verbindlich
 gesetzt werden.
+
+### A-28:
+Ich meine den Grad 10 zumindest ist da beim Alurohr_THWS Video minimum. Auch wenn dei Lagegeanuigkeit vermutlich eh eingehalten würde, aber ich will eben eher möglichst glatt. Uns ja segment corners 0
 
 ### Q-29: Wie soll COLMAP fuer die Docker-Pipeline reproduzierbar gepinnt werden?
 
@@ -370,27 +380,6 @@ Soll ich fuer die Projektarbeit diesen Digest beziehungsweise den datierten
 Tag pinnen, oder soll COLMAP 4.0.4 aus dem Quellcode selbst gebaut werden? Die
 Windows-CPU-Tests bleiben davon getrennte Vergleichslaeufe.
 
-### A-26:
-NEIN!!!
-Das ist schon passiert, das ist schon das umgezogene! Ich muss eben nur noch den feinschliff machen. 
+### A-29: 
+Also an sich ist es egal aber dann würde ich es bei Latest belassen, auch wenn es unsauber ist.
 
-### A-27:
-
-Der Standard bleibt `dn_consistency` mit `c9000`. Die harte Sperre oberhalb
-von 9000 soll aufgehoben werden; der Hinweis zur spaeteren DN-/SDF-Phase soll
-aber erhalten und darauf angepasst werden, dass diese Phase fuer den
-segmentierten Standard nicht erforderlich ist. Ein schnellerer `density`-Lauf
-soll spaeter eingefuehrt werden. Die uebrigen SuGaR-Defaults bleiben bestehen.
-
-### A-28:
-
-Der B-Spline-Grad soll mindestens 10, konkret aktuell Grad 10, betragen. Das
-Alurohr-Video ist der Mindestfall fuer diese Glattung. `SEGMENT_CORNERS=0`
-soll verbindlich gelten.
-
-### A-29:
-
-COLMAP bleibt fuer die Projektarbeit bei `latest`, auch wenn das fuer die
-Reproduzierbarkeit unsauber ist. Die Erkenntnisse sollen im
-`agent-memory-session.md` und an geeigneten Stellen ausfuehrlich im Expose
-dokumentiert werden.
