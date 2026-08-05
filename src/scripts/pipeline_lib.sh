@@ -237,7 +237,9 @@ explain_frame_profile_scope() {
 explain_colmap_values() {
     echo ""
     echo "  SIMPLE_RADIAL: eine Brennweite, Hauptpunkt und ein radialer Parameter."
-    echo "  SIMPLE_PINHOLE: ideale Kamera ohne Verzeichnung."
+    echo "  SIMPLE_PINHOLE: ideale Kamera ohne Verzeichnung; setzt bereits"
+    echo "                  entzerrte Eingabebilder voraus. Fuer PINHOLE/"
+    echo "                  SIMPLE_PINHOLE wird image_undistorter uebersprungen."
     echo "  OPENCV: mehr radiale/tangentiale Freiheitsgrade, nicht automatisch besser."
     echo "  4096 SIFT-Merkmale: aktueller Kompromiss aus Punktdichte und Laufzeit."
     echo "  Guided Matching: zusaetzliche Zuordnung, im Test deutlich langsamer."

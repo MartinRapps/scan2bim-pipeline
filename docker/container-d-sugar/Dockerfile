@@ -56,10 +56,10 @@ ENV LD_LIBRARY_PATH=/opt/conda/envs/sugar/lib:$LD_LIBRARY_PATH
 
 # Clone the project SuGaR fork at the pinned revision (recursive so the
 # gaussian_splatting submodules are populated). This matches the
-# third_party/SuGaR submodule (MartinRapps/SuGaR @ 48bbfdd) so that image
-# builds include the mask-aware modifications; docker-compose.sugar-dev.yml
-# remains available as an opt-in dev overlay for local fork changes.
-ARG SUGAR_REF=48bbfddbb557725f14d0d8e32c30b94b5d95f0e2
+# third_party/SuGaR submodule (MartinRapps/SuGaR @ 8f4f7a2) so that image
+# builds include the exact mask-aware project revision; docker-compose.sugar-dev.yml
+# remains available as a development overlay for local fork changes.
+ARG SUGAR_REF=8f4f7a2d32903a32e95d131891b2026645c40348
 WORKDIR /opt/sugar
 RUN git clone --recursive https://github.com/MartinRapps/SuGaR.git . && \
     git checkout "${SUGAR_REF}" && \

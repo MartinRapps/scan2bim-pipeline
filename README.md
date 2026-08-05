@@ -98,12 +98,26 @@ that frame profile has been generated. An FHD experiment
 (1920x1080) for SAM3/STS is therefore a separate, explicitly documented
 experiment rather than an implicit change to the COLMAP baseline.
 
-COLMAP retains its original `SIMPLE_RADIAL` reconstruction for GCP picking and
-SfM evaluation. After model export, `run_sfm.sh` automatically runs
-`colmap image_undistorter` and writes an ideal `PINHOLE` scene below
-`data/04_sfm/undistorted/`. STS consumes that undistorted scene because its
-loader does not accept radial camera models; the original COLMAP model remains
-unchanged for the GCP/UI workflow.
+COLMAP retains the original reconstruction for GCP picking and SfM evaluation.
+For raw images with lens distortion, the default `SIMPLE_RADIAL` model estimates
+the distortion during SfM. After model export, `run_sfm.sh` then runs
+`colmap image_undistorter` and writes a separate ideal STS scene below
+`data/04_sfm/undistorted/`. The original COLMAP model remains unchanged for the
+GCP/UI workflow.
+
+`SIMPLE_PINHOLE` and `PINHOLE` have a different meaning: they are ideal camera
+models and assume that the input images were already undistorted before
+COLMAP. For these two selections, `run_sfm.sh` deliberately skips
+`image_undistorter` and creates an unchanged pass-through STS scene at the same
+downstream path. This avoids double undistortion. Choosing `PINHOLE` does not
+automatically correct distorted raw images; it is only correct when that input
+assumption is true.
+
+In other words, the normal raw-video route is not “undistort before COLMAP and
+then use SIMPLE_PINHOLE”. It is “estimate a suitable distortion model in
+COLMAP, keep that model for GCP/SfM, and undistort once for STS”. A genuinely
+pre-undistorted dataset should instead use `SIMPLE_PINHOLE` or `PINHOLE` and
+skip the second step.
 
 ### Object-Only, Mask-Aware SuGaR (Recommended)
 

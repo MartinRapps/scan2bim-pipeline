@@ -1,0 +1,18 @@
+-Im alten Skript gab es eine Erstellung von PLY aus dem Mesh das ist jetzt nicht mehr der fall. Bzw. kann es sein, dass sugar erst ein splat erzeugt und dann nochmal daraus die Meshes rechnet. Weil es gibt aktuell noch Probleme beim mesh, denn dieses ist noch etwas unsauber an manchen stellen, der splat war aber gut. Ich habe gedacht, dass es an den Tiefen liegt, aber anscheinend nicht, da ich ja bei 9000 iterations stoppe, siehst du einen Logik Fehler bei mir oder woran könnte das liegen hier ist auch nochmal das Paper und das repo… 
+
+-Für deinen normalen Rohvideo-Workflow ist deshalb weiterhin sinnvoll:
+
+Rohbilder unverändert lassen.
+COLMAP mit SIMPLE_RADIAL ausführen.
+COLMAP die radiale Verzeichnung während der SfM-Ausgleichung schätzen lassen.
+Das originale Modell für GCP-Picking und SfM-Auswertung behalten.
+Erst danach für STS einmalig eine ideale PINHOLE-Szene erzeugen.
+Das ist keine doppelte Entzerrung und verhindert, dass wichtige Originalinformationen vor dem GCP-Picking verloren gehen. OPENCV bleibt eine mögliche Qualitätsstudie für stärker verzerrte Objektive, ist aber wegen der zusätzlichen Freiheitsgrade nicht automatisch besser.
+
+Das beduetet für mich, dass ich das gegenchecken muss mit einem run mit PInhole Setting s in COLMAP 
+
+- Das schließt auf einen weiteren Test nämlich folgende: PSNR↑ SSIM↑ LPIPS↓ und dass sollte automatisiert dann am besten in jedem run auch in das log und die run.md geschreiben werden....
+
+- Bitte baue auch mit ein, dass in der UI nach SAM3 immer das tool tools/export_mask_review_samples.py verwendet wird (möglicherweise anpassungen nötig) damit man immer einen überblick hat... 
+
+- Eigentlich habe ich Miketex in einem Container installiert... wenn nicht lasse es und kompile nicht das Expose_PA_BA

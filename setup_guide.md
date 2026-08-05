@@ -200,10 +200,19 @@ Nach **Schritt 2 (SfM - COLMAP)** pausiert das Skript automatisch:
 3. 👤 **[BENUTZER]** Führen Sie das Point Picking anhand Ihrer GCPs durch, berechnen Sie die 4x4-Transformationsmatrix (relative Georeferenzierung) und speichern Sie diese als Textdatei in `data/04_sfm/matrix.txt`.
 4. 👤 **[BENUTZER]** Gehen Sie zurück ins Ubuntu-Terminal und drücken Sie **[Enter]**, um das Training (STS) und Meshing (SuGaR) fortzusetzen.
 
-Nach dem COLMAP-Export wird automatisch eine zweite, undistortierte Szene unter
-`data/04_sfm/undistorted/` erzeugt. Die ursprüngliche `SIMPLE_RADIAL`-Szene
-bleibt für GCP-Picking und SfM-Auswertung erhalten; STS verwendet die daraus
-erzeugte `PINHOLE`-Szene, weil STS keine radialen Kameramodelle akzeptiert.
+Nach dem COLMAP-Export wird für ein verzerrungsbehaftetes Kameramodell, zum
+Beispiel den Projektstandard `SIMPLE_RADIAL`, eine zweite ideale Szene unter
+`data/04_sfm/undistorted/` erzeugt. Die ursprüngliche radiale Szene bleibt für
+GCP-Picking und SfM-Auswertung erhalten; STS verwendet die daraus erzeugte
+`PINHOLE`-Szene, weil STS keine radialen Kameramodelle akzeptiert.
+
+Wenn die Eingabebilder bereits vor COLMAP entzerrt wurden und
+`SIMPLE_PINHOLE` oder `PINHOLE` gewählt wird, überspringt
+`run_sfm.sh` den Aufruf von `colmap image_undistorter`. Stattdessen wird eine
+unveränderte Pass-through-Szene am selben Pfad angelegt. Die Wahl von
+`PINHOLE` erzwingt also keine Entzerrung und korrigiert keine verzerrten
+Rohbilder; sie setzt voraus, dass diese bereits ideal vorliegen. Eine doppelte
+Entzerrung wird dadurch vermieden.
 
 #### Laufprotokolle
 

@@ -86,29 +86,47 @@ if [ -n "$BEST_INPUT" ]; then
         --output_type TXT
     echo "Exported cameras/images TXT to $WORKSPACE_PATH/sparse_txt/ for GCP registration."
 
-    # STS only accepts ideal PINHOLE/SIMPLE_PINHOLE camera models. Keep the
-    # original SIMPLE_RADIAL model for GCP/SfM evaluation, but create a separate
-    # undistorted COLMAP scene for the downstream STS loader.
-    UNDISTORTED_DIR="$WORKSPACE_PATH/undistorted"
-    rm -rf "$UNDISTORTED_DIR"
-    mkdir -p "$UNDISTORTED_DIR"
-    echo "5. Undistorting images and camera model for STS..."
-    colmap image_undistorter \
-        --image_path "$IMAGE_PATH" \
-        --input_path "$BEST_INPUT" \
-        --output_path "$UNDISTORTED_DIR" \
-        --output_type COLMAP \
-        --copy_policy COPY
-    if [[ ! -d "$UNDISTORTED_DIR/images" || ! -f "$UNDISTORTED_DIR/sparse/cameras.bin" ]]; then
-        echo "Error: COLMAP undistortion did not create a usable STS scene." >&2
+    # STS only accepts ideal PINHOLE/SIMPLE_PINHOLE camera models. For a
+    # distortion-bearing COLMAP model (for example SIMPLE_RADIAL), preserve the
+    # original scene for GCP/SfM evaluation and create a separate ideal scene
+    # for STS. If the input model is already PINHOLE or SIMPLE_PINHOLE, the
+    # images are assumed to have been undistorted before COLMAP and must not be
+    # undistorted a second time. In that case we create a pass-through STS scene
+    # at the historical 'undistorted' path so downstream scripts keep one stable
+    # data contract.
+    STS_SCENE_DIR="$WORKSPACE_PATH/undistorted"
+    rm -rf "$STS_SCENE_DIR"
+    mkdir -p "$STS_SCENE_DIR"
+    case "$CAMERA_MODEL" in
+        PINHOLE|SIMPLE_PINHOLE)
+            echo "5. Camera model is already ideal ($CAMERA_MODEL); skipping image undistortion."
+            mkdir -p "$STS_SCENE_DIR/images" "$STS_SCENE_DIR/sparse"
+            cp -a "$IMAGE_PATH"/. "$STS_SCENE_DIR/images"/
+            cp -a "$BEST_INPUT"/. "$STS_SCENE_DIR/sparse"/
+            ;;
+        *)
+            echo "5. Undistorting images and camera model for STS..."
+            colmap image_undistorter \
+                --image_path "$IMAGE_PATH" \
+                --input_path "$BEST_INPUT" \
+                --output_path "$STS_SCENE_DIR" \
+                --output_type COLMAP \
+                --copy_policy COPY
+            ;;
+    esac
+    if [[ ! -d "$STS_SCENE_DIR/images" || \
+          ! -f "$STS_SCENE_DIR/sparse/cameras.bin" || \
+          ! -f "$STS_SCENE_DIR/sparse/images.bin" || \
+          ! -f "$STS_SCENE_DIR/sparse/points3D.bin" ]]; then
+        echo "Error: No usable ideal STS scene was created." >&2
         exit 1
     fi
-    mkdir -p "$UNDISTORTED_DIR/sparse_txt"
+    mkdir -p "$STS_SCENE_DIR/sparse_txt"
     colmap model_converter \
-        --input_path "$UNDISTORTED_DIR/sparse" \
-        --output_path "$UNDISTORTED_DIR/sparse_txt" \
+        --input_path "$STS_SCENE_DIR/sparse" \
+        --output_path "$STS_SCENE_DIR/sparse_txt" \
         --output_type TXT
-    echo "Undistorted STS scene written to $UNDISTORTED_DIR (ideal pinhole cameras)."
+    echo "STS scene written to $STS_SCENE_DIR (ideal pinhole cameras)."
 else
     echo "Warning: No sparse model folders found."
 fi

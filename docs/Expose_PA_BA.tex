@@ -165,17 +165,37 @@ als aktuelle Default-Konfiguration interpretiert.
           Dateien bleiben fuer Diagnose und spaetere Auswertung erhalten. Die
           Toleranz von $\pm 10\,\mathrm{cm}$ ist ein Ziel der Bachelorarbeit
           und wird dort gegen eingemessene Referenzpunkte bewertet.
-    \item \textbf{Ausfuehrung:} Der Produktionsweg ist die Docker-Pipeline mit
-          GPU unter Linux beziehungsweise WSL. Die Windows-11-COLMAP-Laeufe
-          ohne CUDA sind getrennte Vergleichslaeufe. Der lokale SuGaR-Fork ist
-          als Git-Submodul auf \texttt{MartinRapps/SuGaR@48bbfdd} festgelegt.
-          Nach einem frischen Clone ist deshalb
-          \texttt{git submodule update --init --recursive} erforderlich. Die
-          aktuelle Projektarbeitskopie enthaelt zusaetzlich eine noch nicht in
-          einem Fork-Commit festgeschriebene Aenderung in
-          \texttt{third\_party/SuGaR/train.py}, welche die c9000-Route erlaubt.
-          Vor einem Release muss diese Aenderung in den Fork uebernommen und
-          der Parent-Gitlink aktualisiert werden.
+        \item \textbf{Ausfuehrung und SuGaR-Versionierung:} Der Produktionsweg ist
+            die Docker-Pipeline mit GPU unter Linux beziehungsweise WSL. Die
+            Windows-11-COLMAP-Laeufe ohne CUDA sind getrennte Vergleichslaeufe.
+            Der mask-aware SuGaR-Fork ist als Git-Submodul eingebunden. Der
+            Parent-Gitlink verweist im aktuellen Projektstand auf den exakten
+            Commit \texttt{8f4f7a2d32903a32e95d131891b2026645c40348} des Forks
+            \texttt{MartinRapps/SuGaR}; dieser Commit ist auf dem Remote-Branch
+            \texttt{project/masked-sugar} veroeffentlicht. Der Parent-Commit
+            \texttt{8feaf0319963005af2598fb415c434032f826eba} aktualisiert den
+            Gitlink von \texttt{48bbfdd} auf diesen Stand.
+
+            Die lokale Arbeitskopie des Submoduls war zunaechst im detached HEAD,
+            weil Git-Submodule beim Auschecken eines im Parent gespeicherten
+            Commits standardmaessig keinen lokalen Branch aktivieren. Deshalb
+            schlug der allgemeine VS-Code-Aufruf \texttt{git push -u origin}
+            ohne Branchname fehl. Der Push wurde anschliessend korrekt mit
+            \texttt{git push origin HEAD:project/masked-sugar} ausgefuehrt.
+            Fuer die weitere Entwicklung folgt das lokale Submodul nun dem
+            Branch \texttt{project/masked-sugar}; ein neuer Clone muss weiterhin
+            mit \texttt{git submodule update --init --recursive} initialisiert
+            und auf den vom Parent vorgegebenen Gitlink gestellt werden.
+
+            Der Commit \texttt{8f4f7a2} enthaelt neben den mask-aware Aenderungen
+            von \texttt{48bbfdd} insbesondere die Schutzlogik fuer ungueltige
+            oder zu kleine Poisson-Punktwolken sowie die freigegebene
+            c9000-Route. Der Dockerfile-Parameter \texttt{SUGAR\_REF} ist auf
+            denselben vollstaendigen Commit gepinnt. Das lokale
+            \texttt{docker-compose.sugar-dev.yml}-Overlay bleibt fuer schnelle
+            Fork-Entwicklung nutzbar; bei einem offiziellen Lauf ist zu pruefen,
+            dass Parent-Gitlink, Docker-\texttt{SUGAR\_REF} und lokaler
+            Submodul-Commit identisch sind.
     \item \textbf{Host-UID/GID bei Bind-Mounts:} Die Pipeline darf nicht von
           der Standardannahme UID/GID $1000:1000$ ausgehen. Auf dem aktuellen
           Ubuntu-System haben Benutzer und Gruppe die numerischen IDs
@@ -189,16 +209,58 @@ als aktuelle Default-Konfiguration interpretiert.
           $1280\times720$ bei $5$ FPS, unmaskierten Bildern,
           \texttt{SIMPLE\_RADIAL}, 4096 Plain-SIFT-Merkmalen,
           Sequential-Overlap 15, deaktiviertem Guided Matching und
-          SIFT-Peak-Threshold 0.003. Weitere Fast-/High-Quality-Profile sind
-          spaetere Erweiterungen. Das Docker-Image bleibt fuer die
-          Projektarbeit bewusst \texttt{colmap/colmap:latest}; der in frueheren
-          Fassungen genannte Tag \texttt{4.0.4-cuda} ist im offiziellen
-          Docker-Hub-Repository nicht vorhanden. Das originale
-          \texttt{SIMPLE\_RADIAL}-Modell bleibt fuer GCP/UI und SfM-Auswertung
-          erhalten; danach erzeugt \texttt{run\_sfm.sh} automatisch eine
-          separate ideale \texttt{PINHOLE}-Szene unter
-          \texttt{data/04\_sfm/undistorted/}, die wegen der STS-Einschraenkung
-          auf undistortierte Kameramodelle an STS uebergeben wird.
+            SIFT-Peak-Threshold 0.003. Weitere Fast-/High-Quality-Profile sind
+                spaetere Erweiterungen. Das Docker-Image bleibt fuer die
+                Projektarbeit bewusst \texttt{colmap/colmap:latest}; der in frueheren
+                Fassungen genannte Tag \texttt{4.0.4-cuda} ist im offiziellen
+                Docker-Hub-Repository nicht vorhanden. Die Wahl des Kameramodells ist
+                dabei eine Annahme ueber den Zustand der Eingabebilder:
+                \texttt{SIMPLE\_PINHOLE} und \texttt{PINHOLE} setzen bereits
+                entzerrte Bilder voraus und modellieren keine Linsenverzeichnung.
+                Sie erzwingen keine nachtraegliche Entzerrung, sondern teilen COLMAP
+                mit, dass die Bilder bereits ein ideales Kameramodell besitzen.
+                Fuer rohe Video- oder Kamerabilder mit moeglicher Verzeichnung bleibt
+                deshalb \texttt{SIMPLE\_RADIAL} der Projektstandard. COLMAP schaetzt
+                dabei die radiale Verzeichnung waehrend der SfM-Ausgleichung; das
+                originale Modell bleibt fuer GCP/UI und SfM-Auswertung erhalten.
+                Erst danach erzeugt \texttt{run\_sfm.sh} fuer
+                verzeichnungsbehaftete Modelle ueber
+                \texttt{colmap image\_undistorter} eine separate ideale STS-Szene
+                unter \texttt{data/04\_sfm/undistorted/}. Wird dagegen
+                \texttt{PINHOLE} oder \texttt{SIMPLE\_PINHOLE} gewaehlt, wird dieser
+                Schritt bewusst uebersprungen: Das Skript legt am selben Pfad nur
+                eine unveraenderte Pass-through-Szene aus Bildern und Sparse-Modell
+                an. Dadurch wird eine doppelte Entzerrung vermieden. Die STS-
+                Uebergabe erhaelt in beiden Faellen ein ideales
+                \texttt{PINHOLE}/\texttt{SIMPLE\_PINHOLE}-Modell.
+            \item \textbf{Masterlauf, Shared Library und Replay-Pfad:} Der Aufruf
+                \texttt{run\_pipeline.sh} ohne \texttt{--from} ist der gefuehrte
+                Erst- beziehungsweise Vollauf. Er enthaelt die vollstaendige
+                interaktive Reihenfolge mit GCP-Pre-Run-Guard, Hugging-Face-
+                Authentifizierung, Videoauswahl, Parameterabfragen, CloudCompare-
+                Breakpoint und den anschliessenden STS-, SuGaR- und
+                Postprocessing-Schritten. Dieser Pfad bleibt bewusst explizit, weil
+                er die Erstaufnahme eines Datensatzes und die manuellen
+                Entscheidungspunkte nachvollziehbar abbildet.
+                \texttt{src/scripts/pipeline\_lib.sh} ist keine zweite fachliche
+                Pipeline, sondern eine gemeinsam nutzbare Funktionsbibliothek. Sie
+                enthaelt die Verzeichnis-Konstanten, Validierungen,
+                Konfigurationsdefaults, Logging-Helfer und die einzelnen
+                \texttt{run\_step\_*}-Routinen. Der Aufruf
+                \texttt{run\_pipeline.sh --from <step>} bindet diese Bibliothek ein
+                und startet den Ablauf ab einer definierten Grenze:
+                \texttt{gcp}, \texttt{sam3}, \texttt{colmap}, \texttt{sts},
+                \texttt{sugar} oder \texttt{postprocess}. Damit muessen teure,
+                bereits erfolgreich abgeschlossene Stufen bei einem Fehler oder
+                einer Parameterstudie nicht wiederholt werden. Der Replay-Pfad ist
+                ein Neustart an einer Schrittgrenze und kein Fortsetzen innerhalb
+                eines laufenden Docker- oder Trainingsprozesses; die erforderlichen
+                Eingabeartefakte des gewaehlten Startpunkts muessen bereits
+                vorhanden und zueinander passend sein. Die SuGaR-Runner schuetzen
+                bestehende Run-Tags weiterhin vor unbeabsichtigtem Ueberschreiben.
+                Die Trennung von explizitem Erstlauf und zentralisiertem Replay ist
+                damit derzeit absichtlich: Sie verbindet eine gut nachvollziehbare
+                Benutzerfuehrung mit reproduzierbaren Wiederholungslaeufen.
     \item \textbf{Segmentiertes SuGaR:} STS verwendet 7000 Gesamtiterationen,
           davon 5000 Iterationen fuer die Objekt-/Maskenphase und 2000 fuer die
           anschliessende All-Object-Phase. Der mask-aware SuGaR-Standard verwendet
@@ -222,6 +284,28 @@ als aktuelle Default-Konfiguration interpretiert.
            der Background durch die kamera-basierte Bounding-Box auf nur ein
            oder zwei Punkte schrumpfen, waehrend das Foreground-Mesh gueltig
            bleibt.
+    \item \textbf{Maskenablage und STS-Adapter:} Die hierarchischen Masken
+          unter \texttt{data/03\_masks/frame\_\#\#\#\#\#/} bilden den kanonischen
+          SAM-Ausgang fuer UI, SuGaR und Diagnostik. Die drei Stufen bedeuten
+          \texttt{default} = unveraenderte Objektmaske,
+          \texttt{middle} = eine $5\times5$-Erosion und
+          \texttt{small} = zwei Erosionen. Das Skript
+          \texttt{prep\_sts\_scene.py} schreibt daraus zusaetzlich die von
+          STS erwartete Kompatibilitaetsstruktur
+          \texttt{multiview\_masks\_default/middle/small/000/} unter
+          \texttt{data/05\_3dgs}. Diese Kopien sind kein zweiter fachlicher
+          Maskensatz: \texttt{000} bezeichnet im aktuellen Einobjektfall den
+          STS-Objektindex. SuGaR liest im mask-aware Pfad direkt aus
+          \texttt{data/03\_masks}; die \texttt{multiview\_masks\_*}-Struktur
+          wird fuer STS vorgehalten. Die waehrend der STS-Initialisierung
+          entstehenden \texttt{*\_merged}-Verzeichnisse sind ein regenerierbarer
+          STS-Arbeitssatz fuer das Zusammenfuehren aehnlicher Objekte und nicht
+          die kanonische SuGaR-Eingabe. Im aktuellen Projektstand werden diese
+          Strukturen bewusst nicht weiter gekuerzt, damit bestehende STS-
+          Checkpoints und Replay-Laeufe reproduzierbar bleiben; eine spaetere
+          Speicheroptimierung darf erst nach einer Pruefung der STS-Schreib-
+          und Lesezugriffe auf Symlinks oder einen regenerierbaren Cache
+          umgestellt werden.
     \item \textbf{Centerline:} Fuer die einzelne Trasse bleibt der robuste
           \texttt{single}-Modus im Scope. Die Eckensegmentierung ist im
           Produktionspfad deaktiviert. Die lokale Kurve wird mit einem
@@ -255,20 +339,21 @@ Maßnahmenkatalog für die weitere Entwicklung zu lesen, nicht als bereits
 umgesetzte Optimierung.
 
 \subsection{Shell-Orchestrierung und Code-Duplikation}
-Die fünf Einstiegsskripte (\texttt{run\_pipeline.sh}, \texttt{run\_from\_colmap.sh},
-\texttt{run\_from\_sts.sh}, \texttt{run\_from\_sugar.sh}, \texttt{run\_sugar\_only.sh})
-enthalten großteils byte-identische Kopien derselben Blöcke: die
-STS-Trainingskonfiguration, den SuGaR-Aufruf, den Postprocessing-Schritt sowie
-die \texttt{explain\_regularization}- und \texttt{ask\_value}-Helfer (jeweils bis
-zu fünf Kopien). Eine bereits angelegte Shared-Library (\texttt{pipeline\_lib.sh}
-mit \texttt{run\_pipeline\_from <step>}) wird von keinem Skript gesourced und ist
-damit tote Code. \textbf{Maßnahme:} \texttt{pipeline\_lib.sh} als einzigen
-geteilten Funktionsbestand einbinden, den Haupteinstieg
-\texttt{run\_pipeline.sh} um ein \texttt{-{}-from <step>}-Argument erweitern
-(Schritte: \texttt{gcp|sam3|colmap|sts|sugar|postprocess}), die
-\texttt{run\_from\_*.sh}-Skripte entfallen damit zugunsten des Replay-Aufrufs
-\texttt{run\_pipeline.sh -{}-from colmap|sts|sugar}, und alle interaktiven Helfer
-zentralisieren. Erwartete Reduktion der Shell-Codebasis: ca.~40\,\%.
+Der aktuelle Hauptaufruf \texttt{run\_pipeline.sh} fuehrt den expliziten
+interaktiven Vollauf aus. Fuer Wiederholungen bindet derselbe Einstieg bei
+\texttt{--from <step>} die Shared Library \texttt{pipeline\_lib.sh} ein.
+Damit sind die zentralen Validierungen und Schritt-Routinen fuer den
+Replay-Pfad gebuendelt, waehrend der Vollauf seine ausfuehrliche
+Erstlauf-Fuehrung mit Prompts und Breakpoints behaelt. Diese Koexistenz ist
+kein zweiter fachlicher Rekonstruktionsweg: Beide Pfade verwenden dieselben
+Docker-Services und Datenvertraege, unterscheiden sich aber in
+Startvoraussetzungen und Benutzerfuehrung. Der Replay-Pfad startet immer an
+einer Schrittgrenze und benoetigt die Artefakte aller uebersprungenen Stufen;
+er setzt keinen abgebrochenen Trainingsprozess innerhalb einer Iteration fort.
+Die verbleibende Duplikation zwischen dem historischen Inline-Vollauf und der
+Library ist ein Wartbarkeitsthema fuer eine spaetere Konsolidierung, aber die
+Library ist im aktuellen Repository produktiv ueber \texttt{--from} eingebunden
+und daher kein toter Code.
 
 \subsection{Python-Codequalität und tote Skripte}
 Sechs der 17 Python-Skripte werden von keinem Pipelineschritt referenziert
@@ -312,12 +397,14 @@ schlankes Runtime-Image), \texttt{TORCH\_CUDA\_ARCH\_LIST} als Build-Argument
 führen (lokal nur die Ziel-GPU, z.\,B. \texttt{8.9} für RTX 40xx, für schnelle
 Entwicklungs-Builds; mehrere Architekturen nur für den portablen Release-Build),
 \texttt{image:}-Felder in \texttt{docker-compose.yml} setzen und
-\texttt{tesseract-ocr} nur in Container E vorhalten. Den SuGaR-Container auf den
-projekteigenen Fork-Stand festlegen (\texttt{SUGAR\_REF=48bbfdd}), sodass auch
-Image-Builds die maskenbewussten Modifikationen enthalten und das bisher
-\emph{immer} geladene Entwicklungs-Overlay (\texttt{docker-compose.sugar-dev.yml})
-nur noch opt-in über eine Umgebungsvariable (\texttt{SUGAR\_USE\_DEV\_FORK=1})
-aktiviert wird.
+\texttt{tesseract-ocr} nur in Container E vorhalten. Der SuGaR-Container ist
+inzwischen auf den vollständigen projekt-eigenen Fork-Stand
+\texttt{SUGAR\_REF=8f4f7a2d32903a32e95d131891b2026645c40348} gepinnt, sodass
+auch Image-Builds die maskenbewussten Modifikationen, die c9000-Freigabe und
+den Poisson-Schutz enthalten. Das
+\texttt{docker-compose.sugar-dev.yml}-Overlay bleibt für schnelle lokale
+Fork-Tests verfügbar und muss bei offiziellen Läufen gegen den Parent-Gitlink
+und \texttt{SUGAR\_REF} abgeglichen werden.
 
 \subsection{COLMAP-Beschleunigung}
 Das SfM-Skript übergibt weder \texttt{-{}-num\_threads} noch
@@ -461,22 +548,41 @@ Kandidaten durch STS, SuGaR und DGtal erforderlich. Die in den Reports
 verwendeten heuristischen Qualitätsscores sind nur innerhalb eines gemeinsamen
 Benchmarks vergleichbar und stellen keinen Genauigkeitsnachweis dar.
 
-\subsection{Repository-Konsolidierung}
-Die bisherige Arbeitskopie vereint Pipeline-Code, Third-Party-Quellen,
-Datensätze, Web-UI, Schreibprojekte (\texttt{Ausarbeitung}, \texttt{Vorlage},
-\texttt{Themenfindung}) und Experiment-Skripte in einem Repository. Für die
-Übergabe und weitere Wartung wird die Pipeline in ein eigenes, sauber
-strukturiertes Repository überführt: ein einziger Einstieg
-(\texttt{run\_pipeline.sh -{}-from <step>}), geteilte Module unter
-\texttt{src/python/}, diagnostische Skripte unter \texttt{tools/}, ein
-\texttt{tests/}-Verzeichnis und das Exposé unter \texttt{docs/}. SuGaR wird als
+\subsection{Repository-Konsolidierung und aktueller Orchestrierungsstand}
+Der Repository-Umzug ist abgeschlossen. Das aktuelle Projektarchiv trennt
+Pipeline-Code unter \texttt{src/}, diagnostische und wissenschaftliche
+Hilfsskripte unter \texttt{tools/}, automatisierte Tests unter
+\texttt{tests/}, die Web-UI unter \texttt{ui/}, die Docker-Definitionen im
+Projektstamm und die SSOT-Dokumentation unter \texttt{docs/}. SuGaR ist als
 Git-Submodule des projekt-eigenen Forks
-(\texttt{MartinRapps/SuGaR} @ \texttt{48bbfdd}) eingebunden; die Web-UI und die
-Agent-Memory-Dokumentation werden mit überführt. Datensätze, Web-UI-ferne
-Schreibprojekte und Experiment-Skripte verbleiben im archivierten Ursprungsrepo. Der
-Umzug erfolgt als \texttt{git init} mit einem sauberen Initial-Commit, der das
-Ursprungsrepo referenziert; die bisherige Historie bleibt im archivierten Repo
-unverkürzt erhalten.
+(\texttt{MartinRapps/SuGaR}) eingebunden. Der Parent-Gitlink zeigt aktuell auf
+\texttt{8f4f7a2d32903a32e95d131891b2026645c40348}; der zugehoerige Fork-Branch
+\texttt{project/masked-sugar} ist auf dem Remote veroeffentlicht. Der
+Parent-Commit \texttt{8feaf0319963005af2598fb415c434032f826eba} enthaelt die
+Aktualisierung dieses Gitlinks. Damit sind die mask-aware SuGaR-Aenderungen
+einschliesslich der c9000-Freigabe und des Poisson-Schutzes nicht mehr nur
+lokale Working-Tree-Aenderungen. Der Dockerfile-Parameter \texttt{SUGAR\_REF}
+ist auf denselben Commit gepinnt.
+
+Ein detached HEAD im Submodul ist beim initialen Auschecken eines Gitlinks
+normal, verhindert aber einen branchlosen Standard-Push aus VS Code. Fuer die
+Entwicklung wird daher lokal der Tracking-Branch
+\texttt{project/masked-sugar} verwendet. Das Entwicklungs-Overlay
+\texttt{docker-compose.sugar-dev.yml} bleibt fuer schnelle Tests des lokalen
+Forks verfuegbar; vor offiziellen Laeufen muessen Parent-Gitlink, Docker-
+\texttt{SUGAR\_REF} und der ausgecheckte Submodul-Commit identisch sein.
+
+Die Orchestrierung besitzt deshalb zwei komplementaere Bedienformen statt
+mehrerer fachlich verschiedener Pipelines: \texttt{run\_pipeline.sh} ohne
+Parameter bildet den ausfuehrlich gefuehrten Erst- und Vollauf ab.
+\texttt{run\_pipeline.sh --from <step>} verwendet die Shared Library
+\texttt{src/scripts/pipeline\_lib.sh} fuer validierte Wiederholungen ab
+\texttt{gcp}, \texttt{sam3}, \texttt{colmap}, \texttt{sts}, \texttt{sugar}
+oder \texttt{postprocess}. Diese Replay-Aufrufe sind insbesondere fuer
+bereits vorhandene Masken, COLMAP-Modelle, STS-Checkpoints oder SuGaR-Ausgaben
+gedacht. Sie sparen Laufzeit, ersetzen aber nicht die Pruefung, ob die
+uebergebenen Artefakte denselben Frame-Satz, dieselbe Kameraordnung und
+kompatible Iterationsstaende besitzen.
 
 \section{Wissenschaftliche Evaluationsmetriken}
 Für die wissenschaftliche und ingenieurstechnische Validierung der Pipeline werden zwei Kategorien von Metriken eingesetzt: geometrische Metriken für die Lagegenauigkeit des Endprodukts und photometrische Metriken für die visuelle Rekonstruktionsqualität des 3DGS-Modells.

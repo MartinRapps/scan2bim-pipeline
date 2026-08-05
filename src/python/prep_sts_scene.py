@@ -84,9 +84,12 @@ def main():
     masks_dir = "/data/03_masks"
     sfm_dir = os.environ.get("STS_SFM_DIR", "/data/04_sfm/undistorted")
 
-    # STS accepts only ideal PINHOLE/SIMPLE_PINHOLE cameras. Older replays may
-    # not have the derived scene yet, so retain a clear fallback for already
-    # undistorted inputs and let STS report the model mismatch otherwise.
+    # STS accepts only ideal PINHOLE/SIMPLE_PINHOLE cameras. run_sfm.sh creates
+    # the downstream scene at this path either by undistorting a
+    # distortion-bearing COLMAP model or by passing through an already ideal
+    # PINHOLE/SIMPLE_PINHOLE scene. Older replays may not have that derived
+    # scene yet, so retain a clear fallback for already compatible inputs and
+    # let STS report the model mismatch otherwise.
     if not os.path.isdir(frames_dir) or not os.path.isdir(os.path.join(sfm_dir, "sparse")):
         frames_dir = "/data/02_frames"
         sfm_dir = "/data/04_sfm"
