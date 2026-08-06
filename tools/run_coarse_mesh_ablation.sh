@@ -363,7 +363,7 @@ EXTRACT_ARGUMENTS=(
     --vertices-density-quantile "$VERTICES_DENSITY_QUANTILE" \
     --low-opacity-gaussian-threshold "$LOW_OPACITY_GAUSSIAN_THRESHOLD" \
     --use-gaussian-depth "$USE_GAUSSIAN_DEPTH" \
-    --use-vanilla-3dgs "$USE_ORIGINAL_GS" \
+    --use_vanilla_3dgs "$USE_ORIGINAL_GS" \
     --eval True \
     --gpu "$GPU"
 )
