@@ -1,6 +1,8 @@
 import argparse
+import json
 import os
 import re
+from pathlib import Path
 from typing import List
 
 import cv2
@@ -123,6 +125,27 @@ def main() -> int:
     parser.add_argument("--mask-name", default="middle", choices=["default", "middle", "small"], help="Which hierarchical mask to review")
     parser.add_argument("--output-dir", default="/data/03_masks/_review_samples", help="Where to store review panels")
     parser.add_argument("--padding", type=int, default=24, help="Padding in pixels around the cropped mask region")
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Use deterministic default/explicit indices without reading stdin.",
+    )
+    parser.add_argument(
+        "--indices",
+        default=None,
+        help="Comma-separated frame indices, for example 0,80,160.",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        dest="export_all",
+        help="Export every frame instead of the standard review subset.",
+    )
+    parser.add_argument(
+        "--manifest",
+        default=None,
+        help="Optional JSON manifest path; defaults to <output-dir>/review_manifest.json.",
+    )
     args = parser.parse_args()
 
     frame_files = sorted(
@@ -134,45 +157,64 @@ def main() -> int:
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    # Interaktive Abfrage für spezielle Frames
+    # Interaktive Abfrage für spezielle Frames. Matrix runs use the explicit
+    # non-interactive branch so a PTY can never block on stdin.
     indices = []
-    print("Möchten Sie spezielle Frames exportieren? (j/n) [Standard: n]: ", end="", flush=True)
-    try:
-        choice = input().strip().lower()
-    except (KeyboardInterrupt, EOFError):
-        choice = "n"
-
-    if choice in ["j", "ja", "y", "yes"]:
-        print("Sollen ein oder mehrere Frames exportiert werden? (einzeln/mehrere) [e/m]: ", end="", flush=True)
+    if args.indices:
         try:
-            type_choice = input().strip().lower()
+            indices = sorted({int(value.strip()) for value in args.indices.split(",") if value.strip()})
+        except ValueError as error:
+            raise ValueError(f"Invalid --indices value: {args.indices}") from error
+        indices = [index for index in indices if 0 <= index < len(frame_files)]
+    elif args.export_all:
+        indices = list(range(len(frame_files)))
+    elif args.non_interactive:
+        indices = pick_sample_indices(len(frame_files))
+    else:
+        print("Möchten Sie spezielle Frames exportieren? (j/n) [Standard: n]: ", end="", flush=True)
+        try:
+            choice = input().strip().lower()
         except (KeyboardInterrupt, EOFError):
-            type_choice = "e"
+            choice = "n"
 
-        if type_choice in ["m", "mehrere", "multiple", "bereich"]:
+        if choice in ["j", "ja", "y", "yes"]:
+            print("Sollen ein oder mehrere Frames exportiert werden? (einzeln/mehrere) [e/m]: ", end="", flush=True)
             try:
-                print("Start-Frame (Index, z.B. 10): ", end="", flush=True)
-                start_frame = int(input().strip())
-                print("End-Frame (Index inkl., z.B. 20): ", end="", flush=True)
-                end_frame = int(input().strip())
-                if start_frame <= end_frame:
-                    indices = [idx for idx in range(start_frame, end_frame + 1) if 0 <= idx < len(frame_files)]
-                    if not indices:
-                        print("Keine gültigen Indizes im angegebenen Bereich gefunden.")
-                else:
-                    print("Start-Frame ist größer als der End-Frame.")
-            except (ValueError, KeyboardInterrupt, EOFError):
-                print("Ungültige Eingabe. Verwende Standard-Verteilung.")
-        else:
-            try:
-                print("Welcher Frame-Index soll exportiert werden? (z.B. 15): ", end="", flush=True)
-                frame_idx = int(input().strip())
-                if 0 <= frame_idx < len(frame_files):
-                    indices = [frame_idx]
-                else:
-                    print(f"Index {frame_idx} liegt außerhalb des gültigen Bereichs (0 bis {len(frame_files)-1}).")
-            except (ValueError, KeyboardInterrupt, EOFError):
-                print("Ungültige Eingabe. Verwende Standard-Verteilung.")
+                type_choice = input().strip().lower()
+            except (KeyboardInterrupt, EOFError):
+                type_choice = "e"
+
+            if type_choice in ["m", "mehrere", "multiple", "bereich"]:
+                try:
+                    print("Start-Frame (Index, z.B. 10): ", end="", flush=True)
+                    start_frame = int(input().strip())
+                    print("End-Frame (Index inkl., z.B. 20): ", end="", flush=True)
+                    end_frame = int(input().strip())
+                    if start_frame <= end_frame:
+                        indices = [
+                            idx
+                            for idx in range(start_frame, end_frame + 1)
+                            if 0 <= idx < len(frame_files)
+                        ]
+                        if not indices:
+                            print("Keine gültigen Indizes im angegebenen Bereich gefunden.")
+                    else:
+                        print("Start-Frame ist größer als der End-Frame.")
+                except (ValueError, KeyboardInterrupt, EOFError):
+                    print("Ungültige Eingabe. Verwende Standard-Verteilung.")
+            else:
+                try:
+                    print("Welcher Frame-Index soll exportiert werden? (z.B. 15): ", end="", flush=True)
+                    frame_idx = int(input().strip())
+                    if 0 <= frame_idx < len(frame_files):
+                        indices = [frame_idx]
+                    else:
+                        print(
+                            f"Index {frame_idx} liegt außerhalb des gültigen Bereichs "
+                            f"(0 bis {len(frame_files)-1})."
+                        )
+                except (ValueError, KeyboardInterrupt, EOFError):
+                    print("Ungültige Eingabe. Verwende Standard-Verteilung.")
 
     if not indices:
         indices = pick_sample_indices(len(frame_files))
@@ -187,6 +229,10 @@ def main() -> int:
             "(used if hierarchical mask is empty for a sample frame)."
         )
 
+    exported_files: list[str] = []
+    empty_masks = 0
+    resolutions: set[tuple[int, int]] = set()
+
     for frame_index in indices:
         frame_name = frame_files[frame_index]
         frame_path = os.path.join(args.frames_dir, frame_name)
@@ -194,11 +240,14 @@ def main() -> int:
         if image is None:
             print(f"Skipping unreadable frame: {frame_path}")
             continue
+        resolutions.add((int(image.shape[1]), int(image.shape[0])))
 
         frame_id = extract_frame_id(frame_name, frame_index)
         mask = load_mask(args.masks_dir, frame_id, args.mask_name, image.shape[0], image.shape[1])
         if np.count_nonzero(mask) == 0 and best_attempt_dir is not None and best_attempt_nonempty > 0:
             mask = load_attempt_mask(best_attempt_dir, frame_id, image.shape[0], image.shape[1])
+        if np.count_nonzero(mask) == 0:
+            empty_masks += 1
         overlay = draw_overlay(image, mask)
         cutout = extract_cutout(image, mask, args.padding)
         panel = build_panel(image, overlay, cutout)
@@ -213,11 +262,36 @@ def main() -> int:
         os.makedirs(elements_dir, exist_ok=True)
 
         base_name = f"frame_{frame_id:05d}_{args.mask_name}"
-        cv2.imwrite(os.path.join(elements_dir, f"{base_name}_overlay.png"), overlay)
-        cv2.imwrite(os.path.join(elements_dir, f"{base_name}_cutout.png"), cutout)
-        cv2.imwrite(os.path.join(panel_dir, f"{base_name}_panel.png"), panel)
+        output_files = [
+            os.path.join(elements_dir, f"{base_name}_overlay.png"),
+            os.path.join(elements_dir, f"{base_name}_cutout.png"),
+            os.path.join(panel_dir, f"{base_name}_panel.png"),
+        ]
+        cv2.imwrite(output_files[0], overlay)
+        cv2.imwrite(output_files[1], cutout)
+        cv2.imwrite(output_files[2], panel)
+        exported_files.extend(output_files)
 
     print(f"Review samples written to {args.output_dir}")
+    manifest_path = Path(args.manifest or os.path.join(args.output_dir, "review_manifest.json"))
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "frames_dir": args.frames_dir,
+                "masks_dir": args.masks_dir,
+                "mask_name": args.mask_name,
+                "requested_indices": indices,
+                "exported_file_count": len(exported_files),
+                "empty_mask_count": empty_masks,
+                "resolutions": [{"width": width, "height": height} for width, height in sorted(resolutions)],
+                "files": exported_files,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(f"Review manifest written to {manifest_path}")
     return 0
 
 

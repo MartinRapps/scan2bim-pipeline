@@ -2,6 +2,36 @@
 
 Stand: 06.08.2026
 
+Die erste Implementierung der zentralen Bausteine liegt jetzt vor:
+`tools/run_experiment_matrix.sh`, `tools/experiment_matrix.tsv`,
+`src/python/warp_masks_to_undistorted.py`,
+`src/python/create_eval_split.py`,
+`src/python/evaluate_masked_splat_metrics.py`,
+`src/python/render_sugar_checkpoint.py` sowie der nichtinteraktive Modus des
+Maskenreviews. Ein vollständiger 24er-Matrixlauf wurde noch nicht gestartet.
+Der einzelne Low-Resolution-Integrationslauf
+`matrix_smoke_low_pipe_full/5fps/low/simple_radial_a` wurde dagegen nach
+Behebung des festen Eval-Split-Fehlers erfolgreich per `--from sugar`
+wiederholt, ohne SAM3, COLMAP oder STS erneut auszuführen.
+
+Jeder Matrixlauf erzeugt vor SAM3 ein eigenes skaliertes Arbeitsvideo. Die
+Matrix umfasst standardmäßig `MATRIX_FPS_LIST=5,2`; damit werden sowohl ein
+5-FPS- als auch ein ressourcensparender 2-FPS-Workflow getestet. Die drei
+Auflösungen beziehen sich innerhalb jedes FPS-Blocks auf denselben zeitlichen
+Frame-Rhythmus und nicht auf die native Videoframerate. Das Rohvideo bleibt
+unverändert.
+Der verwendete SAM3-Prompt ist standardmäßig `pipe`, weil dieser Begriff im
+aktuellen Datensatz die vollständige Objektmaske liefert. Andere Prompts müssen
+explizit über `MATRIX_PROMPT` gesetzt werden und werden im Parameter-Manifest
+archiviert.
+
+Nach SAM3 prüft `src/python/validate_mask_coverage.py` die `middle`-Masken über
+alle erzeugten Frames. Der Matrix-Default `MATRIX_MAX_EMPTY_MASK_FRACTION=0.30`
+bricht den jeweiligen Lauf bei mindestens 30 Prozent leeren oder fehlenden
+Masken vor COLMAP ab. Der Coverage-Report wird trotzdem im Experimentarchiv
+gespeichert. Ein Lauf mit hoher Maskenleere wird damit nicht durch gute spätere
+Teilbilder schöngerechnet.
+
 ## 1. Entscheidung
 
 Der produktive Rohvideo-Workflow wird **nicht** vor COLMAP entzerrt, solange keine
@@ -146,12 +176,72 @@ zweites Mal über SuGaR mit jedem achten Bild neu erzeugt werden. `train.txt`,
 `eval_frames.txt`-Quelle umgestellt oder für die wissenschaftliche Evaluation
 explizit überschrieben werden.
 
-Die Metriken werden jeweils doppelt berechnet:
+Für die aktuelle Matrix werden **keine Full-frame-Metriken** als reguläres
+Ergebnis berechnet. Es existiert kein vollständiger Full-Scene-Splat als
+Vergleichsobjekt, und ein object-only STS- oder SuGaR-Splat würde beim Rendern
+außerhalb der Objektmaske typischerweise nur den gesetzten Hintergrund liefern.
+Ein Vergleich dieses Renderings mit dem vollständigen Originalframe würde daher
+vor allem den nicht rekonstruierten Hintergrund messen und nicht die Qualität
+des Kabels oder Rohrs. Das wäre für die aktuelle Forschungsfrage irreführend.
 
-- **full-frame:** zeigt die gesamte Renderqualität, kann aber vom Hintergrund
-  dominiert werden;
-- **maskiert:** bewertet die eigentliche Kabel-/Rohrregion und ist für die
-  Objektentscheidung wichtiger.
+Die Matrix berechnet deshalb ausschließlich **objektmaskierte Splat-Metriken**.
+Full-frame-Werte bleiben deaktiviert. Sie dürfen später nur in einer separaten
+Studie ergänzt werden, wenn beide Modelle vollständige Szenen-Splats mit
+vergleichbarer Hintergrundrepräsentation besitzen.
+
+### Exakte Bedeutung von „maskiert“
+
+Bei der maskierten Auswertung werden Pixel außerhalb der gültigen Objektmaske
+nicht in die Metrik aufgenommen. Sie werden nicht lediglich in beiden Bildern
+schwarz eingefärbt und anschließend als vollständiges Bild bewertet, weil das
+den Außenbereich weiterhin indirekt in die Kennzahl einfließen lassen würde.
+
+Für jeden Evaluationsframe wird deshalb dieselbe, zur Bilddomäne passende
+Referenzmaske verwendet:
+
+1. Renderbild und Ground Truth werden auf dieselbe Auflösung und denselben
+  Bildnamen geprüft.
+2. Die binäre Objektmaske wird auf Renderbild und Ground Truth identisch
+  angewendet.
+3. Für PSNR wird der Fehler nur über gültige Objektpixel gemittelt; die Zahl
+  gültiger Pixel wird protokolliert.
+4. Für SSIM wird eine maskengewichtete Auswertung durchgeführt. Fenster, die
+  keinen ausreichenden gültigen Objektanteil besitzen, werden verworfen oder
+  entsprechend gewichtet; dadurch wird der Hintergrund nicht als Objektfehler
+  bewertet.
+5. Für LPIPS wird ein dokumentierter Objekt-Crop aus der gemeinsamen Maske
+  verwendet. Pixel außerhalb der Maske werden innerhalb dieses Crops auf
+  einen neutralen, in beiden Bildern identischen Wert gesetzt. Der Crop und
+  seine Padding-Regel werden pro Lauf protokolliert. Ein vollständiges,
+  unmaskiertes LPIPS über das ganze Bild darf nicht als „masked LPIPS"
+  bezeichnet werden, weil das LPIPS-Netzwerk über seine rezeptiven Felder
+  auch benachbarte Pixel berücksichtigen kann.
+
+Damit wird der Außenbereich bei PSNR und SSIM tatsächlich ausgeschlossen. Bei
+LPIPS wird er auf den gemeinsamen Objekt-Crop begrenzt und außerhalb der
+Maske vereinheitlicht; die verbleibende Randkontextwirkung ist Bestandteil der
+explizit dokumentierten LPIPS-Protokolldefinition. Zusätzlich werden immer
+`valid_pixel_count`, `mask_bbox`, `mask_area_fraction` und bei LPIPS
+`crop_bbox` gespeichert.
+
+Für die fachliche Entscheidung `STS` gegen `SuGaR-Coarse` beziehungsweise
+`SuGaR-Refined` sind diese maskierten Werte die alleinigen Bildmetriken. Ein
+Lauf darf nicht anhand einer nicht erhobenen oder später ergänzten
+Full-frame-Kennzahl bevorzugt werden, wenn seine Objektmetriken oder die
+Gaussian-Geometrie schlechter sind.
+
+Die Masken müssen aus derselben Bilddomäne wie die Ground Truth stammen. Für
+die `SIMPLE_RADIAL`-Baseline und die `OPENCV`-Ablation sind das die gewarpten
+Masken der idealen PINHOLE-Szene. Für den direkten Rohbild-`PINHOLE`-Lauf sind
+es die Rohmasken. Ein Masken-Resize ohne geometrisches Warping ist für die
+endgültige Vergleichsreihe nicht ausreichend.
+
+Wichtig: Die vorhandene SuGaR-Datei `gaussian_splatting/metrics.py` berechnet
+aktuell nur gewöhnliche Full-Image-Werte über Render-/Ground-Truth-Paare. Diese
+Routine wird für die aktuelle Matrix nicht unverändert verwendet, weil sie die
+falsche Auswertungsdomäne hätte. Der neue maskierte-only-Modus ist ein
+Implementierungsschritt des Matrixplans und darf bis dahin nicht als bereits
+vorhandene Funktion vorausgesetzt werden.
 
 ## 7. STS gegen SuGaR vergleichen?
 
@@ -174,10 +264,10 @@ auf exakt denselben idealen Testbildern und mit denselben Masken. Für A gilt
 STS-7000 als Gaussian-Baseline; A wird zusätzlich über sein Coarse-Mesh und
 später über die Centerline bewertet.
 
-Die Metriken beantworten dabei die Renderfrage, nicht die Meshfrage. Ein höheres
-PSNR oder SSIM beweist keine bessere Oberfläche. Für die Mesh-/Centerline-
-Entscheidung bleiben später Vollständigkeit, Hausdorff-Distanz, Centerline-RMSE
-und GNSS-Fehler maßgeblich.
+Die Metriken beantworten dabei ausschließlich die Renderfrage im Objektbereich,
+nicht die Meshfrage. Ein höheres maskiertes PSNR oder SSIM beweist keine bessere
+Oberfläche. Für die Mesh-/Centerline-Entscheidung bleiben später Vollständigkeit,
+Hausdorff-Distanz, Centerline-RMSE und GNSS-Fehler maßgeblich.
 
 ## 8. Automatisch zu erfassende Ergebnisse
 
@@ -227,46 +317,58 @@ postprocess/
 cleanup.json
 ```
 
-Die Kernmetriken in `metrics.json` und `run.md` lauten:
+Die Kernmetriken in `metrics.json` und `run.md` lauten ausschließlich:
 
-- `PSNR_full`, `SSIM_full`, `LPIPS_full`
-- `PSNR_masked`, `SSIM_masked`, `LPIPS_masked`
+- `PSNR_masked`
+- `SSIM_masked`
+- `LPIPS_masked`
 - `evaluation_frame_count`
 - `evaluation_domain` (`ideal_pinhole` oder `raw_pinhole_native`)
+- `evaluation_scope=object_masked_only`
 - `model_stage` (`sts`, `sugar_coarse`, `sugar_refined`)
+- `valid_pixel_count`, `mask_bbox`, `mask_area_fraction`, bei LPIPS zusätzlich
+  `crop_bbox`
 - Gaussian-Anzahl, Checkpointgröße, Renderzeit und Peak-VRAM
 
-Die vorhandene SuGaR-Datei `gaussian_splatting/metrics.py` kann die eigentliche
-PSNR-/SSIM-/LPIPS-Berechnung teilweise wiederverwenden, wird aber um einen
-maskierten Modus, einen festen Split und einen maschinenlesbaren Exit-Code
-ergänzt. `run_logging.sh` übernimmt danach die Ergebnisse automatisch in
+Die vorhandene SuGaR-Datei `gaussian_splatting/metrics.py` berechnet weiterhin
+nur Full-Image-Werte und wird für diese Matrix nicht unverändert verwendet.
+Das neue Werkzeug `src/python/evaluate_masked_splat_metrics.py` ist für den
+object-only-Modus vorgesehen und schreibt maskierte PSNR-/SSIM-/LPIPS-Werte,
+Per-Frame-Werte, gültige Pixel, Maskenfläche und LPIPS-Crop in eine JSON-Datei.
+Der Matrix-Runner übernimmt den Auswertungsumfang und die Pfade zusätzlich in
 `run.md` und `run.log`.
 
 ## 9. Automatisierter Matrix-Runner
 
-Vorgesehen ist ein neuer Runner, beispielsweise
-`tools/run_experiment_matrix.sh`, mit einer deklarativen JSON- oder YAML-Datei:
+Der Runner `tools/run_experiment_matrix.sh` verwendet die deklarative TSV-Datei
+`tools/experiment_matrix.tsv`. Er führt die Experimente **sequenziell** und
+isoliert bei allen drei Auflösungen sowie standardmäßig bei 5 FPS und 2 FPS
+aus:
 
-```yaml
-experiments:
-  - id: sr_a
-    camera_model: SIMPLE_RADIAL
-    mesh_mode: original_gs
-    sts_iterations: 7000
-  - id: sr_sugar_coarse
-    camera_model: SIMPLE_RADIAL
-    mesh_mode: sugar_coarse
-    sts_iterations: 7000
-    coarse_iterations: 9000
-  - id: pinhole_a
-    camera_model: PINHOLE
-    mesh_mode: original_gs
-    sts_iterations: 7000
-  - id: opencv_a
-    camera_model: OPENCV
-    mesh_mode: original_gs
-    sts_iterations: 7000
+- `720p` = `1280x720`
+- `qhd` = `960x540`
+- `low` = `640x360`
+
+Die Matrixdatei kann um weitere Varianten ergänzt werden:
+
+```text
+# id camera_model mesh_mode coarse_iterations refinement_time
+simple_radial_a SIMPLE_RADIAL original_gs - medium
+simple_radial_sugar SIMPLE_RADIAL sugar_coarse 9000 medium
+pinhole_a PINHOLE original_gs - medium
+opencv_a OPENCV original_gs - medium
 ```
+
+Ein sicherer Vorschauaufruf ist:
+
+```bash
+./tools/run_experiment_matrix.sh --dry-run
+```
+
+Einzelne Ausschnitte können mit `--resolution qhd` oder
+`--variant simple_radial_a` ausgeführt werden. Ein echter Lauf benötigt ein
+Rohvideo und setzt `MATRIX_INPUT_VIDEO`, falls mehrere Videos in `data/01_raw`
+liegen.
 
 Der Runner führt pro Eintrag aus:
 
@@ -280,9 +382,10 @@ Der Runner führt pro Eintrag aus:
 7. nichtinteraktive Mask-Review-Samples;
 8. STS-Training;
 9. Splat-Renderings auf `eval_frames.txt`;
-10. PSNR/SSIM/LPIPS full und maskiert;
+10. ausschließlich objektmaskierte PSNR/SSIM/LPIPS; Full-frame-Metriken bleiben
+  deaktiviert;
 11. Variante-A-Mesh oder explizite `sugar_coarse`-Meshroute;
-12. optionales Postprocessing und Centerline;
+12. Postprocessing und Centerline;
 13. Kopieren der Ergebnisse in den Experimentordner;
 14. Schreiben eines Abschlussstatus;
 15. Zurücksetzen der generierten Live-Daten für den nächsten Matrixeintrag.
@@ -292,11 +395,100 @@ für `run_sfm.sh`, `prep_sts_scene.py`, STS und SuGaR erhalten. Bis diese
 Parametrisierung umgesetzt ist, darf die Matrix nicht parallel laufen und muss
 vor jedem Experiment den Live-Workspace vollständig archivieren und bereinigen.
 
+## 9a. Smoke-Test, Fehler und archivierter SuGaR-Replay
+
+Der Name `matrix_smoke_low_pipe_full` beschreibt einen begrenzten
+Integrations-Smoke-Test, nicht die vollständige Matrix. Getestet wurde genau
+ein Experiment:
+
+- `pipe`-Prompt, 5 FPS und 640×360 (`low`);
+- `SIMPLE_RADIAL`, Variante A (`original_gs`);
+- 240 Bilder, davon 210 Training und 30 feste Evaluationsbilder;
+- gewarpte ideale Masken mit einer Abbruchgrenze von 30 % leeren
+  `middle`-Masken;
+- bereits berechneter STS-Checkpoint bei 7000 Iterationen;
+- 200.000 Mesh-Vertices, 5.000.000 Oberflächenstichproben, Seed 42.
+
+`full` bedeutet in dieser Run-ID, dass der einzelne Versuch nicht als
+`--mask-only` beendet wurde. Es bedeutet nicht, dass alle 24 Kombinationen aus
+vier Varianten, drei Auflösungen und zwei FPS-Profilen gelaufen sind. Der
+Smoke-Test dient dazu, die Datenverträge zwischen SAM3, COLMAP, STS und SuGaR
+vor dem teuren Matrixlauf zu prüfen.
+
+### Historischer Fehler
+
+Der ursprüngliche Low-Lauf brach in SuGaR vor der Mesh-Extraktion mit
+`IndexError: list index out of range` bei `CamerasWrapper([])` ab. Die
+Maskenfilterung hatte 240 von 240 Kameras behalten; die Ursache war der feste
+Eval-Split. `cameras.json` enthielt Namen wie `00000`, während
+`eval_frames.txt` Zeilen wie `00000.jpg` enthielt. Die damalige exakte
+Zeichenkettenprüfung fand deshalb keine Testkamera.
+
+### Lösung und Schutzmaßnahmen
+
+- Eval-Einträge und Kameranamen werden als normalisierte Basename/Stems
+  verglichen.
+- Falls nötig, wird die abschließende numerische Frame-ID als Fallback genutzt.
+- Fehlende oder leere Split-Dateien werden explizit abgelehnt.
+- SuGaR protokolliert Eintrags-, Kamera- und Match-Anzahl.
+- Eine leere `CamerasWrapper`-Eingabe erzeugt einen verständlichen Fehler statt
+  eines Indexfehlers.
+- `SUGAR_EVAL_FRAMES_PATH` und `EVAL_FRAMES_PATH` zeigen im Replay auf dieselbe
+  feste Datei.
+
+### Replay ohne erneute Berechnung
+
+`--from sugar` ist ein Neustart an der SuGaR-Schrittgrenze, kein Fortsetzen
+innerhalb eines unterbrochenen Trainingsprozesses. Für den Replay müssen nur
+die Eingabeartefakte des Startpunkts wieder im Live-Workspace liegen: ideale
+Masken, ideale COLMAP-Bilder, Sparse-Metadaten, STS-`cameras.json`, der
+vollständige STS-Ply, der hochopake STS-Ply und `eval_frames.txt`. Das Archiv
+wird nicht verändert; Rohvideo, GCP-Dateien und HF-Cache werden nicht benötigt
+und nicht kopiert.
+
+Das reproduzierbare Wiederherstellungsskript ist
+`tools/restore_matrix_replay.sh`. Es legt außerdem den von SuGaR benötigten
+`data/05_3dgs/images`-Link an. Danach kann der Mesh-Smoke-Test mit
+`AUTOPILOT=true`, `SUGAR_MESH_MODE=original_gs` und
+`STOP_AFTER_COARSE_MESH=1` gestartet werden. Dadurch werden Refinement,
+UV-Baking und Postprocessing bewusst übersprungen.
+
+Der erfolgreiche Replay erzeugte einen gültigen Original-GS-Coarse-Ply und
+ein kompatibles `refined.obj`. Das SuGaR-Log bestätigte 30 passende
+Evaluationskameras und 210 Trainingskameras. Der nachfolgende Postprocess
+erzeugte 87 Roh-Centerlinepunkte, 380 Grad-10-B-Splinepunkte und gültige lokale
+GeoJSON-/Fallback-Ausgaben.
+
+Zusätzlich wurde der STS-7000-Splat auf den 30 festen Eval-Views gerendert und
+mit ausschließlich objektmaskierten Metriken ausgewertet:
+
+- PSNR masked: `29.8366 dB`
+- SSIM masked: `0.929862`
+- LPIPS masked: `0.082681`
+
+Full-frame-Metriken wurden nicht berechnet. Die Fallback-Georeferenzierung
+wegen fehlendem `matrix.txt` ist kein Genauigkeitsnachweis. Damit sind der
+Replay-Vertrag, der Postprocess, das Rendering und die Metrikberechnung auf
+dem Smoke-Test nachgewiesen; die wissenschaftliche Bewertung und der
+vollständige 24er-Lauf bleiben separate Schritte.
+
 ## 10. Cleanup-Regeln
 
-Das Cleanup-Werkzeug wird strikt pfadgesichert und standardmäßig als Dry-Run
-betrieben. Es darf nur aus dem Repository-Root arbeiten und verlangt eine
-explizite Bestätigung des Batch-Namens.
+Das wiederhergestellte [clean_data_interactive.sh](../clean_data_interactive.sh)
+ist das interaktive Standard-Cleanup für manuelle Läufe. Es löscht nur
+ausgewählte abgeleitete Inhalte unter `data/`, erhält die Ordnerstruktur,
+behält `data/01_raw` standardmäßig und löscht `data/hf_cache` nur nach einer
+separaten Bestätigung. `--new-video` setzt die sinnvollen Defaults für einen
+kompletten Neuaufbau und berücksichtigt auch `data/01_raw/output.mp4` als
+löschbares Arbeitsvideo.
+
+Für die automatisierte Matrix wird dieses Skript nicht blind mitten im Lauf
+aufgerufen, weil es interaktiv ist und keine Archivierung erzeugt. Der
+Matrix-Runner muss zuerst den aktuellen Experimentordner vollständig
+archivieren, Prüfsummen schreiben und danach entweder die gleichen
+Cleanup-Ziele nichtinteraktiv ausführen oder das Skript über einen noch zu
+ergänzenden nichtinteraktiven Modus mit explizitem `DELETE`-Schutz verwenden.
+Kein automatischer Lauf darf den HF-Cache oder ein laufendes Experiment löschen.
 
 Beibehalten werden:
 
@@ -356,7 +548,9 @@ Wrapper beziehungsweise eine klar definierte Post-SAM3-Callback-Funktion auf.
   Bilddomäne wie das zugehörige STS-Bild.
 - GCP-Picking bleibt auf dem originalen COLMAP-Modell reproduzierbar.
 - Alle Splat-Metriken verwenden dieselbe `eval_frames.txt`.
-- Full-frame und maskierte Metriken sind getrennt.
+- Die Matrix enthält ausschließlich objektmaskierte Splat-Metriken; Full-frame-
+  Metriken bleiben deaktiviert, solange kein vollständiger Vergleichssplat
+  vorhanden ist.
 - STS, SuGaR-Coarse und SuGaR-Refined sind als getrennte Modellstufen
   ausgewiesen.
 - Jeder Matrixlauf ist mit Parametern, Commits, Kamera-Modell, Split,

@@ -714,6 +714,15 @@ if [[ -n "$SELECTED_VIDEO" ]]; then
 else
     docker compose run --rm -e SAM3_FRAME_MAX_SIDE="$SAM3_FRAME_MAX_SIDE" sam3-preprocess python3 /app/src/python/extract_masks_notebook_flow.py --prompt "$TEXT_PROMPT"
 fi
+echo "[Step 1/5] Exporting non-interactive SAM3 mask review samples..."
+docker compose run --rm sam3-preprocess \
+    python3 /app/tools/export_mask_review_samples.py \
+    --frames-dir /data/02_frames \
+    --masks-dir /data/03_masks \
+    --mask-name middle \
+    --output-dir /data/03_masks/_review_samples \
+    --non-interactive \
+    --manifest /data/03_masks/_review_samples/review_manifest.json
 run_step_end 0
 
 # Step 2: SfM (COLMAP camera poses & sparse point cloud)

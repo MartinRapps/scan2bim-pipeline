@@ -512,6 +512,16 @@ run_step_sam3() {
             --prompt "$TEXT_PROMPT"
     fi
 
+    log_info "Exporting non-interactive SAM3 mask review samples..."
+    docker compose run --rm sam3-preprocess \
+        python3 /app/tools/export_mask_review_samples.py \
+        --frames-dir /data/02_frames \
+        --masks-dir /data/03_masks \
+        --mask-name middle \
+        --output-dir /data/03_masks/_review_samples \
+        --non-interactive \
+        --manifest /data/03_masks/_review_samples/review_manifest.json
+
     # Validate output
     validate_masks_quality "$MASKS_DIR" || {
         log_error "Maskenextraktion fehlgeschlagen oder leer. Pipeline stoppt."
@@ -560,6 +570,8 @@ run_step_sts_prep() {
     docker compose run --rm \
         -e STS_IMAGES_DIR="$STS_IMAGES_DIR" \
         -e STS_SFM_DIR="$STS_SFM_DIR" \
+        -e STS_MASKS_DIR="${STS_MASKS_DIR:-/data/03_masks}" \
+        -e EVAL_FRAMES_PATH="${EVAL_FRAMES_PATH:-}" \
         sam3-preprocess python3 /app/src/python/prep_sts_scene.py
 
     log_info "Running STS object-specific 3D point cloud initialization..."

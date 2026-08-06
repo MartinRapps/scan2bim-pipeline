@@ -20,6 +20,7 @@ services:
     volumes:
       - ./data:/data
       - ./src:/app/src
+      - ./tools:/app/tools:ro
     deploy:
       resources:
         reservations:
@@ -64,6 +65,9 @@ services:
     environment:
       - MPLCONFIGDIR=/tmp/matplotlib
       - PYTHONUNBUFFERED=1
+      - EVAL_FRAMES_PATH=${EVAL_FRAMES_PATH:-}
+      - XDG_CACHE_HOME=/data/hf_cache
+      - TORCH_HOME=/data/hf_cache/torch
     volumes:
       - ./data:/data
       - ./src:/app/src
@@ -86,6 +90,8 @@ services:
     volumes:
       - ./data:/data
       - ./src:/app/src
+    environment:
+      - SUGAR_EVAL_FRAMES_PATH=${SUGAR_EVAL_FRAMES_PATH:-}
     deploy:
       resources:
         reservations:

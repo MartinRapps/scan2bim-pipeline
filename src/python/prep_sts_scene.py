@@ -81,8 +81,9 @@ def main():
     
     scene_root = "/data/05_3dgs"
     frames_dir = os.environ.get("STS_IMAGES_DIR", "/data/04_sfm/undistorted/images")
-    masks_dir = "/data/03_masks"
+    masks_dir = os.environ.get("STS_MASKS_DIR", "/data/03_masks")
     sfm_dir = os.environ.get("STS_SFM_DIR", "/data/04_sfm/undistorted")
+    eval_frames_path = os.environ.get("EVAL_FRAMES_PATH", "")
 
     # STS accepts only ideal PINHOLE/SIMPLE_PINHOLE cameras. run_sfm.sh creates
     # the downstream scene at this path either by undistorting a
@@ -95,6 +96,8 @@ def main():
         sfm_dir = "/data/04_sfm"
     print(f"STS image input: {frames_dir}")
     print(f"STS COLMAP input: {sfm_dir}")
+    print(f"STS mask input: {masks_dir}")
+    print(f"STS evaluation split: {eval_frames_path or 'legacy every tenth frame'}")
     
     # 1. Clean and setup directories
     print("Setting up directory structure under /data/05_3dgs...")
@@ -153,10 +156,25 @@ def main():
     
     train_frames = []
     test_frames = []
+    fixed_eval_frames = set()
+    if eval_frames_path and os.path.isfile(eval_frames_path):
+        with open(eval_frames_path, encoding="utf-8") as handle:
+            fixed_eval_frames = {line.strip() for line in handle if line.strip()}
+        missing_eval_frames = fixed_eval_frames.difference({os.path.basename(path) for path in frames})
+        if missing_eval_frames:
+            raise ValueError(
+                f"Evaluation split contains {len(missing_eval_frames)} images not present in STS input: "
+                f"{sorted(missing_eval_frames)[:5]}"
+            )
     
     for idx, frame_path in enumerate(frames):
         basename = os.path.basename(frame_path)
-        if num_frames < 20:
+        if fixed_eval_frames:
+            if basename in fixed_eval_frames:
+                test_frames.append(basename)
+            else:
+                train_frames.append(basename)
+        elif num_frames < 20:
             # Short video sequence: put everything in train and test
             train_frames.append(basename)
             test_frames.append(basename)

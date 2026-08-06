@@ -167,3 +167,25 @@ Die FHD-Studie ist ein separater Versuchsblock:
 - [ ] nur die Auflösung beziehungsweise das klar definierte Frame-Profil variieren
 - [ ] PSNR, SSIM, LPIPS und Centerline-Metriken vergleichen
 - [ ] keine Ergebnisse aus dem FHD-Block als direkte COLMAP-Baseline verwenden
+
+## 15. Reproduzierbarer Smoke-Test und Replay
+
+Der Smoke-Test ist ein begrenzter Integrationsnachweis vor der vollständigen
+Matrix. Er ist kein wissenschaftlicher Vergleich und kein Ersatz für die
+spätere 24er-Studie.
+
+- [ ] einzelnes Profil `pipe`, 5 FPS, 640×360, `SIMPLE_RADIAL`, Variante A
+- [ ] 240 Bilder und fester Split mit 210 Training-/30 Testbildern prüfen
+- [ ] ideale, gewarpte Masken verwenden und die 30-%-Leeregrenze prüfen
+- [ ] bereits berechneten STS-7000-Checkpoint wiederverwenden
+- [ ] `eval_frames.txt` an STS, SuGaR und Rendering gemeinsam übergeben
+- [ ] vor dem SuGaR-Aufruf die Namen `cameras.json` gegen den Split prüfen
+- [ ] bei `--from sugar` nur die erforderlichen Archivartefakte restaurieren
+- [ ] `SUGAR_MESH_MODE=original_gs` mit `STOP_AFTER_COARSE_MESH=1` testen
+- [ ] SuGaR-Log auf `30 matched`, `210 training` und erfolgreiche Mesh-Ausgabe
+	prüfen
+- [ ] erst nach erfolgreichem Replay die vollständige Matrix starten
+
+Für die Wiederherstellung aus einem archivierten Matrixlauf steht
+`tools/restore_matrix_replay.sh` zur Verfügung. Das Skript verändert weder das
+Archiv noch Rohvideo oder HF-Cache.

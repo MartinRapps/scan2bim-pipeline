@@ -191,6 +191,92 @@ SuGaR writes its runtime outputs through the shared `/data` mount; this avoids
 permission problems caused by mounting a local development fork over
 `/opt/sugar`.
 
+### Cleanup und automatisierte Versuche
+
+Das wiederhergestellte [clean_data_interactive.sh](clean_data_interactive.sh)
+setzt abgeleitete Pipeline-Daten interaktiv zurück. Es lässt `data/01_raw` und
+den Hugging-Face-Cache standardmäßig bestehen; `--new-video` wählt die Defaults
+für einen vollständigen Neuaufbau und behandelt `data/01_raw/output.mp4` als
+löschbares Arbeitsvideo. Für automatisierte Experimentmatrizen muss zuerst das
+Experiment archiviert und mit Prüfsummen gesichert werden; erst danach darf ein
+Cleanup ausgeführt werden.
+
+Bei der geplanten Splat-Evaluation werden ausschließlich maskierte
+PSNR-/SSIM-/LPIPS-Werte berechnet. Die aktuellen STS- und SuGaR-Modelle sind
+object-only Splats; es gibt keinen vollständigen Full-Scene-Splat. Ein
+Full-frame-Vergleich mit dem gesamten Originalbild würde deshalb außerhalb der
+Objektmaske vor allem den nicht rekonstruierten Hintergrund bewerten und ist für
+diese Matrix deaktiviert. Pixel außerhalb der Objektmaske werden bei PSNR/SSIM
+nicht in die Kennzahl aufgenommen. LPIPS wird auf einem gemeinsamen
+Objekt-Crop mit vereinheitlichtem Außenbereich berechnet. Die implementierte
+Auswertung liegt in
+[src/python/evaluate_masked_splat_metrics.py](src/python/evaluate_masked_splat_metrics.py)
+und wird für jeden Matrixlauf auf dem festen Eval-Split ausgeführt. Details
+stehen in
+[EXPERIMENT_MATRIX_PLAN.md](docs/EXPERIMENT_MATRIX_PLAN.md).
+
+Die automatisierte Testmatrix liegt unter
+[tools/run_experiment_matrix.sh](tools/run_experiment_matrix.sh) und führt jede
+konfigurierte Variante bei allen drei Auflösungen aus:
+
+- `720p`: 1280×720
+- `qhd`: 960×540
+- `low`: 640×360
+
+Vor jedem Matrixlauf wird das Rohvideo unverändert gelassen und ein eigenes
+Arbeitsvideo erzeugt. Standardmäßig werden beide zeitlichen Profile getestet:
+5 FPS und 2 FPS (`MATRIX_FPS_LIST=5,2`). Innerhalb jedes Profils verwenden die
+Auflösungsvergleiche denselben Frame-Rhythmus; die native FPS-Zahl des
+Rohvideos wird nicht unbeabsichtigt in die Testreihe übernommen.
+Der Matrix-Standardprompt ist `pipe`; ein anderer Begriff kann explizit über
+`MATRIX_PROMPT` gesetzt werden.
+
+Nach SAM3 wird die Maskenabdeckung über alle Frames geprüft. Standardmäßig
+bricht die Matrix bei mindestens 30 % leeren oder fehlenden `middle`-Masken ab
+(`MATRIX_MAX_EMPTY_MASK_FRACTION=0.30`). Der Coverage-Report wird im jeweiligen
+Experimentarchiv gespeichert.
+
+#### Smoke-Test und Replay eines archivierten Laufs
+
+`matrix_smoke_low_pipe_full` war ein einzelner Low-Resolution-Integrationstest
+(`pipe`, 5 FPS, 640×360, `SIMPLE_RADIAL`, Variante A), nicht die vollständige
+24er-Matrix. „Smoke“ bedeutet hier: die Übergaben zwischen SAM3, COLMAP, STS
+und SuGaR mit einem kleinen, reproduzierbaren Lauf prüfen, bevor alle Varianten
+gerechnet werden. `full` bedeutet nur, dass dieser einzelne Versuch nicht im
+`--mask-only`-Modus beendet wurde.
+
+Der archivierte Lauf kann ohne erneute Berechnung von SAM3, COLMAP oder STS für
+SuGaR wiederhergestellt werden:
+
+```bash
+./tools/restore_matrix_replay.sh \
+  data/10_runs/matrix_smoke_low_pipe_full/5fps/low/simple_radial_a
+```
+
+Das Skript kopiert nur ideale Masken, ideale COLMAP-Bilder, Sparse-Metadaten,
+STS-Kameradaten, den vollständigen STS-Ply, den hochopaken STS-Ply und
+`eval_frames.txt`; Rohdaten, HF-Cache und das Archiv bleiben unverändert.
+Damit sind anschließend auch Rendern und objektmaskierte Metriken möglich.
+Danach kann der A-Mesh-Replay mit
+`AUTOPILOT=true`, `SUGAR_MESH_MODE=original_gs` und
+`STOP_AFTER_COARSE_MESH=1` ausgeführt werden. Der Replay ist ein Neustart an
+der SuGaR-Schrittgrenze, kein Fortsetzen innerhalb eines abgebrochenen
+Trainingsprozesses.
+
+Der frühere Fehler `CamerasWrapper([])` entstand, weil SuGaRs `cameras.json`
+Bildnamen wie `00000` und der feste Split Namen wie `00000.jpg` enthielt. Die
+aktuelle Implementierung normalisiert Basename/Stems, verwendet bei Bedarf die
+numerische Frame-ID und protokolliert die Split-Kardinalitäten. Der erfolgreiche
+Replay bestätigte 30 Test- und 210 Trainingskameras.
+
+Die Varianten stehen in [tools/experiment_matrix.tsv](tools/experiment_matrix.tsv).
+Eine Vorschau ohne Pipelineausführung ist mit
+`./tools/run_experiment_matrix.sh --dry-run` möglich. Die Matrix arbeitet
+sequenziell, archiviert jeden Lauf unter `data/10_runs/<batch>/` und verwendet
+vor dem nächsten Versuch den nichtinteraktiven Modus von
+[clean_data_interactive.sh](clean_data_interactive.sh). Rohdaten,
+`data/01_raw/output.mp4` und `data/hf_cache` werden dabei nicht gelöscht.
+
 ### Centerline and GIS export
 
 Container E reads the refined OBJ and performs a real DGtal voxelization,

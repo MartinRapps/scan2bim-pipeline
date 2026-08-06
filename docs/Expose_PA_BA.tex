@@ -343,6 +343,104 @@ als aktuelle Default-Konfiguration interpretiert.
           kontrollierten Ablation deaktiviert.
 \end{itemize}
 
+\subsection*{Reproduzierbarer Smoke-Test und Replay eines Matrixlaufs}
+Der Lauf \texttt{matrix\_smoke\_low\_pipe\_full} ist kein vollstaendiger
+Matrixlauf und kein wissenschaftliches Endergebnis. Der Begriff
+\emph{Smoke-Test} bezeichnet hier einen begrenzten Integrations- und
+Vertragstest: Es wird ein einzelner, ressourcenschonender Versuch durch die
+gesamte bisherige Verarbeitungskette gefuehrt, um die Uebergaben zwischen SAM3,
+COLMAP, STS und SuGaR zu pruefen, bevor die teure Parameter-Matrix gestartet
+wird. \texttt{full} bedeutet in dieser Run-ID, dass der einzelne Versuch nicht
+im Masken-only-Modus abgebrochen wurde; es bedeutet nicht, dass alle 24
+Matrixkombinationen ausgefuehrt wurden.
+
+Der reproduzierbare Testaufbau besteht aus:
+\begin{itemize}[noitemsep]
+    \item Prompt \texttt{pipe}, 5 FPS und 640$\times$360 Pixeln (\texttt{low});
+    \item \texttt{SIMPLE\_RADIAL} auf Rohframes, anschliessende ideale
+        PINHOLE-Szene und geometrisch gewarpte Masken;
+    \item Variante A mit \texttt{SUGAR\_MESH\_MODE=original\_gs}, also dem
+        direkten hochopaken STS-Gaussian-Eingang ohne SuGaR-Coarse-Training;
+    \item 240 Bilder, fester Split mit jedem achten Bild als Testbild,
+        somit 210 Trainings- und 30 Testkameras;
+    \item Maskenqualitaetsgrenze von 30 Prozent leeren oder fehlenden
+        \texttt{middle}-Masken;
+    \item 7000 STS-Iterationen, 200000 Mesh-Vertices, 5000000
+        Oberflaechenstichproben und reproduzierbarer Seed 42.
+\end{itemize}
+
+Beim ersten vollstaendigen Low-Lauf trat in SuGaR vor der Mesh-Extraktion
+folgender Fehler auf:
+\begin{quote}
+\texttt{IndexError: list index out of range} in
+\texttt{CamerasWrapper(self.test\_cam\_list)}.
+\end{quote}
+Die Ursache war kein leerer SAM3-Maskensatz. Die Maskenfilterung behielt
+240 von 240 Kameras. Der Fehler entstand beim festen Evaluationssplit: SuGaRs
+\texttt{cameras.json} speicherte Bildnamen als Stems wie \texttt{00000}, die
+gemeinsame \texttt{eval\_frames.txt} enthielt dagegen \texttt{00000.jpg}.
+Die alte exakte Zeichenkettenpruefung fand dadurch keine Testkamera und
+uebergab \texttt{CamerasWrapper([])}.
+
+Die Loesung normalisiert nun Basename und Dateiendung in
+\texttt{sugar\_scene/gs\_model.py} sowie im Standard-Renderer. Falls ein
+Basename-Vergleich nicht ausreicht, wird die abschliessende numerische
+Frame-ID verglichen, beispielsweise \texttt{frame\_00008} mit
+\texttt{00008.jpg}. Fehlende oder leere Split-Dateien sowie leere Kamera-
+listen werden explizit mit einer aussagekraeftigen Fehlermeldung abgebrochen.
+Jeder SuGaR-Lauf protokolliert ausserdem die Anzahl der Split-Eintraege, der
+geladenen Kameras und der erfolgreichen Matches. Die Datei wird ueber
+\texttt{SUGAR\_EVAL\_FRAMES\_PATH=/data/05\_3dgs/eval\_frames.txt} an den
+SuGaR-Container weitergegeben.
+
+Da ein Replay an einer Schrittgrenze kein Fortsetzen innerhalb eines
+abgebrochenen Trainingsprozesses ist, muessen die Eingabeartefakte des
+Startpunkts wieder im Live-Arbeitsbereich liegen. Fuer den SuGaR-Replay und
+die nachfolgenden Render-/Metrikschritte sind dies insbesondere die idealen
+Masken unter \texttt{data/03\_masks}, die idealen COLMAP-Bilder unter
+\texttt{data/04\_sfm/undistorted/images}, Sparse-Metadaten,
+\texttt{cameras.json}, der vollstaendige sowie der hochopake STS-Ply bei
+Iteration 7000 und die gemeinsame \texttt{eval\_frames.txt}. Das
+Wiederherstellungsskript
+\texttt{tools/restore\_matrix\_replay.sh} kopiert nur diese Artefakte aus dem
+Archiv und legt den benoetigten \texttt{data/05\_3dgs/images}-Link an; Rohvideo,
+Hugging-Face-Cache und das Archiv werden nicht veraendert.
+
+Der anschliessende Test mit \texttt{run\_pipeline.sh --from sugar}, Variante A,
+\texttt{STOP\_AFTER\_COARSE\_MESH=1}, 200000 Vertices und 5000000 Samples war
+erfolgreich. SuGaR meldete 30 passende Evaluationskameras und 210
+Trainingsbilder; die Original-GS-Meshroute erzeugte einen gueltigen Coarse-Ply
+und das kompatible \texttt{refined.obj}. SuGaR-Coarse-Training, Refinement,
+UV-Baking und Postprocessing wurden in diesem ersten Mesh-Smoke-Aufruf bewusst
+nicht ausgefuehrt.
+
+Anschliessend wurden Postprocessing und Bildmetriken separat auf denselben
+Artefakten ausgefuehrt. DGtal extrahierte erfolgreich eine Centerline mit 87
+Rohpunkten; der Grad-10-B-Spline erzeugte 380 Punkte. Das lokale GeoJSON sowie
+die translation-only-Fallback-Ausgaben wurden geschrieben. Eine echte
+4x4-Georeferenzierung war in diesem Archivlauf nicht moeglich, weil
+\texttt{data/04\_sfm/matrix.txt} fehlte; deshalb ist die Fallback-Geometrie
+kein Genauigkeitsnachweis.
+
+Der bestehende STS-7000-Splat wurde anschliessend auf den 30 festen Testbildern
+gerendert. Die ausschliesslich objektmaskierten Werte betragen:
+\begin{center}
+\begin{tabular}{l r}
+\textbf{Metrik} & \textbf{Wert}\\
+\hline
+PSNR$_{masked}$ & 29.8366\,dB\\
+SSIM$_{masked}$ & 0.929862\\
+LPIPS$_{masked}$ & 0.082681\\
+Evaluationsbilder & 30\\
+\end{tabular}
+\end{center}
+Full-frame-Metriken wurden nicht berechnet. Variante A erzeugt keinen neuen
+SuGaR-Splat; der STS-7000-Splat ist daher zugleich die passende Gaussian-
+Baseline fuer A. Die Ergebnisse belegen die technische Funktionsfaehigkeit von
+Rendern, Maskierung, Metrikberechnung und Postprocessing auf diesem
+Smoke-Test, sind aber weder ein Vergleich aller 24 Matrixlaeufe noch ein
+Nachweis der spaeteren geometrischen Genauigkeit.
+
 \section{Effizienzanalyse und Optimierungspotenzial}
 
 Im Verlauf der Implementierung erwies sich die Pipeline als funktionstüchtig,
