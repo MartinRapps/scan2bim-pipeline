@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Re-extract a coarse mesh without refinement, texture baking, or crop. The
-# default loads an existing mask-aware SuGaR coarse checkpoint. With
-# USE_ORIGINAL_GS=True it skips SuGaR coarse optimization entirely and samples
-# directly from the private staged STS Gaussian PLY. Every ablation writes to a
-# separate directory below its source run.
+# default is variant A: it skips SuGaR coarse optimization entirely and samples
+# directly from the private staged STS Gaussian PLY using projected Diamond-Mesh
+# depth. Set USE_ORIGINAL_GS=False for the explicit SuGaR-Coarse comparison.
+# Every ablation writes to a separate directory below its source run.
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
@@ -20,9 +20,11 @@ export HOST_GID="${HOST_GID:-$(id -g)}"
 CONFIGURATION_WAS_PROVIDED=0
 for config_variable in \
     ITERATIONS SUGAR_RUN_TAG SOURCE_RUN_TAG MESH_VERTICES SURFACE_SAMPLE_COUNT \
+    SURFACE_SAMPLE_SEED \
     SURFACE_LEVEL POISSON_DEPTH VERTICES_DENSITY_QUANTILE \
     PROJECT_MESH_ON_SURFACE_POINTS LOW_OPACITY_GAUSSIAN_THRESHOLD \
-    USE_ORIGINAL_GS USE_GAUSSIAN_DEPTH COARSE_MESH_ABLATION_TAG COARSE_MODEL GPU; do
+    USE_ORIGINAL_GS USE_GAUSSIAN_DEPTH INCLUDE_BACKGROUND_MESH \
+    COARSE_MESH_ABLATION_TAG COARSE_MODEL GPU; do
     if [[ -v $config_variable ]]; then
         CONFIGURATION_WAS_PROVIDED=1
         break
@@ -53,10 +55,12 @@ esac
 explain_source_run() {
     cat <<'EOF'
 
-  SOURCE_RUN_TAG identifies an existing completed mask-aware SuGaR run. This
-  script loads its coarse .pt checkpoint and does not start coarse training,
-  refinement, UV texture baking, or semantic cropping. SUGAR_RUN_TAG remains a
-  backwards-compatible alias for SOURCE_RUN_TAG in non-interactive commands.
+    SOURCE_RUN_TAG identifies a staged run containing cameras and the private
+    high-opacity STS PLY. With USE_ORIGINAL_GS=False this script additionally
+    loads an existing SuGaR coarse .pt checkpoint. It never starts coarse
+    training, refinement, UV texture baking, or semantic cropping. SUGAR_RUN_TAG
+    remains a backwards-compatible alias for SOURCE_RUN_TAG in non-interactive
+    commands.
 EOF
 }
 
@@ -80,6 +84,16 @@ explain_surface_sample_count() {
     such as 2,000,000, can accelerate a screening extraction but may create
     holes, aliasing, or unstable thin structures. Do not treat a reduced-sample
     result as a final-quality mesh.
+EOF
+}
+
+explain_surface_sample_seed() {
+        cat <<'EOF'
+
+    SURFACE_SAMPLE_SEED optionally fixes the random pixel/surface-point selection
+    during extraction. Leave it empty to preserve the historical stochastic
+    behavior. Use the same non-negative integer for all variants in a controlled
+    comparison; this affects extraction reproducibility, not the source checkpoint.
 EOF
 }
 
@@ -159,6 +173,16 @@ explain_gaussian_depth() {
 EOF
 }
 
+explain_background_mesh() {
+    cat <<'EOF'
+
+    INCLUDE_BACKGROUND_MESH controls whether samples outside the foreground
+    camera bounding box are reconstructed and merged as a second Poisson mesh.
+    Keep True for the historical/default route. False is an object-only
+    diagnostic for testing whether a sparse background component causes artifacts.
+EOF
+}
+
 explain_ablation_tag() {
     cat <<'EOF'
 
@@ -190,13 +214,15 @@ ITERATIONS="${ITERATIONS:-7000}"
 SOURCE_RUN_TAG="${SOURCE_RUN_TAG:-${SUGAR_RUN_TAG:-masked_7000_dn_consistency_medium}}"
 MESH_VERTICES="${MESH_VERTICES:-50000}"
 SURFACE_SAMPLE_COUNT="${SURFACE_SAMPLE_COUNT:-10000000}"
+SURFACE_SAMPLE_SEED="${SURFACE_SAMPLE_SEED:-}"
 SURFACE_LEVEL="${SURFACE_LEVEL:-0.3}"
 POISSON_DEPTH="${POISSON_DEPTH:-10}"
 VERTICES_DENSITY_QUANTILE="${VERTICES_DENSITY_QUANTILE:-0.1}"
 PROJECT_MESH_ON_SURFACE_POINTS="${PROJECT_MESH_ON_SURFACE_POINTS:-True}"
 LOW_OPACITY_GAUSSIAN_THRESHOLD="${LOW_OPACITY_GAUSSIAN_THRESHOLD:-0.5}"
-USE_ORIGINAL_GS="${USE_ORIGINAL_GS:-False}"
+USE_ORIGINAL_GS="${USE_ORIGINAL_GS:-True}"
 USE_GAUSSIAN_DEPTH="${USE_GAUSSIAN_DEPTH:-False}"
+INCLUDE_BACKGROUND_MESH="${INCLUDE_BACKGROUND_MESH:-True}"
 GPU="${GPU:-0}"
 ABLATION_TAG="${COARSE_MESH_ABLATION_TAG:-}"
 
@@ -209,6 +235,8 @@ if [[ "$INTERACTIVE" == "1" ]]; then
         "Coarse mesh vertex target (or EXPLAIN)" "$MESH_VERTICES" explain_mesh_vertices
     ask_value SURFACE_SAMPLE_COUNT \
         "Total camera surface samples (or EXPLAIN)" "$SURFACE_SAMPLE_COUNT" explain_surface_sample_count
+    ask_value SURFACE_SAMPLE_SEED \
+        "Optional surface sampling seed; empty keeps stochastic behavior (or EXPLAIN)" "$SURFACE_SAMPLE_SEED" explain_surface_sample_seed
     ask_value SURFACE_LEVEL \
         "Gaussian surface level (or EXPLAIN)" "$SURFACE_LEVEL" explain_surface_level
     ask_value POISSON_DEPTH \
@@ -223,6 +251,8 @@ if [[ "$INTERACTIVE" == "1" ]]; then
         "Skip SuGaR coarse optimization and use original staged GS? True/False (or EXPLAIN)" "$USE_ORIGINAL_GS" explain_original_gs
     ask_value USE_GAUSSIAN_DEPTH \
         "Use Gaussian rasterizer depth instead of projected-mesh depth? True/False (or EXPLAIN)" "$USE_GAUSSIAN_DEPTH" explain_gaussian_depth
+    ask_value INCLUDE_BACKGROUND_MESH \
+        "Include and merge Background mesh? True/False (or EXPLAIN)" "$INCLUDE_BACKGROUND_MESH" explain_background_mesh
 fi
 
 case "${USE_ORIGINAL_GS,,}" in
@@ -235,8 +265,17 @@ case "${USE_GAUSSIAN_DEPTH,,}" in
     0|false|no|n) USE_GAUSSIAN_DEPTH="False" ;;
     *) echo "Error: USE_GAUSSIAN_DEPTH must be True or False." >&2; exit 2 ;;
 esac
+case "${INCLUDE_BACKGROUND_MESH,,}" in
+    1|true|yes|y) INCLUDE_BACKGROUND_MESH="True" ;;
+    0|false|no|n) INCLUDE_BACKGROUND_MESH="False" ;;
+    *) echo "Error: INCLUDE_BACKGROUND_MESH must be True or False." >&2; exit 2 ;;
+esac
 
-DEFAULT_ABLATION_TAG="gs${USE_ORIGINAL_GS,,}_gdepth${USE_GAUSSIAN_DEPTH,,}_depth${POISSON_DEPTH}_v${MESH_VERTICES}_samples${SURFACE_SAMPLE_COUNT}_level${SURFACE_LEVEL//./}_q${VERTICES_DENSITY_QUANTILE//./}_proj${PROJECT_MESH_ON_SURFACE_POINTS,,}_opacity${LOW_OPACITY_GAUSSIAN_THRESHOLD//./}"
+if [[ -n "$SURFACE_SAMPLE_SEED" && ! "$SURFACE_SAMPLE_SEED" =~ ^[0-9]+$ ]]; then
+    echo "Error: SURFACE_SAMPLE_SEED must be empty or a non-negative integer." >&2
+    exit 2
+fi
+DEFAULT_ABLATION_TAG="gs${USE_ORIGINAL_GS,,}_gdepth${USE_GAUSSIAN_DEPTH,,}_bg${INCLUDE_BACKGROUND_MESH,,}_depth${POISSON_DEPTH}_v${MESH_VERTICES}_samples${SURFACE_SAMPLE_COUNT}_seed${SURFACE_SAMPLE_SEED:-random}_level${SURFACE_LEVEL//./}_q${VERTICES_DENSITY_QUANTILE//./}_proj${PROJECT_MESH_ON_SURFACE_POINTS,,}_opacity${LOW_OPACITY_GAUSSIAN_THRESHOLD//./}"
 if [[ "$INTERACTIVE" == "1" ]]; then
     ask_value ABLATION_TAG \
         "New ablation output tag (or EXPLAIN)" "${ABLATION_TAG:-$DEFAULT_ABLATION_TAG}" explain_ablation_tag
@@ -346,6 +385,7 @@ echo "Output directory : $OUTPUT_HOST_DIR"
 echo "Output type      : coarse mesh only; no refinement, UV texture, or crop"
 echo "Mesh vertices    : $MESH_VERTICES"
 echo "Surface samples  : $SURFACE_SAMPLE_COUNT"
+echo "Surface seed     : ${SURFACE_SAMPLE_SEED:-None (stochastic)}"
 echo "Surface level    : $SURFACE_LEVEL"
 echo "Poisson depth    : $POISSON_DEPTH"
 echo "Density quantile : $VERTICES_DENSITY_QUANTILE"
@@ -353,6 +393,7 @@ echo "Project vertices : $PROJECT_MESH_ON_SURFACE_POINTS"
 echo "Low-opacity threshold: $LOW_OPACITY_GAUSSIAN_THRESHOLD"
 echo "Original GS input: $USE_ORIGINAL_GS"
 echo "Gaussian depth   : $USE_GAUSSIAN_DEPTH"
+echo "Background mesh  : $INCLUDE_BACKGROUND_MESH"
 
 EXTRACT_ARGUMENTS=(
     python3 extract_mesh.py
@@ -367,11 +408,15 @@ EXTRACT_ARGUMENTS=(
     --poisson-depth "$POISSON_DEPTH" \
     --vertices-density-quantile "$VERTICES_DENSITY_QUANTILE" \
     --low-opacity-gaussian-threshold "$LOW_OPACITY_GAUSSIAN_THRESHOLD" \
+    --include-background-mesh "$INCLUDE_BACKGROUND_MESH" \
     --use-gaussian-depth "$USE_GAUSSIAN_DEPTH" \
     --use_vanilla_3dgs "$USE_ORIGINAL_GS" \
     --eval True \
     --gpu "$GPU"
 )
+if [[ -n "$SURFACE_SAMPLE_SEED" ]]; then
+    EXTRACT_ARGUMENTS+=( --surface-sample-seed "$SURFACE_SAMPLE_SEED" )
+fi
 if [[ "$USE_ORIGINAL_GS" != "True" ]]; then
     EXTRACT_ARGUMENTS+=( -m "$COARSE_MODEL_CONTAINER_PATH" )
 fi

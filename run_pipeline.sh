@@ -359,6 +359,19 @@ explain_regularization() {
     echo ""
 }
 
+explain_mesh_mode() {
+    echo ""
+    echo "  original_gs : (AKTUELLER STANDARD / Variante A) Verwendet die vorbereitete"
+    echo "                hochopazitaete STS-Gaussian-Wolke direkt und nutzt die"
+    echo "                projizierte Diamond-Mesh-Tiefe fuer Surface-Sampling und Poisson."
+    echo "                SuGaR-Coarse-Training, Gaussian-bound Refinement und UV-Baking"
+    echo "                werden uebersprungen; ein Coarse-PLY und ein kompatibles OBJ"
+    echo "                werden fuer die Centerline erzeugt."
+    echo "  sugar_coarse : Legacy-/Vergleichsroute. Fuehrt die bisherige mask-aware"
+    echo "                SuGaR-Coarse-Optimierung und anschliessend optional Refinement aus."
+    echo ""
+}
+
 explain_refinement_time() {
     echo ""
     echo "  short  : ~2000 Refinement-Iterationen. Schnell (Minuten), ideal zum Testen der Pipeline/Parameter."
@@ -429,8 +442,10 @@ explain_sugar_completion() {
     echo "  automatisch gestoppt wird. Das entscheidet ausschliesslich"
     echo "  STOP_AFTER_COARSE_MESH."
     echo "  STOP_AFTER_COARSE_MESH=0 fuehrt Refinement und den kompakten Export aus."
-    echo "  STOP_AFTER_COARSE_MESH=1 beendet den Lauf nach dem Coarse-Mesh;"
-    echo "  Refinement, UV-Baking und Postprocessing werden dann uebersprungen."
+    echo "  STOP_AFTER_COARSE_MESH=1 beendet den Lauf nach der gewaehlten"
+    echo "  Coarse-Mesh-Route; bei Variante A nach PLY/OBJ-Export, bei"
+    echo "  sugar_coarse nach SuGaR-Coarse-Extraktion. Refinement, UV-Baking"
+    echo "  und Postprocessing werden dann uebersprungen."
     echo "  RUN_CONSENSUS_CROP=0 bewahrt das unveraenderte Refined-Mesh als Basis."
     echo "  Ein Crop bleibt eine getrennte, optionale Diagnose-/Bereinigungsstufe."
     echo ""
@@ -517,6 +532,7 @@ configure_object_filter() {
 }
 
 configure_sugar_values() {
+    SUGAR_MESH_MODE="${SUGAR_MESH_MODE:-original_gs}"
     REGULARIZATION="${REGULARIZATION:-dn_consistency}"
     COARSE_ITERATIONS="${COARSE_ITERATIONS:-9000}"
     MESH_VERTICES="${MESH_VERTICES:-200000}"
@@ -529,7 +545,9 @@ configure_sugar_values() {
     TEXTURE_MASK_DILATION_PX="${TEXTURE_MASK_DILATION_PX:-0}"
     STOP_AFTER_COARSE_MESH="${STOP_AFTER_COARSE_MESH:-0}"
     RUN_CONSENSUS_CROP="${RUN_CONSENSUS_CROP:-0}"
-    if [[ "$REGULARIZATION" != "dn_consistency" ]]; then
+    if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+        COARSE_ITERATIONS=""
+    elif [[ "$REGULARIZATION" != "dn_consistency" ]]; then
         COARSE_ITERATIONS=""
     fi
     local default_run_name
@@ -537,10 +555,15 @@ configure_sugar_values() {
     SUGAR_MESH_EXPORT_NAME="${SUGAR_MESH_EXPORT_NAME:-}"
 
     if [[ "$AUTOPILOT" == "true" ]]; then
-        default_run_name="pipeline_i${ITERATIONS}_c${COARSE_ITERATIONS:-default}_v${MESH_VERTICES}"
+        if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+            default_run_name="pipeline_i${ITERATIONS}_original_gs_v${MESH_VERTICES}"
+            echo "Autopilot aktiv: Variante A (Original-STS-GS + Diamond-Mesh-Tiefe), kein SuGaR-Coarse/Refinement."
+        else
+            default_run_name="pipeline_i${ITERATIONS}_c${COARSE_ITERATIONS:-default}_v${MESH_VERTICES}"
+            echo "Autopilot aktiv: SuGaR-Standard c$COARSE_ITERATIONS, $MESH_VERTICES Vertices, $SURFACE_SAMPLE_COUNT Samples, $REFINEMENT_TIME Refinement."
+        fi
         SUGAR_RUN_TAG="${SUGAR_RUN_TAG:-$default_run_name}"
         SUGAR_MESH_EXPORT_NAME="${SUGAR_MESH_EXPORT_NAME:-$default_run_name}"
-        echo "Autopilot aktiv: SuGaR-Standard c$COARSE_ITERATIONS, $MESH_VERTICES Vertices, $SURFACE_SAMPLE_COUNT Samples, $REFINEMENT_TIME Refinement."
         echo "Autopilot aktiv: RGB/DN/UV = $MASK_LEVEL/$NORMAL_MASK_LEVEL/$TEXTURE_MASK_LEVEL, Dilatation = $MASK_DILATION_PX/$TEXTURE_MASK_DILATION_PX px."
         echo "Autopilot aktiv: Run-Tag=$SUGAR_RUN_TAG, Mesh-Export=$SUGAR_MESH_EXPORT_NAME."
         return
@@ -548,21 +571,38 @@ configure_sugar_values() {
 
     echo ""
     echo "=== Mask-aware SuGaR-Konfiguration ==="
-    echo "Vorgabe: $REGULARIZATION, c${COARSE_ITERATIONS:-default}, $MESH_VERTICES Vertices, $SURFACE_SAMPLE_COUNT Samples, $REFINEMENT_TIME Refinement"
+    echo "Vorgabe: $SUGAR_MESH_MODE, $REGULARIZATION, c${COARSE_ITERATIONS:-nicht verwendet}, $MESH_VERTICES Vertices, $SURFACE_SAMPLE_COUNT Samples, $REFINEMENT_TIME Refinement"
     echo "Masken: RGB=$MASK_LEVEL, DN=$NORMAL_MASK_LEVEL, UV=$TEXTURE_MASK_LEVEL; Dilatation RGB/UV=$MASK_DILATION_PX/$TEXTURE_MASK_DILATION_PX px"
     if ask_yes_no_default "Passen die SuGaR-Vorgabewerte fuer diesen Lauf?" "y"; then
         return
     fi
 
-    ask_config_value REGULARIZATION \
-        "Regularisierung (sdf/density/dn_consistency oder EXPLAIN)" \
-        "$REGULARIZATION" explain_regularization
-    if [[ "$REGULARIZATION" == "dn_consistency" ]]; then
-        ask_config_value COARSE_ITERATIONS \
-            "Coarse-Zielzaehler oder EXPLAIN" "$COARSE_ITERATIONS" explain_coarse_iterations
-    else
-        COARSE_ITERATIONS=""
-    fi
+    ask_config_value SUGAR_MESH_MODE \
+        "Mesh-Route (original_gs/sugar_coarse oder EXPLAIN)" "$SUGAR_MESH_MODE" explain_mesh_mode
+    case "$SUGAR_MESH_MODE" in
+        original_gs)
+            COARSE_ITERATIONS=""
+            REGULARIZATION="dn_consistency"
+            echo "Variante A gewaehlt: SuGaR-Coarse-Training und Refinement werden uebersprungen."
+            ;;
+        sugar_coarse)
+            ask_config_value REGULARIZATION \
+                "Regularisierung (sdf/density/dn_consistency oder EXPLAIN)" \
+                "$REGULARIZATION" explain_regularization
+            if [[ "$REGULARIZATION" == "dn_consistency" ]]; then
+                ask_config_value COARSE_ITERATIONS \
+                    "Coarse-Zielzaehler oder EXPLAIN" "$COARSE_ITERATIONS" explain_coarse_iterations
+            else
+                COARSE_ITERATIONS=""
+            fi
+            ;;
+        *)
+            echo "Ungueltige Mesh-Route; verwende original_gs."
+            SUGAR_MESH_MODE="original_gs"
+            COARSE_ITERATIONS=""
+            REGULARIZATION="dn_consistency"
+            ;;
+    esac
     ask_config_value MESH_VERTICES \
         "Coarse-Mesh-Vertexziel oder EXPLAIN" "$MESH_VERTICES" explain_mesh_vertices
     ask_config_value SURFACE_SAMPLE_COUNT \
@@ -583,7 +623,11 @@ configure_sugar_values() {
         "Nach Coarse-Mesh stoppen? 1/0 oder EXPLAIN" "$STOP_AFTER_COARSE_MESH" explain_sugar_completion
     ask_config_value RUN_CONSENSUS_CROP \
         "Nachgelagerten Multi-View-Crop ausfuehren? 1/0 oder EXPLAIN" "$RUN_CONSENSUS_CROP" explain_sugar_completion
-    default_run_name="pipeline_i${ITERATIONS}_c${COARSE_ITERATIONS:-default}_v${MESH_VERTICES}"
+    if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+        default_run_name="pipeline_i${ITERATIONS}_original_gs_v${MESH_VERTICES}"
+    else
+        default_run_name="pipeline_i${ITERATIONS}_c${COARSE_ITERATIONS:-default}_v${MESH_VERTICES}"
+    fi
     SUGAR_RUN_TAG="${SUGAR_RUN_TAG:-$default_run_name}"
     SUGAR_MESH_EXPORT_NAME="${SUGAR_MESH_EXPORT_NAME:-$default_run_name}"
     ask_config_value SUGAR_RUN_TAG \
@@ -794,9 +838,10 @@ run_step_end 0
 # MASKED_SUGAR_INTERACTIVE=0 only disables duplicate inner prompts. The actual
 # Coarse-only decision is STOP_AFTER_COARSE_MESH and is passed separately.
 run_step_start "SuGaR-Meshing"
-echo "[Step 4/5] Running mask-aware SuGaR (Coarse Training -> Mesh Extraction -> Refinement)..."
+echo "[Step 4/5] Running selected object mesh route (default: Original-STS-GS A)..."
 MASKED_SUGAR_INTERACTIVE=0 \
 ITERATIONS="$ITERATIONS" \
+SUGAR_MESH_MODE="$SUGAR_MESH_MODE" \
 REGULARIZATION="$REGULARIZATION" \
 COARSE_ITERATIONS="$COARSE_ITERATIONS" \
 REFINEMENT_TIME="$REFINEMENT_TIME" \

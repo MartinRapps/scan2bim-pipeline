@@ -173,7 +173,7 @@ als aktuelle Default-Konfiguration interpretiert.
             Commit \texttt{e254000b28efca7d4759a55ac1ac218226b9eeda} des Forks
             \texttt{MartinRapps/SuGaR}; dieser Commit ist auf dem Remote-Branch
             \texttt{project/masked-sugar} veroeffentlicht. Der Parent-Commit
-            Der Parent-Commit \texttt{4568304} aktualisiert den Gitlink auf
+            \texttt{4568304} aktualisiert den Gitlink auf
             diesen Stand.
 
             Die lokale Arbeitskopie des Submoduls war zunaechst im detached HEAD,
@@ -261,21 +261,34 @@ als aktuelle Default-Konfiguration interpretiert.
                 Die Trennung von explizitem Erstlauf und zentralisiertem Replay ist
                 damit derzeit absichtlich: Sie verbindet eine gut nachvollziehbare
                 Benutzerfuehrung mit reproduzierbaren Wiederholungslaeufen.
-    \item \textbf{Segmentiertes SuGaR:} STS verwendet 7000 Gesamtiterationen,
-          davon 5000 Iterationen fuer die Objekt-/Maskenphase und 2000 fuer die
-          anschliessende All-Object-Phase. Der mask-aware SuGaR-Standard verwendet
-          \texttt{dn\_consistency} mit dem Coarse-Zielzaehler $c=9000$,
-          \texttt{MASK\_LEVEL=default},
+        \item \textbf{Segmentiertes Gaussian-Mesh und SuGaR-Vergleichsroute:} STS
+            verwendet 7000 Gesamtiterationen, davon 5000 Iterationen fuer die
+            Objekt-/Maskenphase und 2000 fuer die anschliessende All-Object-Phase.
+            Der aktuelle Produktionsstandard ist jetzt
+            \texttt{SUGAR\_MESH\_MODE=original\_gs} (Variante A): Die vorbereitete
+            Hochopazitaetskopie der STS-Gaussians wird direkt als geometrische
+            Zielrepraesentation verwendet. Die Meshgewinnung nutzt die projizierte
+            Diamond-Mesh-Tiefe sowie Surface-Sampling, Poisson, Dichtebereinigung,
+            Decimation und Vertexprojektion; SuGaR-Coarse-Optimierung,
+            Gaussian-bound Refinement und UV-Baking werden uebersprungen. Der
+            mask-aware SuGaR-Pfad bleibt mit
+            \texttt{SUGAR\_MESH\_MODE=sugar\_coarse} als Vergleichsroute erhalten
+            und verwendet standardmaessig \texttt{dn\_consistency} mit dem
+            Coarse-Zielzaehler $c=9000$, \texttt{MASK\_LEVEL=default},
           \texttt{NORMAL\_MASK\_LEVEL=middle},
           \texttt{TEXTURE\_MASK\_LEVEL=default}, null RGB-/UV-Dilatation,
           200000 Mesh-Vertices, 5000000 Oberflaechenstichproben, mittleres
-          Refinement und keinen Consensus-Crop. Bei $c=9000$ werden die im
+          Refinement und keinen Consensus-Crop. Bei dieser Legacy-Route werden die im
           lokalen Fork erst fuer Zaehler $>9000$ aktivierten DN-/SDF-Terme
           bewusst nicht erreicht. Dafuer sind keine externen Tiefendaten
           erforderlich; die im DN-Term verwendete Tiefe wird intern aus den
           Gaussians gerendert. Die fruehere harte $>9000$-Eingabesperre wurde
           aufgehoben. Ein schnellerer \texttt{density}-Lauf bleibt eine
-          spaetere Erweiterung. Die Laufzeitausgaben werden unter
+          spaetere Erweiterung. Fuer Variante A wird das Coarse-PLY unter
+          \texttt{data/06\_mesh/<export-name>/coarse.ply} erhalten und als
+          untexturiertes \texttt{refined.obj} fuer den bestehenden
+          Centerline-Einstieg konvertiert; der Dateiname bezeichnet dabei keine
+          SuGaR-Refinement-Stufe. Die Laufzeitausgaben werden unter
            \texttt{/data/sugar\_output/<run-tag>} geschrieben, damit das lokale
            SuGaR-Dev-Overlay keine Berechtigungsprobleme am internen
            \texttt{/opt/sugar/output}-Pfad erzeugt. Fuer die Poisson-Extraktion
@@ -1098,7 +1111,7 @@ Beim anschließenden UV-Baking werden nur die von der jeweiligen Kamera als Obje
 
 \textbf{Bedeutung der DN-Maske:} DN steht für \emph{Depth-Normal Consistency}. Die DN-Maske enthält keine gemessenen Tiefen oder Normalen und erzeugt auch keine Geometrie. Sie ist eine semantische Pixelgewichtung: \texttt{middle} ist die ursprüngliche SAM-Objektmaske nach einer $5 \times 5$-Erosion und blendet damit den unsicheren Silhouettenrand aus. Für eine Trainingskamera rendert SuGaR eine Tiefenkarte und eine Normalenkarte aus seinen Gaussians. Aus lokalen Tiefendifferenzen wird eine zweite Normale abgeleitet; der DN-Loss bestraft ihre Abweichung von der gerenderten Gaussian-Normale nur innerhalb der \texttt{middle}-Maske und ohne zusätzliche Dilatation. Er nutzt also keine externe Normalenreferenz, sondern erzwingt Selbstkonsistenz der aktuellen Darstellung. Der Bildrand von einem Pixel wird technisch ebenfalls ausgeschlossen, weil dort keine Tiefennormale definiert ist. Im aktuellen Trainer wird dieser Term erst nach Zählerstand $9000$ mit Gewicht $0.05$ aktiviert. Die DN-Maske filtert weder die STS-Eingabewolke noch den UV-Atlas; im Refinement wird sie derzeit gar nicht verwendet.
 
-\textbf{Reproduzierbare Implementierung:} Die Erweiterung liegt als versionsfixierter lokaler SuGaR-Fork unter \texttt{third\_party/SuGaR} vor; der vollständige Ausgangscommit ist zugleich im Dockerfile festgelegt. Während der Entwicklung überlagert die optionale Compose-Datei \texttt{docker-compose.sugar-dev.yml} diesen Quellstand in den bestehenden Containerpfad \texttt{/opt/sugar}; ein wiederholtes Herunterladen oder Neubauen des Images ist damit nicht erforderlich. Der Runner \texttt{run\_masked\_sugar.sh} erzeugt getrennte Ausgabeverzeichnisse, nutzt \texttt{dn\_consistency} und führt die vollständige Kette aus Coarse-Optimierung, Mesh-Extraktion, Refinement und Textur-Export aus. Die geänderten Module wurden kompiliert; der maskierte RGB-Gradient sowie der maskierte Depth-Normal-Pfad wurden mit realen Kamera- und Maskendaten getestet. Ein vollständiger, zeitintensiver Objektlauf mit $699$ Kameras hat inzwischen ein texturiertes OBJ erzeugt; seine geometrische Qualität ist jedoch noch Gegenstand der folgenden Stufenanalyse.
+\textbf{Reproduzierbare Implementierung:} Die Erweiterung liegt als versionsfixierter lokaler SuGaR-Fork unter \texttt{third\_party/SuGaR} vor; der vollständige Ausgangscommit ist zugleich im Dockerfile festgelegt. Während der Entwicklung überlagert die optionale Compose-Datei \texttt{docker-compose.sugar-dev.yml} diesen Quellstand in den bestehenden Containerpfad \texttt{/opt/sugar}; ein wiederholtes Herunterladen oder Neubauen des Images ist damit nicht erforderlich. Der Runner \texttt{run\_masked\_sugar.sh} verwendet jetzt standardmaessig Variante A: direkte Original-STS-GS-Meshgewinnung mit projizierter Diamond-Mesh-Tiefe, ohne SuGaR-Coarse-Optimierung, Refinement oder UV-Textur. Die fruehere vollstaendige Kette bleibt als explizite \texttt{SUGAR\_MESH\_MODE=sugar\_coarse}-Vergleichsroute erhalten. Die geänderten Module wurden kompiliert; der maskierte RGB-Gradient sowie der maskierte Depth-Normal-Pfad wurden mit realen Kamera- und Maskendaten getestet. Ein untexturiertes A-OBJ wird fuer den Centerline-Einstieg aus dem erhaltenen Coarse-PLY erzeugt.
 
 \textbf{Entstehung des Coarse-Meshes:} Der private Objekt-Checkpoint initialisiert SuGaR mit der aus der echten Filterung erzeugten Hochopazitätskopie der STS-Wolke. Die Originalopazitäten bleiben in \texttt{point\_cloud\_filtered.ply} für Diagnostik und Vergleich erhalten; die einheitliche hohe Eingangsopazität ist ausschließlich eine Entscheidung für die geometrische Stützung der Standardroute. Im Coarse-Training werden gerenderte RGB-Bilder gegen die Originalbilder innerhalb der RGB-Maske optimiert. Die aktuelle lokale \texttt{dn\_consistency}-Konfiguration übernimmt den Iterationszähler des geladenen STS-Modells und startet deshalb bei $6999$. Die Angabe $15000$ ist ein Zielwert dieses Zählers, nicht $15000$ zusätzliche Optimierungsschritte; sie entspricht näherungsweise $15000-6999=8001$ Coarse-Updates. Zwischen Zählerstand $7000$ und $9000$ stabilisieren maskierter RGB-Loss und Entropieregularisierung die Darstellung. Nach $9000$ werden zusätzlich die geometrischen SDF-Terme und die Depth-Normal Consistency aktiviert. Letztere vergleicht innerhalb der nicht dilatierten \texttt{middle}-Maske die aus der gerenderten Tiefe abgeleitete Flächennormale mit der Normalenrichtung der Gaussians:
 \[
@@ -1125,22 +1138,24 @@ Die zugehörige verfeinerte PLY ist eine Gaussian-Splat-Datei mit $98281$ Gaussi
 
 \textbf{Nächste kontrollierte Prüfung:} Zunächst werden die vorhandene Eingabe-PLY, das Coarse-Mesh, die verfeinerte PLY und das finale OBJ in denselben Kameraansichten protokolliert. Danach wird der vorhandene Coarse-Checkpoint zunächst ohne erneute Coarse-Optimierung oder Refinement für getrennte Mesh-Extraktionsvarianten wiederverwendet. Die Folgevergleichsvariante \texttt{depth8\_v500000} hält die Poisson-Tiefe $8$ des sichtbasiert besseren Screenings fest und erhöht nur das Vertexziel. Sie klärt, ob die grobe $50000$-Decimation die Restflächen lediglich verdeckt oder ob der Befund bei einer brauchbaren Auflösung bestehen bleibt. Eine Variante ohne Vertexprojektion prüft dagegen die Rückprojektion auf die abgetasteten Oberflächenpunkte. Diese Ablationen ändern keine Masken und können deshalb die RGB-Dilatation nicht bewerten. Der anschließende RGB-Null-Dilatationslauf hält alle Referenzparameter konstant und setzt nur \texttt{MASK\_DILATION\_PX=0}; die UV-Dilatation bleibt für diesen kausalen Geometrievergleich beim Referenzwert. Mit einem neuen Tag und \texttt{STOP\_AFTER\_COARSE\_MESH=0} erzeugt derselbe Lauf sowohl das erhaltene Coarse-PLY als auch die verfeinerte PLY und das texturierte OBJ. Die DN-\texttt{middle}-Maske, die Eingabewolke, Kameras, Coarse-Zähler, Stichprobenzahl und Vertexziel bleiben gleich. Der Multi-View-Crop wird dabei deaktiviert, da er die Ursache nicht lokalisiert und sich beim dichten Brillenmesh als zu konservativ beziehungsweise im \texttt{semantic-core}-Modus als zu destruktiv erwiesen hat. Der kombinierte Screening-Lauf mit Zielzähler $12000$, $50000$ Vertices und kurzem Refinement ist davon getrennt zu halten: Er verändert gleichzeitig die Zahl der Coarse-Updates, die dem Refinement übergebene Meshauflösung und die Zahl der Refinement-Updates. Mit reduzierter Stichprobenzahl käme eine vierte Veränderung hinzu. Er führt die gesamte Kette bis zum OBJ aus und überspringt nur den Crop; die RGB-Dilatation bleibt dabei, sofern nicht gesetzt, bei $2$ Pixeln. Ein abweichendes Ergebnis kann deshalb weder der RGB-Dilatation noch einem einzelnen anderen Parameter zugeschrieben werden.
 
-\textbf{Kausale SuGaR-Ablation ohne Refinement:} Der offizielle SuGaR-Ablauf
+\textbf{Kausale SuGaR-Ablation und neuer Produktionsstandard:} Der offizielle SuGaR-Ablauf
 trennt die Gaussian- und Mesh-Repräsentation bewusst in mehrere Stufen:
 Coarse-Gaussian-Optimierung, kamerabasiertes Surface-Sampling mit
 Poisson-Rekonstruktion, Mesh-bound Refinement sowie den getrennten Export eines
 verfeinerten Gaussian-PLY und eines texturierten OBJ. Fuer die aktuelle
 Centerline-Anwendung ist das Refinement jedoch nicht zwingend erforderlich,
 wenn die vorbereitete objektbezogene STS-Gaussian-Wolke bereits die gewuenschte
-Geometrie stuetzt. Der Schalter
+Geometrie stuetzt. Aufgrund der visuellen Vierfeld-Ablation ist Variante A
+deshalb jetzt der Produktionsstandard. Der Schalter
 \texttt{STOP\_AFTER\_COARSE\_MESH=1} dient deshalb als Coarse-only-Modus;
 eine direkte Vergleichsroute unter
 \texttt{tools/run\_coarse\_mesh\_ablation.sh} kann die SuGaR-Coarse-
 Optimierung mit \texttt{USE\_ORIGINAL\_GS=True} vollstaendig ueberspringen.
 Sie verwendet dann die private Hochopazitaetskopie der STS-Gaussians und
 wendet nur Surface-Sampling, Poisson, Dichtebereinigung, Decimation und die
-optionale Vertex-Projektion an. Das ist eine Diagnose- und keine automatische
-neue Produktionsentscheidung.
+optionale Vertex-Projektion an. Diese A-Route ist nun der automatische
+Produktionspfad; die bisherige Coarse-Optimierung bleibt unter
+\texttt{SUGAR\_MESH\_MODE=sugar\_coarse} fuer Vergleichslaeufe verfuegbar.
 
 Der Zielzaehler $c=9000$ deaktiviert im lokalen Trainer nur die spaeten
 DN-/SDF-Terme, die erst fuer $iteration>9000$ aktiviert werden. Maskierter
@@ -1157,10 +1172,130 @@ direkter Gaussian-Rasterizer-Tiefe, (C) SuGaR-Coarse $c=9000$ mit Diamond-Mesh-
 Tiefe und (D) SuGaR-Coarse $c=9000$ mit Gaussian-Rasterizer-Tiefe. Die
 Parameter \texttt{MESH\_VERTICES}, \texttt{SURFACE\_SAMPLE\_COUNT},
 \texttt{POISSON\_DEPTH}, \texttt{PROJECT\_MESH\_ON\_SURFACE\_POINTS} und
-\texttt{SURFACE\_LEVEL} bleiben dabei konstant. Die Testergebnisse werden
-erst nach einer gesonderten Ausfuehrung und visuellen Gegenueberstellung als
-wissenschaftlicher Befund dokumentiert; diese Passage beschreibt zunaechst
-nur die Hypothese und das kontrollierte Testdesign.
+\texttt{SURFACE\_LEVEL} bleiben dabei konstant. Die Testergebnisse werden im
+folgenden Befund dokumentiert; die Zahlen dienen der Stufenlokalisierung und
+ersetzen noch keine Ground-Truth-Evaluation.
+
+\textbf{Ergebnis der Vierfeld-Ablation (06.08.2026):} Die vier Coarse-only-
+Varianten wurden mit identischen Extraktionsparametern ausgefuehrt:
+$200000$ Zielvertices, $5000000$ Surface-Samples, Surface-Level $0{,}3$,
+Poisson-Tiefe $10$, Density-Quantil $0{,}1$, aktivierter Projektion auf
+Surface-Samples und dem festen \texttt{SURFACE\_SAMPLE\_SEED=42}. A und B
+nutzten die private Hochopazitaetskopie der
+STS-Gaussians aus
+\texttt{data/05\_3dgs/masked\_sugar\_input/library\_i7000\_c9000\_v200000/};
+SuGaR-Coarse-Optimierung wurde dabei uebersprungen. C und D nutzten den neu
+erzeugten, erfolgreichen c9000-Checkpoint unter dem Tag
+\texttt{compare\_c9000\_v2}; auch diese beiden Varianten stoppten vor
+Refinement und UV-Baking.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{Xlrr}
+\textbf{Variante} & \textbf{Eingang/Tiefe} & \textbf{Vertices} & \textbf{Faces}\\
+\hline
+A & Original-STS-GS / Diamond-Mesh-Z-Buffer & 68\,471 & 135\,164\\
+B & Original-STS-GS / Gaussian-Rasterizer-Tiefe & 63\,266 & 124\,976\\
+C & SuGaR-Coarse $c=9000$ / Diamond-Mesh-Z-Buffer & 79\,711 & 156\,935\\
+D & SuGaR-Coarse $c=9000$ / Gaussian-Rasterizer-Tiefe & 68\,618 & 135\,522\\
+\end{tabularx}
+\end{center}
+
+Die visuelle Bewertung des Projektanwenders ist fuer die Auswahl des
+Produktionsweges ausschlaggebend: C zeigt gegenueber A mehr feine Details und
+deutlich mehr Spitzen. Diese zusaetzliche Detaildichte ist fuer die
+Centerline-Anwendung nicht gewuenscht, weil sie die Oberflaeche nicht naeher an
+die Ziel-Gaussians bringt, sondern zusaetzliche Ausreisser erzeugt. D wirkt im
+Vergleich zu C geglaetteter, ist aber ebenfalls nicht die bevorzugte
+Repraesentation. Das urspruengliche Coarse-Mesh mit noch staerker einzeln
+sichtbaren Gaussian-Strukturen wirkt eher C-aehnlich, ist jedoch weder mit C
+noch mit D identisch. Eine rein visuelle Zuordnung zu C oder D ist deshalb
+nicht belastbar; die Eingangs-Gaussian-Wolke und die konkrete Extraktionsroute
+muessen getrennt betrachtet werden.
+
+Variante A wird als Produktstandard festgelegt, weil sie die raeumliche
+Stuetze der Original-Gaussians am direktesten erhaelt. Die Gaussians sind in
+diesem Projekt nicht nur ein Zwischenformat, sondern die gewuenschte
+Geometriehypothese. C und D bleiben wissenschaftliche Vergleichsvarianten:
+C untersucht die SuGaR-Coarse-Aenderung mit Diamond-Mesh-Tiefe, D dieselbe
+Coarse-Aenderung mit Gaussian-Rasterizer-Tiefe. Ein gutes Splat-Rendering
+allein ist weiterhin kein metrischer Genauigkeitsnachweis; die A-Auswahl ist
+eine begruendete geometrische Produktionsentscheidung und muss fuer die
+Bachelorarbeit zusaetzlich ueber Centerline- und GNSS-Referenzfehler bewertet
+werden.
+
+A und B liegen in CloudCompare grossraeumig auf derselben Objektgeometrie,
+sind aber nicht identisch: Ihre Vertex- und Facezahlen unterscheiden sich.
+Eine zusaetzliche Open3D-Pruefung mit jeweils $20000$ gleichmaessig aus den
+Meshes gezogenen Punkten ergab fuer A gegen B mittlere gerichtete
+Punktabstaende von etwa $1{,}08\,\mathrm{cm}$ beziehungsweise
+$0{,}90\,\mathrm{cm}$; die gerichteten 95\%-Quantile lagen bei etwa
+$2{,}35\,\mathrm{cm}$ beziehungsweise $1{,}67\,\mathrm{cm}$. Die maximale
+gerichtete Abweichung lag in einer Richtung bei etwa $13{,}3\,\mathrm{cm}$,
+in der Gegenrichtung bei etwa $3{,}0\,\mathrm{cm}$. Diese Stichprobenwerte
+belegen eine starke globale Uebereinstimmung, aber keine bitweise oder
+topologische Gleichheit.
+
+Der relevante Unterschied zeigt sich beim Vergleich mit C und D. Gegenueber A
+lagen die gerichteten mittleren Stichprobenabstaende bei C bei etwa
+$1{,}79\,\mathrm{cm}$ beziehungsweise $3{,}39\,\mathrm{cm}$ und bei D bei etwa
+$1{,}96\,\mathrm{cm}$ beziehungsweise $2{,}73\,\mathrm{cm}$. Die 95\%-Quantile
+reichten in den Gegenrichtungen bis etwa $14{,}0\,\mathrm{cm}$ bei C und
+$12{,}1\,\mathrm{cm}$ bei D. Die SuGaR-Coarse-Optimierung erzeugt damit
+keine beliebig weit entfernte Rekonstruktion, veraendert aber die
+Oberflaechenstuetzung und die Rand-/Ausreisserstruktur deutlich genug, um die
+Mesh-Topologie und sichtbare Artefakte zu beeinflussen.
+
+Die interne Poisson-Diagnostik stuetzt diese Einordnung: A erzeugte vor der
+Decimation $87710$ Foreground-Vertices und $173605$ Foreground-Faces, B
+$83776/165768$. Beide hatten keine Background-Punkte. C erzeugte
+$111619$ Foreground-Vertices und $220818$ Foreground-Faces sowie eine
+zusaetzliche Background-Komponente mit $1568$ Vertices und $2911$ Faces. D
+erzeugte $93170$ Foreground-Vertices und $184326$ Foreground-Faces; eine
+separate Background-Komponente war dort leer. Die Gaussian-Rasterizer-Tiefe
+ist damit als relevanter Einflussfaktor bestaetigt, sie erklaert jedoch nicht
+allein den Unterschied zwischen A/B und C/D.
+
+Um den Background-Merge als eigene Ursache zu pruefen, wurde C zusaetzlich
+mit \texttt{INCLUDE\_BACKGROUND\_MESH=False} wiederholt. Obwohl dabei dieselben
+$6$ Background-Samples erkannt, aber nicht rekonstruiert wurden, veraenderte
+sich das finale Mesh nur von $79711/156935$ auf $79698/156916$
+Vertices/Faces. Der Background-Merge ist damit ein realer, aber in diesem
+kontrollierten Lauf kleiner Einfluss und erklaert nicht die wesentliche
+Abweichung von C gegenueber A. Die groessere Ursache liegt in der veraenderten
+SuGaR-Coarse-Gaussian-Wolke in Verbindung mit der jeweiligen Tiefenroute;
+der Schalter bleibt als object-only-Diagnose erhalten; Variante A verwendet
+ihn standardmaessig mit der historischen Einstellung \texttt{True}, wobei im
+aktuellen Objektlauf keine relevante Background-Komponente anfiel.
+
+Das fruehere Mesh unter
+\texttt{data/sugar\_output/library\_i7000\_c9000\_v200000/coarse\_mesh/05\_3dgs/}
+war kein A-Original-GS-Mesh. Die historischen Laufprotokolle
+\texttt{data/10\_runs/Alurohr\_THWS\_20260804\_191151/run.log} und
+\texttt{data/10\_runs/Alurohr\_THWS\_20260804\_195312/run.log} zeigen
+explizit \texttt{Use vanilla 3DGS: False} und das Laden des
+\texttt{9000.pt}-Coarse-Checkpoints. Es handelte sich somit nicht um A,
+sondern um eine SuGaR-Coarse-Extraktion. Ob sie visuell eher C oder D
+entspricht, kann aus dem alten Log allein nicht sicher abgelesen werden; der
+damalige Extractor hatte jedoch noch keinen separaten Gaussian-Depth-Schalter
+und lief mit der damaligen Standardroute. Diese historischen Meshdateien wurden
+spaeter durch \texttt{REPLACE=1} unter dem alten Run-Tag entfernt; ihre
+Kennzahlen bleiben in den Logs erhalten. Die alten Laeufe erzeugten ebenfalls
+eine Background-Komponente, unter anderem $1509/2881$ beziehungsweise
+$1824/3557$ Vertices/Faces vor der Decimation. Das erklaert, warum das alte
+Mesh Artefakte zeigen konnte, obwohl die A/B-Meshes direkt auf der
+STS-Hochopazitaetswolke gut an deren Positionen liegen.
+
+Ohne gesetzten Seed bleibt die Extraktion stochastisch, weil die
+Surface-Samples mit zufaelligen Permutationen gezogen werden. Der Extractor
+unterstuetzt deshalb jetzt den optionalen Parameter
+\texttt{--surface-sample-seed}; die vier dokumentierten Vergleichslaeufe
+verwendeten \texttt{SURFACE\_SAMPLE\_SEED=42}. Der Seed kontrolliert die
+zufaellige Auswahl der kamerabasierten Surface-Samples, garantiert aber wegen
+moeglicher Bibliotheks- und Hardwareunterschiede keine byteidentischen PLYs.
+Vergleiche muessen daher weiterhin dieselben Parameter und Eingangsdateien
+verwenden; bei hoher wissenschaftlicher Strenge sind mehrere Seeds oder
+Wiederholungen zu berichten.
 
 \textbf{Multi-View-Konsens als geometrisches Quality-Gate:} Eine einzelne 2D-Maske kann Okklusionen und lokale Fehlsegmentierungen nicht zuverlässig von Geometriefehlern unterscheiden. Daher wird das exportierte Mesh mit allen registrierten Kameras geraycastet. Für jede sichtbare Dreiecksfläche $f$ wird ihr semantischer Unterstützungsanteil bestimmt als
 \[
@@ -1272,7 +1407,9 @@ Der nächste sinnvolle Schritt ist ein getrennt gespeicherter Mesh-Bereinigungst
 Die folgenden $9001$-, $10000$- und $18000$-Laeufe sind historische
 SuGaR-Ablationen aus der Sonnenbrillen-Untersuchung. Sie dokumentieren die
 Wirkung der spaeteren DN-/SDF-Phase, bilden aber nicht den aktuellen
-Projektarbeitsstandard $c=9000$ fuer das segmentierte Alurohr.
+Produktionsstandard Variante A fuer das segmentierte Alurohr. Die
+SuGaR-Coarse-Route mit $c=9000$ bleibt darin als historische Vergleichsbasis
+erhalten.
 
 Eine weitere kontrollierte Serie verwendet durchgehend die undilatierte \texttt{default}-RGB-Maske, die \texttt{middle}-DN-Maske, fünf Millionen Oberflächenstichproben, ein Ziel von $200000$ Mesh-Vertices, mittleres Refinement und keinen nachgeschalteten Crop. Variiert wird nur der Coarse-Zielzähler. In der qualitativen Gegenüberstellung erzeugt der Lauf bis $18000$ gegenüber $9001$ und $10000$ deutlich geschlossenere und konsistentere Brillenbügel. Die zuvor beobachteten Restflächen verschwinden jedoch nicht vollständig, sondern treten an weitgehend denselben Kontakt- beziehungsweise Ansatzbereichen zwischen Sonnenbrille und Untergrund wieder auf. Ihre Lage und Ausdehnung wirken bei der längeren Optimierung stabiler. Der Befund ist daher nicht als zufälliges Rauschen zu interpretieren, aber auch noch kein Beweis dafür, dass Poisson allein die Flächen erzeugt.
 

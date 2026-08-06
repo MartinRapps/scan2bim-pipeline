@@ -119,7 +119,7 @@ COLMAP, keep that model for GCP/SfM, and undistort once for STS”. A genuinely
 pre-undistorted dataset should instead use `SIMPLE_PINHOLE` or `PINHOLE` and
 skip the second step.
 
-### Object-Only, Mask-Aware SuGaR (Recommended)
+### Object-Only Gaussian Mesh (Recommended default: Variant A)
 
 For a segmented cable or pipe, an object-only Gaussian cloud must not be
 optimized against unmasked full-frame RGB images. The standard pipeline now
@@ -137,16 +137,27 @@ chmod +x run_pipeline.sh
 ```
 
 After STS, the runner confirms or edits the filter thresholds and the
-high-opacity alpha, then confirms or edits the mask-aware SuGaR settings.
-`EXPLAIN` is accepted at each configuration prompt. The current geometry-first
-defaults are `min_opacity=0.01`, `black_threshold=0.08`,
-`alpha=0.999999`, `dn_consistency` at coarse counter `9000`, 200,000 mesh
-vertices, 5,000,000 surface samples, `medium` refinement, zero RGB/UV
-dilation, `NORMAL_MASK_LEVEL=middle`, and no consensus crop. The coarse target
-`9000` is intentional for the segmented object route; DN/SDF terms remain
-available for comparison runs above 9000. The full-scene STS checkpoint is never
-overwritten; SuGaR stages a private checkpoint and exports the refined PLY/OBJ
-under `data/06_mesh/<export-name>/`.
+high-opacity alpha, then uses `SUGAR_MESH_MODE=original_gs` by default. This is
+variant A from the controlled ablation: the prepared high-opacity STS Gaussian
+cloud is used directly, surface depth comes from the projected Diamond-Mesh
+z-buffer, and surface sampling, Poisson reconstruction, density cleanup,
+decimation, and vertex projection remain active. SuGaR Coarse optimization,
+Gaussian-bound Refinement, and UV baking are skipped because the Gaussian cloud
+itself is the target representation.
+
+The default extraction uses `min_opacity=0.01`, `black_threshold=0.08`,
+`alpha=0.999999`, 200,000 mesh vertices, 5,000,000 surface samples,
+`SURFACE_LEVEL=0.3`, Poisson depth 10, density quantile 0.1,
+`SURFACE_SAMPLE_SEED=42`, zero RGB/UV dilation, and no consensus crop. The
+coarse PLY is preserved under `data/06_mesh/<export-name>/coarse.ply`; an
+untextured compatibility OBJ is written as `refined.obj` because Container E
+and existing downstream tooling use that filename. The file name does not
+mean that SuGaR Refinement was run; `mesh_mode.txt` records the actual route.
+
+The former mask-aware SuGaR Coarse -> Refinement -> UV route remains available
+as an explicit comparison with `SUGAR_MESH_MODE=sugar_coarse`. Its c9000 default
+is therefore no longer the production default. `EXPLAIN` is accepted at each
+configuration prompt.
 
 The STS default uses 7,000 total iterations: 5,000 iterations for the
 small/middle object-mask curriculum followed by 2,000 iterations rendering all
@@ -156,23 +167,23 @@ unbuffered Python output, so the stage-2/stage-3 markers appear in the log at
 their actual transition instead of being delayed behind the tqdm progress bar.
 
 For a standalone object-only run after STS, prepare the standard input first
-and then launch the mask-aware runner:
+and then launch the default A route:
 
 ```bash
 ./prepare_sugar_input.sh
 ./run_masked_sugar.sh
 ```
 
-If SuGaR already finished but the short export was interrupted, recover the
-existing OBJ/MTL/texture without retraining and continue directly to
-post-processing:
+If the default A extraction was interrupted after its PLY was written, recover
+the existing coarse PLY and recreate the compatibility OBJ without retraining:
 
 ```bash
-EXPORT_ONLY=1 REPLACE=1 ./run_pipeline.sh --from sugar
+SUGAR_MESH_MODE=original_gs EXPORT_ONLY=1 REPLACE=1 ./run_pipeline.sh --from sugar
 ```
 
-The refined PLY is optional for the Centerline path; the textured OBJ is the
-required mesh input for Container E.
+For the legacy route, use `SUGAR_MESH_MODE=sugar_coarse`; only that route
+produces the refined Gaussian PLY and textured OBJ. The Centerline path needs
+only the local triangle OBJ, not a textured model.
 
 The runner keeps separate tagged checkpoints below `data/sugar_output/` and
 refuses to overwrite an existing tag unless `REPLACE=1` is set deliberately.
@@ -261,6 +272,7 @@ SOURCE_RUN_TAG=library_i7000_c9000_v200000 \
 COARSE_MESH_ABLATION_TAG=original_gs_projected_depth10 \
 USE_ORIGINAL_GS=True \
 USE_GAUSSIAN_DEPTH=False \
+SURFACE_SAMPLE_SEED=42 \
 MESH_VERTICES=200000 \
 SURFACE_SAMPLE_COUNT=5000000 \
 POISSON_DEPTH=10 \
@@ -268,15 +280,26 @@ PROJECT_MESH_ON_SURFACE_POINTS=True \
 ./tools/run_coarse_mesh_ablation.sh
 ```
 
-This is a diagnostic coarse-mesh route only. It skips SuGaR Coarse training
-and still performs the surface sampling, Poisson reconstruction, density
-cleanup, decimation, and optional vertex projection. Set
+This is the same coarse-mesh route used by the production default. It skips
+SuGaR Coarse training and still performs the surface sampling, Poisson
+reconstruction, density cleanup, decimation, and optional vertex projection. Set
 `USE_GAUSSIAN_DEPTH=True` for the comparison that obtains the surface depth
 directly from the Gaussian rasterizer instead of SuGaR's projected diamond-mesh
 z-buffer. If the direct-original-GS mesh is clean while the c9000 mesh is not,
 the coarse optimization is the likely cause. If both are similarly noisy, the
 problem is downstream in surface sampling, rasterization, Poisson, density
 cleanup, decimation, or vertex projection.
+
+The former full SuGaR route remains available with
+`SUGAR_MESH_MODE=sugar_coarse` in `run_masked_sugar.sh` or the master pipeline.
+
+`SURFACE_SAMPLE_SEED` is optional. Use the same non-negative integer for all
+variants of a controlled ablation; leaving it empty preserves the historical
+stochastic sampling behavior. The seed controls the random camera-sample
+selection during extraction, not the SuGaR training checkpoint.
+`INCLUDE_BACKGROUND_MESH=False` is a separate object-only diagnostic for
+testing whether sparse samples outside the foreground camera bounding box are
+responsible for artifacts; the historical/default behavior remains `True`.
 
 `run_pipeline.sh --from sugar` now asks for the SuGaR parameters unless
 Autopilot is explicitly selected. Choosing `STOP_AFTER_COARSE_MESH=1` also

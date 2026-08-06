@@ -43,6 +43,7 @@ FILTER_MIN_OPACITY="${FILTER_MIN_OPACITY:-0.01}"
 FILTER_BLACK_THRESHOLD="${FILTER_BLACK_THRESHOLD:-0.08}"
 SUGAR_INPUT_ALPHA="${SUGAR_INPUT_ALPHA:-0.999999}"
 REGULARIZATION="${REGULARIZATION:-dn_consistency}"
+SUGAR_MESH_MODE="${SUGAR_MESH_MODE:-original_gs}"
 REFINEMENT_TIME="${REFINEMENT_TIME:-medium}"
 MESH_VERTICES="${MESH_VERTICES:-200000}"
 SURFACE_SAMPLE_COUNT="${SURFACE_SAMPLE_COUNT:-5000000}"
@@ -597,18 +598,25 @@ run_step_filter_cable() {
 
 run_step_sugar() {
     run_step_start "SuGaR-Meshing"
-    log_step "[Step 4/5] Running mask-aware SuGaR Mesh Reconstruction..."
-    if [[ "$REGULARIZATION" == "dn_consistency" ]]; then
+    log_step "[Step 4/5] Running selected object mesh route (default: Original-STS-GS A)..."
+    if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+        COARSE_ITERATIONS=""
+    elif [[ "$REGULARIZATION" == "dn_consistency" ]]; then
         COARSE_ITERATIONS="${COARSE_ITERATIONS:-9000}"
     else
         COARSE_ITERATIONS=""
     fi
-    SUGAR_RUN_TAG="${SUGAR_RUN_TAG:-library_i${ITERATIONS}_c${COARSE_ITERATIONS:-default}_v${MESH_VERTICES}}"
+    if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+        SUGAR_RUN_TAG="${SUGAR_RUN_TAG:-library_i${ITERATIONS}_original_gs_v${MESH_VERTICES}}"
+    else
+        SUGAR_RUN_TAG="${SUGAR_RUN_TAG:-library_i${ITERATIONS}_c${COARSE_ITERATIONS:-default}_v${MESH_VERTICES}}"
+    fi
     SUGAR_MESH_EXPORT_NAME="${SUGAR_MESH_EXPORT_NAME:-$SUGAR_RUN_TAG}"
     run_log_pipeline_settings
 
     MASKED_SUGAR_INTERACTIVE="${SUGAR_REPLAY_INTERACTIVE:-0}" \
     ITERATIONS="$ITERATIONS" \
+    SUGAR_MESH_MODE="$SUGAR_MESH_MODE" \
     REGULARIZATION="$REGULARIZATION" \
     COARSE_ITERATIONS="$COARSE_ITERATIONS" \
     REFINEMENT_TIME="$REFINEMENT_TIME" \

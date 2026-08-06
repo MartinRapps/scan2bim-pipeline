@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Object-only SuGaR pipeline. It keeps the original STS checkpoint untouched,
-# stages a private checkpoint with the high-opacity geometry input, trains the
-# local mask-aware SuGaR fork, and exports a compact refined model separately.
+# Object-only mesh pipeline. The default route (`SUGAR_MESH_MODE=original_gs`)
+# keeps the original STS Gaussian geometry, performs Diamond-Mesh surface
+# sampling/Poisson extraction, and exports a coarse PLY plus an OBJ for the
+# Centerline step. The legacy `sugar_coarse` route stages the same input,
+# trains the local mask-aware SuGaR fork, and exports a refined model separately.
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
+
+# Standalone invocations must use the invoking host identity for bind mounts,
+# just like run_pipeline.sh and the coarse-mesh ablation helper.
+export HOST_UID="${HOST_UID:-$(id -u)}"
+export HOST_GID="${HOST_GID:-$(id -g)}"
 
 # A plain terminal invocation is guided. Reproducible commands that provide at
 # least one configuration variable keep the previous non-interactive behavior.
@@ -15,6 +22,9 @@ for config_variable in \
         ITERATIONS REGULARIZATION REFINEMENT_TIME MASK_LEVEL NORMAL_MASK_LEVEL \
         TEXTURE_MASK_LEVEL MASK_DILATION_PX TEXTURE_MASK_DILATION_PX \
         MESH_VERTICES SURFACE_SAMPLE_COUNT COARSE_ITERATIONS SUGAR_RUN_TAG \
+        SUGAR_MESH_MODE SURFACE_LEVEL POISSON_DEPTH VERTICES_DENSITY_QUANTILE \
+        PROJECT_MESH_ON_SURFACE_POINTS LOW_OPACITY_GAUSSIAN_THRESHOLD \
+        SURFACE_SAMPLE_SEED INCLUDE_BACKGROUND_MESH USE_GAUSSIAN_DEPTH \
         STOP_AFTER_COARSE_MESH RUN_CONSENSUS_CROP FILTERED_PLY \
         SUGAR_MESH_EXPORT_NAME FILTER_MIN_OPACITY FILTER_BLACK_THRESHOLD \
         SUGAR_INPUT_ALPHA; do
@@ -68,6 +78,20 @@ explain_regularization() {
     density        : Density/SDF regularization without the DN-specific schedule.
     sdf            : Alternative upstream regularization route.
     Keep dn_consistency for comparisons with the current reference run.
+EOF
+}
+
+explain_mesh_mode() {
+        cat <<'EOF'
+
+    original_gs : Current production default (A). Skips SuGaR Coarse
+                  optimization and uses the prepared high-opacity STS Gaussian
+                  cloud directly. Diamond-Mesh depth, surface sampling, Poisson,
+                  cleanup and decimation remain active. No Gaussian-bound
+                  Refinement or UV baking is performed.
+    sugar_coarse : Legacy/experimental route (C-like with Diamond-Mesh depth).
+                  Runs the mask-aware SuGaR Coarse optimization and, unless
+                  stopped, its mesh-bound Refinement and UV export.
 EOF
 }
 
@@ -130,10 +154,11 @@ EOF
 explain_stop_after_coarse_mesh() {
     cat <<'EOF'
 
-    STOP_AFTER_COARSE_MESH=1 runs Coarse optimization and Coarse mesh extraction,
-    then exits before refinement, UV texture baking, and semantic crop. It is the
-    focused mode for a full-training RGB-dilation test when only the first
-    visible artifact stage matters.
+    STOP_AFTER_COARSE_MESH=1 ends after the selected coarse-mesh route. In the
+    default original_gs route this means after direct surface sampling and PLY/
+    OBJ export; in sugar_coarse it means after Coarse optimization and Coarse
+    mesh extraction. Refinement, UV texture baking, and semantic crop are then
+    skipped.
 
     STOP_AFTER_COARSE_MESH=0 is the complete pipeline. It preserves the saved
     Coarse PLY, then uses that PLY as input for refinement and writes refined
@@ -224,6 +249,83 @@ export_refined_model() {
     fi
 }
 
+export_original_gs_mesh() {
+    local coarse_mesh_host_dir="$OUTPUT_HOST_DIR/coarse_mesh/05_3dgs"
+    local coarse_mesh_container_dir="$OUTPUT_CONTAINER_ROOT/coarse_mesh/05_3dgs"
+    local coarse_mesh_path
+    local mesh_export_dir="data/06_mesh/$MESH_EXPORT_NAME"
+    local mesh_export_container_dir="/data/06_mesh/$MESH_EXPORT_NAME"
+
+    if [[ "${EXPORT_ONLY:-0}" != "1" ]]; then
+        mkdir -p "$coarse_mesh_host_dir"
+        local extract_arguments=(
+            python3 extract_mesh.py
+            -s /data/05_3dgs
+            -c "$CHECKPOINT_CONTAINER_DIR"
+            -i "$ITERATIONS"
+            -l "$SURFACE_LEVEL"
+            -d "$MESH_VERTICES"
+            -o "$coarse_mesh_container_dir"
+            --surface-sample-count "$SURFACE_SAMPLE_COUNT"
+            --project_mesh_on_surface_points "$PROJECT_MESH_ON_SURFACE_POINTS"
+            --poisson-depth "$POISSON_DEPTH"
+            --vertices-density-quantile "$VERTICES_DENSITY_QUANTILE"
+            --low-opacity-gaussian-threshold "$LOW_OPACITY_GAUSSIAN_THRESHOLD"
+            --include-background-mesh "$INCLUDE_BACKGROUND_MESH"
+            --use-gaussian-depth "$USE_GAUSSIAN_DEPTH"
+            --use_vanilla_3dgs True
+            --eval True
+            --gpu 0
+        )
+        if [[ -n "$SURFACE_SAMPLE_SEED" ]]; then
+            extract_arguments+=(--surface-sample-seed "$SURFACE_SAMPLE_SEED")
+        fi
+
+        docker compose -f docker-compose.yml -f docker-compose.sugar-dev.yml run --rm sugar-meshing \
+            "${extract_arguments[@]}"
+    fi
+
+    coarse_mesh_path="$(find "$coarse_mesh_host_dir" -type f -name '*.ply' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2- || true)"
+    if [[ -z "$coarse_mesh_path" || ! -s "$coarse_mesh_path" ]]; then
+        echo "Error: Original-GS coarse mesh PLY was not created below $coarse_mesh_host_dir." >&2
+        exit 2
+    fi
+
+    if [[ -e "$mesh_export_dir" ]]; then
+        if [[ "${REPLACE:-0}" != "1" ]]; then
+            echo "Error: Mesh export already exists: $mesh_export_dir" >&2
+            echo "Set SUGAR_MESH_EXPORT_NAME to a new name, or use REPLACE=1 deliberately." >&2
+            exit 2
+        fi
+        rm -rf "$mesh_export_dir"
+    fi
+    mkdir -p "$mesh_export_dir"
+    cp "$coarse_mesh_path" "$mesh_export_dir/coarse.ply"
+
+    docker compose -f docker-compose.yml -f docker-compose.sugar-dev.yml run --rm sugar-meshing \
+        python3 /app/src/python/export_mesh_obj.py \
+        --input "$coarse_mesh_container_dir/$(basename "$coarse_mesh_path")" \
+        --output "$mesh_export_container_dir/refined.obj"
+
+    MESH_EXPORT_DIR="$mesh_export_dir"
+    EXPORTED_REFINED_PLY=""
+    EXPORTED_OBJ="$mesh_export_dir/refined.obj"
+    if [[ ! -s "$EXPORTED_OBJ" ]]; then
+        echo "Error: Original-GS OBJ export was not created: $EXPORTED_OBJ" >&2
+        exit 2
+    fi
+    cat > "$mesh_export_dir/mesh_mode.txt" <<EOF
+SUGAR_MESH_MODE=original_gs
+source=STS high-opacity Gaussian PLY
+depth=projected Diamond-Mesh z-buffer
+coarse_ply=coarse.ply
+obj=refined.obj (compatibility filename; no SuGaR refinement was run)
+surface_sample_seed=${SURFACE_SAMPLE_SEED:-None}
+EOF
+    echo "Original-GS coarse PLY export: $mesh_export_dir/coarse.ply"
+    echo "Original-GS OBJ export: $EXPORTED_OBJ"
+}
+
 explain_consensus_crop() {
         cat <<'EOF'
 
@@ -262,6 +364,7 @@ ask_value() {
 
 ITERATIONS="${ITERATIONS:-7000}"
 REGULARIZATION="${REGULARIZATION:-dn_consistency}"
+SUGAR_MESH_MODE="${SUGAR_MESH_MODE:-original_gs}"
 REFINEMENT_TIME="${REFINEMENT_TIME:-medium}"
 MASK_LEVEL="${MASK_LEVEL:-default}"
 NORMAL_MASK_LEVEL="${NORMAL_MASK_LEVEL:-middle}"
@@ -271,9 +374,20 @@ TEXTURE_MASK_DILATION_PX="${TEXTURE_MASK_DILATION_PX:-0}"
 MASK_SSIM_WINDOW="${MASK_SSIM_WINDOW:-11}"
 MESH_VERTICES="${MESH_VERTICES:-200000}"
 SURFACE_SAMPLE_COUNT="${SURFACE_SAMPLE_COUNT:-5000000}"
+SURFACE_LEVEL="${SURFACE_LEVEL:-0.3}"
+POISSON_DEPTH="${POISSON_DEPTH:-10}"
+VERTICES_DENSITY_QUANTILE="${VERTICES_DENSITY_QUANTILE:-0.1}"
+PROJECT_MESH_ON_SURFACE_POINTS="${PROJECT_MESH_ON_SURFACE_POINTS:-True}"
+LOW_OPACITY_GAUSSIAN_THRESHOLD="${LOW_OPACITY_GAUSSIAN_THRESHOLD:-0.5}"
+SURFACE_SAMPLE_SEED="${SURFACE_SAMPLE_SEED:-42}"
+INCLUDE_BACKGROUND_MESH="${INCLUDE_BACKGROUND_MESH:-True}"
+USE_GAUSSIAN_DEPTH="${USE_GAUSSIAN_DEPTH:-False}"
 COARSE_ITERATIONS="${COARSE_ITERATIONS:-}"
-if [[ "$REGULARIZATION" == "dn_consistency" && -z "$COARSE_ITERATIONS" ]]; then
+if [[ "$SUGAR_MESH_MODE" == "sugar_coarse" && "$REGULARIZATION" == "dn_consistency" && -z "$COARSE_ITERATIONS" ]]; then
     COARSE_ITERATIONS=9000
+fi
+if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+    COARSE_ITERATIONS=""
 fi
 STOP_AFTER_COARSE_MESH="${STOP_AFTER_COARSE_MESH:-0}"
 RUN_CONSENSUS_CROP="${RUN_CONSENSUS_CROP:-0}"
@@ -284,13 +398,23 @@ if [[ "$INTERACTIVE" == "1" ]]; then
     echo "Enter EXPLAIN at any prompt for the parameter rationale."
     ask_value ITERATIONS \
         "STS checkpoint iteration (or EXPLAIN)" "$ITERATIONS" explain_checkpoint_iteration
-    ask_value REGULARIZATION \
-        "Regularization (sdf/density/dn_consistency, or EXPLAIN)" "$REGULARIZATION" explain_regularization
-    if [[ "$REGULARIZATION" == "dn_consistency" ]]; then
-        ask_value COARSE_ITERATIONS \
-            "Coarse final iteration counter (or EXPLAIN)" "${COARSE_ITERATIONS:-9000}" explain_coarse_iterations
+    ask_value SUGAR_MESH_MODE \
+        "Mesh route (original_gs/sugar_coarse, or EXPLAIN)" "$SUGAR_MESH_MODE" explain_mesh_mode
+    if [[ "$SUGAR_MESH_MODE" == "sugar_coarse" ]]; then
+        ask_value REGULARIZATION \
+            "Regularization (sdf/density/dn_consistency, or EXPLAIN)" "$REGULARIZATION" explain_regularization
+        if [[ "$REGULARIZATION" == "dn_consistency" ]]; then
+            ask_value COARSE_ITERATIONS \
+                "Coarse final iteration counter (or EXPLAIN)" "${COARSE_ITERATIONS:-9000}" explain_coarse_iterations
+        else
+            COARSE_ITERATIONS=""
+        fi
     else
         COARSE_ITERATIONS=""
+        echo "A-Route gewaehlt: SuGaR-Coarse-Training und Refinement werden uebersprungen."
+    fi
+    if [[ "$SUGAR_MESH_MODE" != "sugar_coarse" ]]; then
+        REGULARIZATION="dn_consistency"
     fi
     ask_value MESH_VERTICES \
         "Coarse mesh vertex target (or EXPLAIN)" "$MESH_VERTICES" explain_mesh_vertices
@@ -323,6 +447,14 @@ case "$REGULARIZATION" in
         ;;
     *)
         echo "Error: REGULARIZATION must be sdf, density, or dn_consistency." >&2
+        exit 2
+        ;;
+esac
+case "$SUGAR_MESH_MODE" in
+    original_gs|sugar_coarse)
+        ;;
+    *)
+        echo "Error: SUGAR_MESH_MODE must be original_gs or sugar_coarse." >&2
         exit 2
         ;;
 esac
@@ -366,6 +498,41 @@ if ! [[ "$SURFACE_SAMPLE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
     echo "Error: SURFACE_SAMPLE_COUNT must be a positive integer." >&2
     exit 2
 fi
+if ! [[ "$SURFACE_LEVEL" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    echo "Error: SURFACE_LEVEL must be a non-negative decimal number." >&2
+    exit 2
+fi
+if ! [[ "$POISSON_DEPTH" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Error: POISSON_DEPTH must be a positive integer." >&2
+    exit 2
+fi
+if ! [[ "$VERTICES_DENSITY_QUANTILE" =~ ^(0|0\.[0-9]+)$ ]]; then
+    echo "Error: VERTICES_DENSITY_QUANTILE must be in [0, 1)." >&2
+    exit 2
+fi
+if ! [[ "$LOW_OPACITY_GAUSSIAN_THRESHOLD" =~ ^0(\.[0-9]+)?$ ]]; then
+    echo "Error: LOW_OPACITY_GAUSSIAN_THRESHOLD must be in [0, 1)." >&2
+    exit 2
+fi
+if [[ -n "$SURFACE_SAMPLE_SEED" && ! "$SURFACE_SAMPLE_SEED" =~ ^[0-9]+$ ]]; then
+    echo "Error: SURFACE_SAMPLE_SEED must be empty or a non-negative integer." >&2
+    exit 2
+fi
+case "${PROJECT_MESH_ON_SURFACE_POINTS,,}" in
+    1|true|yes|y) PROJECT_MESH_ON_SURFACE_POINTS="True" ;;
+    0|false|no|n) PROJECT_MESH_ON_SURFACE_POINTS="False" ;;
+    *) echo "Error: PROJECT_MESH_ON_SURFACE_POINTS must be True or False." >&2; exit 2 ;;
+esac
+case "${INCLUDE_BACKGROUND_MESH,,}" in
+    1|true|yes|y) INCLUDE_BACKGROUND_MESH="True" ;;
+    0|false|no|n) INCLUDE_BACKGROUND_MESH="False" ;;
+    *) echo "Error: INCLUDE_BACKGROUND_MESH must be True or False." >&2; exit 2 ;;
+esac
+case "${USE_GAUSSIAN_DEPTH,,}" in
+    1|true|yes|y) USE_GAUSSIAN_DEPTH="True" ;;
+    0|false|no|n) USE_GAUSSIAN_DEPTH="False" ;;
+    *) echo "Error: USE_GAUSSIAN_DEPTH must be True or False." >&2; exit 2 ;;
+esac
 if [[ -n "$COARSE_ITERATIONS" && ! "$COARSE_ITERATIONS" =~ ^[1-9][0-9]*$ ]]; then
     echo "Error: COARSE_ITERATIONS must be a positive integer when supplied." >&2
     exit 2
@@ -404,12 +571,14 @@ if ! [[ "$RUN_TAG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
     exit 2
 fi
 
-if [[ "$REGULARIZATION" == "dn_consistency" ]]; then
+if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+    COARSE_TARGET="original_gs"
+elif [[ "$REGULARIZATION" == "dn_consistency" ]]; then
     COARSE_TARGET="$COARSE_ITERATIONS"
 else
     COARSE_TARGET="default"
 fi
-MESH_EXPORT_NAME="${SUGAR_MESH_EXPORT_NAME:-sugar_i${ITERATIONS}_c${COARSE_TARGET}_v${MESH_VERTICES}_${MASK_LEVEL}_dn${NORMAL_MASK_LEVEL}}"
+MESH_EXPORT_NAME="${SUGAR_MESH_EXPORT_NAME:-sugar_i${ITERATIONS}_${COARSE_TARGET}_v${MESH_VERTICES}_${MASK_LEVEL}_dn${NORMAL_MASK_LEVEL}}"
 if ! [[ "$MESH_EXPORT_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
     echo "Error: SUGAR_MESH_EXPORT_NAME may contain only letters, digits, dots, underscores, and hyphens." >&2
     exit 2
@@ -431,13 +600,19 @@ OUTPUT_HOST_DIR="data/sugar_output/${RUN_TAG}"
 OUTPUT_CONTAINER_ROOT="/data/sugar_output/${RUN_TAG}"
 
 if [[ "${EXPORT_ONLY:-0}" == "1" ]]; then
-    echo "=== Exporting existing SuGaR mesh without retraining ==="
-    export_refined_model
-    echo "Refined OBJ export: $EXPORTED_OBJ"
-    if [[ -n "$EXPORTED_REFINED_PLY" ]]; then
-        echo "Refined PLY export: $EXPORTED_REFINED_PLY"
+    if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+        echo "=== Exporting existing Original-GS coarse mesh without retraining ==="
+        export_original_gs_mesh
+        echo "Original-GS OBJ export: $EXPORTED_OBJ"
     else
-        echo "Refined PLY export: not available (OBJ export is usable for post-processing)"
+        echo "=== Exporting existing SuGaR refined mesh without retraining ==="
+        export_refined_model
+        echo "Refined OBJ export: $EXPORTED_OBJ"
+        if [[ -n "$EXPORTED_REFINED_PLY" ]]; then
+            echo "Refined PLY export: $EXPORTED_REFINED_PLY"
+        else
+            echo "Refined PLY export: not available (OBJ export is usable for post-processing)"
+        fi
     fi
     exit 0
 fi
@@ -472,17 +647,21 @@ if [[ "${REPLACE:-0}" == "1" ]]; then
     rm -rf "$OUTPUT_HOST_DIR" "$CHECKPOINT_HOST_DIR"
 fi
 
-echo "=== Mask-aware SuGaR object reconstruction ==="
+echo "=== Object mesh reconstruction ==="
 echo "Filtered input : $FILTERED_PLY"
 echo "Source masks   : $MASKS_DIR"
 echo "Run tag        : $RUN_TAG"
+echo "Mesh route     : $SUGAR_MESH_MODE"
 echo "Regularization : $REGULARIZATION"
 echo "Refinement     : $REFINEMENT_TIME"
 echo "Mesh vertices  : $MESH_VERTICES"
 echo "Surface samples: $SURFACE_SAMPLE_COUNT"
 echo "Stop after Coarse mesh: $STOP_AFTER_COARSE_MESH"
-echo "Short refined-model export: data/06_mesh/$MESH_EXPORT_NAME"
-if [[ "$REGULARIZATION" == "dn_consistency" ]]; then
+echo "Mesh export: data/06_mesh/$MESH_EXPORT_NAME"
+if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+    echo "A route: SuGaR Coarse optimization, Gaussian-bound refinement, and UV baking are skipped."
+    echo "Surface route: Original STS GS + projected Diamond-Mesh depth"
+elif [[ "$REGULARIZATION" == "dn_consistency" ]]; then
     echo "Coarse target counter: $COARSE_TARGET (starts at 6999; about $((COARSE_TARGET - 6999)) new updates)"
     if (( COARSE_TARGET > 9000 )); then
         echo "DN/SDF-phase updates: about $((COARSE_TARGET - 9000)) after activation above 9000"
@@ -513,43 +692,55 @@ docker compose -f docker-compose.yml -f docker-compose.sugar-dev.yml run --rm --
     --masks-dir /data/03_masks \
     --levels "$MASK_LEVEL" "$NORMAL_MASK_LEVEL" "$TEXTURE_MASK_LEVEL"
 
-COARSE_ARGUMENTS=()
-if [[ -n "$COARSE_ITERATIONS" ]]; then
-    COARSE_ARGUMENTS+=(--coarse-iterations "$COARSE_ITERATIONS")
+if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+    export_original_gs_mesh
+    if [[ "$STOP_AFTER_COARSE_MESH" == "1" ]]; then
+        echo "Original-GS A route stopped after coarse mesh export; no SuGaR refinement, UV texture, or consensus crop was run."
+        exit 0
+    fi
+else
+    COARSE_ARGUMENTS=()
+    if [[ -n "$COARSE_ITERATIONS" ]]; then
+        COARSE_ARGUMENTS+=(--coarse-iterations "$COARSE_ITERATIONS")
+    fi
+
+    docker compose -f docker-compose.yml -f docker-compose.sugar-dev.yml run --rm sugar-meshing \
+        python3 train.py \
+        -s /data/05_3dgs \
+        -c "$CHECKPOINT_CONTAINER_DIR" \
+        -i "$ITERATIONS" \
+        -r "$REGULARIZATION" \
+        -v "$MESH_VERTICES" \
+        --surface-sample-count "$SURFACE_SAMPLE_COUNT" \
+        --stop-after-coarse-mesh "$STOP_AFTER_COARSE_MESH" \
+        "${COARSE_ARGUMENTS[@]}" \
+        --refinement_time "$REFINEMENT_TIME" \
+        --eval True \
+        --masks-dir /data/03_masks \
+        --mask-level "$MASK_LEVEL" \
+        --normal-mask-level "$NORMAL_MASK_LEVEL" \
+        --mask-dilation-px "$MASK_DILATION_PX" \
+        --texture-mask-level "$TEXTURE_MASK_LEVEL" \
+        --texture-mask-dilation-px "$TEXTURE_MASK_DILATION_PX" \
+        --mask-ssim-window "$MASK_SSIM_WINDOW" \
+        --output-root "$OUTPUT_CONTAINER_ROOT"
+
+    if [[ "$STOP_AFTER_COARSE_MESH" == "1" ]]; then
+        echo "Mask-aware SuGaR stopped after Coarse mesh. Refinement, UV texture, and consensus crop were intentionally skipped."
+        exit 0
+    fi
+
+    export_refined_model
+    echo "Refined PLY export: $EXPORTED_REFINED_PLY"
+    echo "Refined OBJ export: $EXPORTED_OBJ"
 fi
-
-docker compose -f docker-compose.yml -f docker-compose.sugar-dev.yml run --rm sugar-meshing \
-    python3 train.py \
-    -s /data/05_3dgs \
-    -c "$CHECKPOINT_CONTAINER_DIR" \
-    -i "$ITERATIONS" \
-    -r "$REGULARIZATION" \
-    -v "$MESH_VERTICES" \
-    --surface-sample-count "$SURFACE_SAMPLE_COUNT" \
-    --stop-after-coarse-mesh "$STOP_AFTER_COARSE_MESH" \
-    "${COARSE_ARGUMENTS[@]}" \
-    --refinement_time "$REFINEMENT_TIME" \
-    --eval True \
-    --masks-dir /data/03_masks \
-    --mask-level "$MASK_LEVEL" \
-    --normal-mask-level "$NORMAL_MASK_LEVEL" \
-    --mask-dilation-px "$MASK_DILATION_PX" \
-    --texture-mask-level "$TEXTURE_MASK_LEVEL" \
-    --texture-mask-dilation-px "$TEXTURE_MASK_DILATION_PX" \
-    --mask-ssim-window "$MASK_SSIM_WINDOW" \
-    --output-root "$OUTPUT_CONTAINER_ROOT"
-
-if [[ "$STOP_AFTER_COARSE_MESH" == "1" ]]; then
-    echo "Mask-aware SuGaR stopped after Coarse mesh. Refinement, UV texture, and consensus crop were intentionally skipped."
-    exit 0
-fi
-
-export_refined_model
-echo "Refined PLY export: $EXPORTED_REFINED_PLY"
-echo "Refined OBJ export: $EXPORTED_OBJ"
 
 if [[ "$RUN_CONSENSUS_CROP" != "1" ]]; then
-    echo "Mask-aware SuGaR completed. Consensus crop intentionally skipped."
+    if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+        echo "Original-GS A route completed. Consensus crop intentionally skipped."
+    else
+        echo "Mask-aware SuGaR completed. Consensus crop intentionally skipped."
+    fi
     exit 0
 fi
 
@@ -567,7 +758,12 @@ MIN_SUPPORT_RATIO="${CROP_MIN_SUPPORT_RATIO:-0.6}" \
 OVERWRITE="${REPLACE:-0}" \
 ./run_multiview_crop.sh
 
-echo "=== Mask-aware SuGaR pipeline completed ==="
-echo "Final refined PLY: $EXPORTED_REFINED_PLY"
-echo "Final refined OBJ: $EXPORTED_OBJ"
+echo "=== Mesh pipeline completed ==="
+if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
+    echo "Final Original-GS coarse PLY: $MESH_EXPORT_DIR/coarse.ply"
+    echo "Final Original-GS OBJ: $EXPORTED_OBJ"
+else
+    echo "Final refined PLY: $EXPORTED_REFINED_PLY"
+    echo "Final refined OBJ: $EXPORTED_OBJ"
+fi
 echo "Final cropped mesh: $CROPPED_MESH"
