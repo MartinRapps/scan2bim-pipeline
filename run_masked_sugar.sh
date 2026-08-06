@@ -24,6 +24,9 @@ for config_variable in \
         fi
 done
 
+# MASKED_SUGAR_INTERACTIVE controls only whether this helper asks its own
+# configuration questions. It is deliberately independent from
+# STOP_AFTER_COARSE_MESH, which controls whether refinement/export continues.
 INTERACTIVE_SETTING="${MASKED_SUGAR_INTERACTIVE:-auto}"
 case "$INTERACTIVE_SETTING" in
         auto)

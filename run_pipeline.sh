@@ -424,7 +424,13 @@ explain_mask_dilation() {
 
 explain_sugar_completion() {
     echo ""
+    echo "  MASKED_SUGAR_INTERACTIVE=0 unterdrueckt nur doppelte Unterabfragen"
+    echo "  im inneren SuGaR-Runner. Es bedeutet nicht, dass nach dem Coarse-Mesh"
+    echo "  automatisch gestoppt wird. Das entscheidet ausschliesslich"
+    echo "  STOP_AFTER_COARSE_MESH."
     echo "  STOP_AFTER_COARSE_MESH=0 fuehrt Refinement und den kompakten Export aus."
+    echo "  STOP_AFTER_COARSE_MESH=1 beendet den Lauf nach dem Coarse-Mesh;"
+    echo "  Refinement, UV-Baking und Postprocessing werden dann uebersprungen."
     echo "  RUN_CONSENSUS_CROP=0 bewahrt das unveraenderte Refined-Mesh als Basis."
     echo "  Ein Crop bleibt eine getrennte, optionale Diagnose-/Bereinigungsstufe."
     echo ""
@@ -784,7 +790,9 @@ run_log_pipeline_settings
 run_step_end 0
 
 # Step 4: Run the local mask-aware SuGaR fork using the prepared high-opacity
-# object input. It exports refined.ply and refined.obj into a short mesh folder.
+# object input. The outer pipeline has already asked all SuGaR settings, so
+# MASKED_SUGAR_INTERACTIVE=0 only disables duplicate inner prompts. The actual
+# Coarse-only decision is STOP_AFTER_COARSE_MESH and is passed separately.
 run_step_start "SuGaR-Meshing"
 echo "[Step 4/5] Running mask-aware SuGaR (Coarse Training -> Mesh Extraction -> Refinement)..."
 MASKED_SUGAR_INTERACTIVE=0 \

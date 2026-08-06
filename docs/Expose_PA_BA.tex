@@ -1125,6 +1125,43 @@ Die zugehörige verfeinerte PLY ist eine Gaussian-Splat-Datei mit $98281$ Gaussi
 
 \textbf{Nächste kontrollierte Prüfung:} Zunächst werden die vorhandene Eingabe-PLY, das Coarse-Mesh, die verfeinerte PLY und das finale OBJ in denselben Kameraansichten protokolliert. Danach wird der vorhandene Coarse-Checkpoint zunächst ohne erneute Coarse-Optimierung oder Refinement für getrennte Mesh-Extraktionsvarianten wiederverwendet. Die Folgevergleichsvariante \texttt{depth8\_v500000} hält die Poisson-Tiefe $8$ des sichtbasiert besseren Screenings fest und erhöht nur das Vertexziel. Sie klärt, ob die grobe $50000$-Decimation die Restflächen lediglich verdeckt oder ob der Befund bei einer brauchbaren Auflösung bestehen bleibt. Eine Variante ohne Vertexprojektion prüft dagegen die Rückprojektion auf die abgetasteten Oberflächenpunkte. Diese Ablationen ändern keine Masken und können deshalb die RGB-Dilatation nicht bewerten. Der anschließende RGB-Null-Dilatationslauf hält alle Referenzparameter konstant und setzt nur \texttt{MASK\_DILATION\_PX=0}; die UV-Dilatation bleibt für diesen kausalen Geometrievergleich beim Referenzwert. Mit einem neuen Tag und \texttt{STOP\_AFTER\_COARSE\_MESH=0} erzeugt derselbe Lauf sowohl das erhaltene Coarse-PLY als auch die verfeinerte PLY und das texturierte OBJ. Die DN-\texttt{middle}-Maske, die Eingabewolke, Kameras, Coarse-Zähler, Stichprobenzahl und Vertexziel bleiben gleich. Der Multi-View-Crop wird dabei deaktiviert, da er die Ursache nicht lokalisiert und sich beim dichten Brillenmesh als zu konservativ beziehungsweise im \texttt{semantic-core}-Modus als zu destruktiv erwiesen hat. Der kombinierte Screening-Lauf mit Zielzähler $12000$, $50000$ Vertices und kurzem Refinement ist davon getrennt zu halten: Er verändert gleichzeitig die Zahl der Coarse-Updates, die dem Refinement übergebene Meshauflösung und die Zahl der Refinement-Updates. Mit reduzierter Stichprobenzahl käme eine vierte Veränderung hinzu. Er führt die gesamte Kette bis zum OBJ aus und überspringt nur den Crop; die RGB-Dilatation bleibt dabei, sofern nicht gesetzt, bei $2$ Pixeln. Ein abweichendes Ergebnis kann deshalb weder der RGB-Dilatation noch einem einzelnen anderen Parameter zugeschrieben werden.
 
+\textbf{Kausale SuGaR-Ablation ohne Refinement:} Der offizielle SuGaR-Ablauf
+trennt die Gaussian- und Mesh-Repräsentation bewusst in mehrere Stufen:
+Coarse-Gaussian-Optimierung, kamerabasiertes Surface-Sampling mit
+Poisson-Rekonstruktion, Mesh-bound Refinement sowie den getrennten Export eines
+verfeinerten Gaussian-PLY und eines texturierten OBJ. Fuer die aktuelle
+Centerline-Anwendung ist das Refinement jedoch nicht zwingend erforderlich,
+wenn die vorbereitete objektbezogene STS-Gaussian-Wolke bereits die gewuenschte
+Geometrie stuetzt. Der Schalter
+\texttt{STOP\_AFTER\_COARSE\_MESH=1} dient deshalb als Coarse-only-Modus;
+eine direkte Vergleichsroute unter
+\texttt{tools/run\_coarse\_mesh\_ablation.sh} kann die SuGaR-Coarse-
+Optimierung mit \texttt{USE\_ORIGINAL\_GS=True} vollstaendig ueberspringen.
+Sie verwendet dann die private Hochopazitaetskopie der STS-Gaussians und
+wendet nur Surface-Sampling, Poisson, Dichtebereinigung, Decimation und die
+optionale Vertex-Projektion an. Das ist eine Diagnose- und keine automatische
+neue Produktionsentscheidung.
+
+Der Zielzaehler $c=9000$ deaktiviert im lokalen Trainer nur die spaeten
+DN-/SDF-Terme, die erst fuer $iteration>9000$ aktiviert werden. Maskierter
+RGB-/DSSIM-Loss, Entropieregularisierung und die Optimierung von Positionen,
+Skalen, Rotationen, Dichten und SH-Parametern koennen die STS-Gaussians bis
+zum Zielzaehler weiterhin veraendern. Die anschliessende Mesh-Extraktion ist
+auch bei $c=9000$ eine eigenstaendige depth-/z-buffer-basierte
+Oberflaechengewinnung und nicht lediglich ein Dateiformat-Export.
+
+Zur Trennung der Ursachen werden vier Coarse-only-Varianten mit identischen
+Kameras, Masken und Extraktionsparametern verglichen: (A) Original-STS-GS mit
+der standardmaessigen projizierten Diamond-Mesh-Tiefe, (B) Original-STS-GS mit
+direkter Gaussian-Rasterizer-Tiefe, (C) SuGaR-Coarse $c=9000$ mit Diamond-Mesh-
+Tiefe und (D) SuGaR-Coarse $c=9000$ mit Gaussian-Rasterizer-Tiefe. Die
+Parameter \texttt{MESH\_VERTICES}, \texttt{SURFACE\_SAMPLE\_COUNT},
+\texttt{POISSON\_DEPTH}, \texttt{PROJECT\_MESH\_ON\_SURFACE\_POINTS} und
+\texttt{SURFACE\_LEVEL} bleiben dabei konstant. Die Testergebnisse werden
+erst nach einer gesonderten Ausfuehrung und visuellen Gegenueberstellung als
+wissenschaftlicher Befund dokumentiert; diese Passage beschreibt zunaechst
+nur die Hypothese und das kontrollierte Testdesign.
+
 \textbf{Multi-View-Konsens als geometrisches Quality-Gate:} Eine einzelne 2D-Maske kann Okklusionen und lokale Fehlsegmentierungen nicht zuverlässig von Geometriefehlern unterscheiden. Daher wird das exportierte Mesh mit allen registrierten Kameras geraycastet. Für jede sichtbare Dreiecksfläche $f$ wird ihr semantischer Unterstützungsanteil bestimmt als
 \[
 s(f) = \frac{\#\{\text{sichtbare Kameras, die } f \text{ als Objekt unterstützen}\}}
