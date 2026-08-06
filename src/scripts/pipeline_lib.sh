@@ -607,7 +607,7 @@ run_step_sugar() {
     SUGAR_MESH_EXPORT_NAME="${SUGAR_MESH_EXPORT_NAME:-$SUGAR_RUN_TAG}"
     run_log_pipeline_settings
 
-    MASKED_SUGAR_INTERACTIVE=0 \
+    MASKED_SUGAR_INTERACTIVE="${SUGAR_REPLAY_INTERACTIVE:-0}" \
     ITERATIONS="$ITERATIONS" \
     REGULARIZATION="$REGULARIZATION" \
     COARSE_ITERATIONS="$COARSE_ITERATIONS" \
@@ -693,7 +693,22 @@ run_pipeline_from() {
                 run_step_filter_cable
                 ;;
             sugar)
+                # A SuGaR replay is normally an interactive parameter study.
+                # The full pipeline has already collected these values inline,
+                # but the replay dispatcher used to call run_step_sugar with
+                # silent defaults, which made --from sugar unexpectedly retrain
+                # c9000/medium/200k without asking the user.
+                configure_autopilot
+                if [[ "$AUTOPILOT" == "true" ]]; then
+                    SUGAR_REPLAY_INTERACTIVE=0
+                else
+                    SUGAR_REPLAY_INTERACTIVE=1
+                fi
                 run_step_sugar
+                if [[ "$STOP_AFTER_COARSE_MESH" == "1" ]]; then
+                    log_info "SuGaR replay stopped after Coarse mesh; postprocessing is intentionally skipped."
+                    return 0
+                fi
                 ;;
             postprocess)
                 run_step_postprocess

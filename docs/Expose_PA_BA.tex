@@ -170,10 +170,10 @@ als aktuelle Default-Konfiguration interpretiert.
             Windows-11-COLMAP-Laeufe ohne CUDA sind getrennte Vergleichslaeufe.
             Der mask-aware SuGaR-Fork ist als Git-Submodul eingebunden. Der
             Parent-Gitlink verweist im aktuellen Projektstand auf den exakten
-            Commit \texttt{8f4f7a2d32903a32e95d131891b2026645c40348} des Forks
+            Commit \texttt{e254000b28efca7d4759a55ac1ac218226b9eeda} des Forks
             \texttt{MartinRapps/SuGaR}; dieser Commit ist auf dem Remote-Branch
             \texttt{project/masked-sugar} veroeffentlicht. Der Parent-Commit
-            \texttt{8feaf0319963005af2598fb415c434032f826eba} aktualisiert den
+            \texttt{8feaf0319963005af2598fb415c434032f826eba} aktualisierte den
             Gitlink von \texttt{48bbfdd} auf diesen Stand.
 
             Die lokale Arbeitskopie des Submoduls war zunaechst im detached HEAD,
@@ -187,7 +187,7 @@ als aktuelle Default-Konfiguration interpretiert.
             mit \texttt{git submodule update --init --recursive} initialisiert
             und auf den vom Parent vorgegebenen Gitlink gestellt werden.
 
-            Der Commit \texttt{8f4f7a2} enthaelt neben den mask-aware Aenderungen
+            Der Commit \texttt{e254000} enthaelt neben den mask-aware Aenderungen
             von \texttt{48bbfdd} insbesondere die Schutzlogik fuer ungueltige
             oder zu kleine Poisson-Punktwolken sowie die freigegebene
             c9000-Route. Der Dockerfile-Parameter \texttt{SUGAR\_REF} ist auf
@@ -399,7 +399,7 @@ Entwicklungs-Builds; mehrere Architekturen nur für den portablen Release-Build)
 \texttt{image:}-Felder in \texttt{docker-compose.yml} setzen und
 \texttt{tesseract-ocr} nur in Container E vorhalten. Der SuGaR-Container ist
 inzwischen auf den vollständigen projekt-eigenen Fork-Stand
-\texttt{SUGAR\_REF=8f4f7a2d32903a32e95d131891b2026645c40348} gepinnt, sodass
+\texttt{SUGAR\_REF=e254000b28efca7d4759a55ac1ac218226b9eeda} gepinnt, sodass
 auch Image-Builds die maskenbewussten Modifikationen, die c9000-Freigabe und
 den Poisson-Schutz enthalten. Das
 \texttt{docker-compose.sugar-dev.yml}-Overlay bleibt für schnelle lokale
@@ -556,10 +556,10 @@ Hilfsskripte unter \texttt{tools/}, automatisierte Tests unter
 Projektstamm und die SSOT-Dokumentation unter \texttt{docs/}. SuGaR ist als
 Git-Submodule des projekt-eigenen Forks
 (\texttt{MartinRapps/SuGaR}) eingebunden. Der Parent-Gitlink zeigt aktuell auf
-\texttt{8f4f7a2d32903a32e95d131891b2026645c40348}; der zugehoerige Fork-Branch
+\texttt{e254000b28efca7d4759a55ac1ac218226b9eeda}; der zugehoerige Fork-Branch
 \texttt{project/masked-sugar} ist auf dem Remote veroeffentlicht. Der
-Parent-Commit \texttt{8feaf0319963005af2598fb415c434032f826eba} enthaelt die
-Aktualisierung dieses Gitlinks. Damit sind die mask-aware SuGaR-Aenderungen
+Der Parent-Gitlink wird mit dem naechsten Parent-Commit auf diesen Stand
+aktualisiert. Damit sind die mask-aware SuGaR-Aenderungen
 einschliesslich der c9000-Freigabe und des Poisson-Schutzes nicht mehr nur
 lokale Working-Tree-Aenderungen. Der Dockerfile-Parameter \texttt{SUGAR\_REF}
 ist auf denselben Commit gepinnt.

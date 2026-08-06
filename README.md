@@ -252,6 +252,33 @@ output tag. To run a new full Coarse optimization but stop immediately after
 the resulting Coarse mesh, set `STOP_AFTER_COARSE_MESH=1` on
 `run_masked_sugar.sh`.
 
+To test the hypothesis that the object-specific STS Gaussians are already good
+enough and that SuGaR's Coarse optimization changes them unfavorably, use the
+same extractor directly on the private staged STS PLY:
+
+```bash
+SOURCE_RUN_TAG=library_i7000_c9000_v200000 \
+COARSE_MESH_ABLATION_TAG=original_gs_projected_depth10 \
+USE_ORIGINAL_GS=True \
+USE_GAUSSIAN_DEPTH=False \
+./tools/run_coarse_mesh_ablation.sh
+```
+
+This is a diagnostic coarse-mesh route only. It skips SuGaR Coarse training
+and still performs the surface sampling, Poisson reconstruction, density
+cleanup, decimation, and optional vertex projection. Set
+`USE_GAUSSIAN_DEPTH=True` for the comparison that obtains the surface depth
+directly from the Gaussian rasterizer instead of SuGaR's projected diamond-mesh
+z-buffer. If the direct-original-GS mesh is clean while the c9000 mesh is not,
+the coarse optimization is the likely cause. If both are similarly noisy, the
+problem is downstream in surface sampling, rasterization, Poisson, density
+cleanup, decimation, or vertex projection.
+
+`run_pipeline.sh --from sugar` now asks for the SuGaR parameters unless
+Autopilot is explicitly selected. Choosing `STOP_AFTER_COARSE_MESH=1` also
+ends that replay after the Coarse mesh instead of attempting post-processing
+without a refined OBJ.
+
 To crop an already exported textured SuGaR OBJ without retraining, run:
 
 ```bash

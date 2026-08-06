@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Re-extract a coarse mesh from an existing mask-aware SuGaR checkpoint. This
-# deliberately skips coarse optimization, refinement, texture baking, and crop.
-# Every ablation writes to a separate directory below its source run.
+# Re-extract a coarse mesh without refinement, texture baking, or crop. The
+# default loads an existing mask-aware SuGaR coarse checkpoint. With
+# USE_ORIGINAL_GS=True it skips SuGaR coarse optimization entirely and samples
+# directly from the private staged STS Gaussian PLY. Every ablation writes to a
+# separate directory below its source run.
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
@@ -15,7 +17,7 @@ for config_variable in \
     ITERATIONS SUGAR_RUN_TAG SOURCE_RUN_TAG MESH_VERTICES SURFACE_SAMPLE_COUNT \
     SURFACE_LEVEL POISSON_DEPTH VERTICES_DENSITY_QUANTILE \
     PROJECT_MESH_ON_SURFACE_POINTS LOW_OPACITY_GAUSSIAN_THRESHOLD \
-    COARSE_MESH_ABLATION_TAG COARSE_MODEL GPU; do
+    USE_ORIGINAL_GS USE_GAUSSIAN_DEPTH COARSE_MESH_ABLATION_TAG COARSE_MODEL GPU; do
     if [[ -v $config_variable ]]; then
         CONFIGURATION_WAS_PROVIDED=1
         break
@@ -129,6 +131,29 @@ explain_low_opacity_threshold() {
 EOF
 }
 
+explain_original_gs() {
+        cat <<'EOF'
+
+    USE_ORIGINAL_GS=True skips the SuGaR coarse optimization and initializes the
+    surface sampler directly from the private staged STS Gaussian PLY. The
+    output is still only a coarse mesh: surface sampling, Poisson reconstruction,
+    density cleanup, decimation, and optional vertex projection are executed.
+    This is the decisive ablation for testing whether the c9000 coarse optimizer
+    changes an already good object-specific Gaussian cloud.
+EOF
+}
+
+explain_gaussian_depth() {
+        cat <<'EOF'
+
+    USE_GAUSSIAN_DEPTH=True uses the Gaussian splatting rasterizer's depth map
+    for surface sampling. False keeps the official/default route, which derives
+    the z-buffer by rasterizing SuGaR's projected diamond mesh with PyTorch3D.
+    This is a diagnostic switch for separating Gaussian-rasterizer depth from
+    projected-mesh rasterization; it does not change Poisson or refinement.
+EOF
+}
+
 explain_ablation_tag() {
     cat <<'EOF'
 
@@ -165,6 +190,8 @@ POISSON_DEPTH="${POISSON_DEPTH:-10}"
 VERTICES_DENSITY_QUANTILE="${VERTICES_DENSITY_QUANTILE:-0.1}"
 PROJECT_MESH_ON_SURFACE_POINTS="${PROJECT_MESH_ON_SURFACE_POINTS:-True}"
 LOW_OPACITY_GAUSSIAN_THRESHOLD="${LOW_OPACITY_GAUSSIAN_THRESHOLD:-0.5}"
+USE_ORIGINAL_GS="${USE_ORIGINAL_GS:-False}"
+USE_GAUSSIAN_DEPTH="${USE_GAUSSIAN_DEPTH:-False}"
 GPU="${GPU:-0}"
 ABLATION_TAG="${COARSE_MESH_ABLATION_TAG:-}"
 
@@ -187,9 +214,24 @@ if [[ "$INTERACTIVE" == "1" ]]; then
         "Project vertices to sampled surface points? True/False (or EXPLAIN)" "$PROJECT_MESH_ON_SURFACE_POINTS" explain_projection
     ask_value LOW_OPACITY_GAUSSIAN_THRESHOLD \
         "Low-opacity Gaussian threshold (or EXPLAIN)" "$LOW_OPACITY_GAUSSIAN_THRESHOLD" explain_low_opacity_threshold
+    ask_value USE_ORIGINAL_GS \
+        "Skip SuGaR coarse optimization and use original staged GS? True/False (or EXPLAIN)" "$USE_ORIGINAL_GS" explain_original_gs
+    ask_value USE_GAUSSIAN_DEPTH \
+        "Use Gaussian rasterizer depth instead of projected-mesh depth? True/False (or EXPLAIN)" "$USE_GAUSSIAN_DEPTH" explain_gaussian_depth
 fi
 
-DEFAULT_ABLATION_TAG="depth${POISSON_DEPTH}_v${MESH_VERTICES}_samples${SURFACE_SAMPLE_COUNT}_level${SURFACE_LEVEL//./}_q${VERTICES_DENSITY_QUANTILE//./}_proj${PROJECT_MESH_ON_SURFACE_POINTS,,}_opacity${LOW_OPACITY_GAUSSIAN_THRESHOLD//./}"
+case "${USE_ORIGINAL_GS,,}" in
+    1|true|yes|y) USE_ORIGINAL_GS="True" ;;
+    0|false|no|n) USE_ORIGINAL_GS="False" ;;
+    *) echo "Error: USE_ORIGINAL_GS must be True or False." >&2; exit 2 ;;
+esac
+case "${USE_GAUSSIAN_DEPTH,,}" in
+    1|true|yes|y) USE_GAUSSIAN_DEPTH="True" ;;
+    0|false|no|n) USE_GAUSSIAN_DEPTH="False" ;;
+    *) echo "Error: USE_GAUSSIAN_DEPTH must be True or False." >&2; exit 2 ;;
+esac
+
+DEFAULT_ABLATION_TAG="gs${USE_ORIGINAL_GS,,}_gdepth${USE_GAUSSIAN_DEPTH,,}_depth${POISSON_DEPTH}_v${MESH_VERTICES}_samples${SURFACE_SAMPLE_COUNT}_level${SURFACE_LEVEL//./}_q${VERTICES_DENSITY_QUANTILE//./}_proj${PROJECT_MESH_ON_SURFACE_POINTS,,}_opacity${LOW_OPACITY_GAUSSIAN_THRESHOLD//./}"
 if [[ "$INTERACTIVE" == "1" ]]; then
     ask_value ABLATION_TAG \
         "New ablation output tag (or EXPLAIN)" "${ABLATION_TAG:-$DEFAULT_ABLATION_TAG}" explain_ablation_tag
@@ -248,7 +290,7 @@ fi
 SOURCE_OUTPUT_HOST_DIR="data/sugar_output/${SOURCE_RUN_TAG}"
 CHECKPOINT_HOST_DIR="data/05_3dgs/masked_sugar_input/${SOURCE_RUN_TAG}"
 COARSE_MODEL_HOST_PATH="${COARSE_MODEL:-}"
-if [[ -z "$COARSE_MODEL_HOST_PATH" ]]; then
+if [[ "$USE_ORIGINAL_GS" != "True" && -z "$COARSE_MODEL_HOST_PATH" ]]; then
     COARSE_MODEL_HOST_PATH="$(find "$SOURCE_OUTPUT_HOST_DIR/coarse" -type f -name '*.pt' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2-)"
 fi
 OUTPUT_HOST_DIR="$SOURCE_OUTPUT_HOST_DIR/coarse_mesh_ablation/$ABLATION_TAG"
@@ -258,7 +300,7 @@ if [[ ! -d "$CHECKPOINT_HOST_DIR" ]]; then
     echo "  $CHECKPOINT_HOST_DIR" >&2
     exit 2
 fi
-if [[ -z "$COARSE_MODEL_HOST_PATH" || ! -f "$COARSE_MODEL_HOST_PATH" ]]; then
+if [[ "$USE_ORIGINAL_GS" != "True" && ( -z "$COARSE_MODEL_HOST_PATH" || ! -f "$COARSE_MODEL_HOST_PATH" ) ]]; then
     echo "Error: No coarse SuGaR .pt checkpoint was found below:" >&2
     echo "  $SOURCE_OUTPUT_HOST_DIR/coarse" >&2
     exit 2
@@ -269,18 +311,20 @@ if [[ -e "$OUTPUT_HOST_DIR" ]]; then
     exit 2
 fi
 
-case "$COARSE_MODEL_HOST_PATH" in
-    data/*)
-        COARSE_MODEL_CONTAINER_PATH="/$COARSE_MODEL_HOST_PATH"
-        ;;
-    "$PROJECT_ROOT"/data/*)
-        COARSE_MODEL_CONTAINER_PATH="/data/${COARSE_MODEL_HOST_PATH#"$PROJECT_ROOT"/data/}"
-        ;;
-    *)
-        echo "Error: COARSE_MODEL must be below this project's data/ directory." >&2
-        exit 2
-        ;;
-esac
+if [[ "$USE_ORIGINAL_GS" != "True" ]]; then
+    case "$COARSE_MODEL_HOST_PATH" in
+        data/*)
+            COARSE_MODEL_CONTAINER_PATH="/$COARSE_MODEL_HOST_PATH"
+            ;;
+        "$PROJECT_ROOT"/data/*)
+            COARSE_MODEL_CONTAINER_PATH="/data/${COARSE_MODEL_HOST_PATH#"$PROJECT_ROOT"/data/}"
+            ;;
+        *)
+            echo "Error: COARSE_MODEL must be below this project's data/ directory." >&2
+            exit 2
+            ;;
+    esac
+fi
 
 mkdir -p "$(dirname "$OUTPUT_HOST_DIR")"
 OUTPUT_CONTAINER_DIR="/data/${OUTPUT_HOST_DIR#data/}"
@@ -288,7 +332,11 @@ CHECKPOINT_CONTAINER_DIR="/data/05_3dgs/masked_sugar_input/${SOURCE_RUN_TAG}/"
 
 echo "=== Coarse mesh ablation ==="
 echo "Source run       : $SOURCE_RUN_TAG"
-echo "Coarse checkpoint: $COARSE_MODEL_HOST_PATH"
+if [[ "$USE_ORIGINAL_GS" == "True" ]]; then
+    echo "Coarse source    : original staged GS PLY (SuGaR coarse optimization skipped)"
+else
+    echo "Coarse checkpoint: $COARSE_MODEL_HOST_PATH"
+fi
 echo "Output directory : $OUTPUT_HOST_DIR"
 echo "Output type      : coarse mesh only; no refinement, UV texture, or crop"
 echo "Mesh vertices    : $MESH_VERTICES"
@@ -298,13 +346,14 @@ echo "Poisson depth    : $POISSON_DEPTH"
 echo "Density quantile : $VERTICES_DENSITY_QUANTILE"
 echo "Project vertices : $PROJECT_MESH_ON_SURFACE_POINTS"
 echo "Low-opacity threshold: $LOW_OPACITY_GAUSSIAN_THRESHOLD"
+echo "Original GS input: $USE_ORIGINAL_GS"
+echo "Gaussian depth   : $USE_GAUSSIAN_DEPTH"
 
-docker compose -f docker-compose.yml -f docker-compose.sugar-dev.yml run --rm sugar-meshing \
-    python3 extract_mesh.py \
+EXTRACT_ARGUMENTS=(
+    python3 extract_mesh.py
     -s /data/05_3dgs \
     -c "$CHECKPOINT_CONTAINER_DIR" \
     -i "$ITERATIONS" \
-    -m "$COARSE_MODEL_CONTAINER_PATH" \
     -l "$SURFACE_LEVEL" \
     -d "$MESH_VERTICES" \
     -o "$OUTPUT_CONTAINER_DIR" \
@@ -313,8 +362,17 @@ docker compose -f docker-compose.yml -f docker-compose.sugar-dev.yml run --rm su
     --poisson-depth "$POISSON_DEPTH" \
     --vertices-density-quantile "$VERTICES_DENSITY_QUANTILE" \
     --low-opacity-gaussian-threshold "$LOW_OPACITY_GAUSSIAN_THRESHOLD" \
+    --use-gaussian-depth "$USE_GAUSSIAN_DEPTH" \
+    --use-vanilla-3dgs "$USE_ORIGINAL_GS" \
     --eval True \
     --gpu "$GPU"
+)
+if [[ "$USE_ORIGINAL_GS" != "True" ]]; then
+    EXTRACT_ARGUMENTS+=( -m "$COARSE_MODEL_CONTAINER_PATH" )
+fi
+
+docker compose -f docker-compose.yml -f docker-compose.sugar-dev.yml run --rm sugar-meshing \
+    "${EXTRACT_ARGUMENTS[@]}"
 
 echo "=== Coarse mesh ablation completed ==="
 echo "Mesh output: $OUTPUT_HOST_DIR"

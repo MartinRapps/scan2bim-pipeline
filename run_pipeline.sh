@@ -807,6 +807,11 @@ FILTERED_PLY="data/05_3dgs/output/point_cloud/iteration_${ITERATIONS}/point_clou
 ./run_masked_sugar.sh
 run_step_end 0
 
+if [[ "$STOP_AFTER_COARSE_MESH" == "1" ]]; then
+    echo "SuGaR-Coarse-Mesh abgeschlossen; Postprocessing wird bewusst uebersprungen."
+    exit 0
+fi
+
 # Step 5: Post-Processing & Georeferencing (DGtal & Python & GDAL)
 run_step_start "Centerline und Georeferenzierung"
 echo "[Step 5/5] Extracting centerline and georeferencing to UTM..."
