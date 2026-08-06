@@ -243,7 +243,7 @@ SOURCE_RUN_TAG=masked_7000_dn_consistency_medium \
 COARSE_MESH_ABLATION_TAG=depth8_v50000 \
 MESH_VERTICES=50000 \
 POISSON_DEPTH=8 \
-./run_coarse_mesh_ablation.sh
+./tools/run_coarse_mesh_ablation.sh
 ```
 
 This does not retrain SuGaR and does not run refinement, UV baking, or crop.
