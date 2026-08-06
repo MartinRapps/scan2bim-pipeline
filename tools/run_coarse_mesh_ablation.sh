@@ -7,8 +7,13 @@ set -euo pipefail
 # directly from the private staged STS Gaussian PLY. Every ablation writes to a
 # separate directory below its source run.
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
+
+# Keep generated outputs writable by the invoking host user when this helper
+# is run directly rather than through run_pipeline.sh.
+export HOST_UID="${HOST_UID:-$(id -u)}"
+export HOST_GID="${HOST_GID:-$(id -g)}"
 
 # A plain terminal invocation is guided. Commands with configuration variables
 # remain non-interactive for reproducible ablations.
