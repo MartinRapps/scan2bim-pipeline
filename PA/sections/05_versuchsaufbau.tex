@@ -1,0 +1,155 @@
+\section{Versuchsaufbau}
+
+Die Evaluation folgt einer gestuften Logik. Ein ressourcenschonender
+Smoke-Test prüft zunächst die Datenverträge. Separate COLMAP-Voruntersuchungen
+begründen den SfM-Standard. Danach untersuchen automatisierte Matrixläufe
+Kameramodell, FPS und Auflösung. Eine kontrollierte Vierfeld-Ablation lokalisiert
+den Einfluss von Gaussian-Optimierung und Tiefenroute. Abschließend
+vervollständigt eine zwölf Läufe umfassende SuGaR-Folgeprüfung den technischen
+Meshroutenvergleich auf der Coarse-Stufe.
+
+\subsection{Testdatensatz, Variablen und Konstanten}
+
+Die Tests verwenden das Alurohr-Video als linearen Labor-Testdatensatz. Die
+Matrixprofile bestehen aus 5 FPS und 2 FPS sowie den Auflösungen 1280$\times$720,
+960$\times$540 und 640$\times$360. Der Prompt lautet \texttt{pipe}. SIFT-
+Merkmale, Sequential-Overlap, Guided Matching, STS-Iterationszahl, Meshziel,
+Surface-Sample-Zahl und Seed werden konstant gehalten.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{3.5cm}X}
+\toprule
+Kategorie & Festlegung\\
+\midrule
+Datensatz/Prompt & Alurohr-Video, \texttt{pipe}\\
+Kameramodelle & \texttt{SIMPLE\_RADIAL}, \texttt{PINHOLE}, \texttt{OPENCV}\\
+Frameprofile & 2/5 FPS; $1280\times720$, $960\times540$, $640\times360$\\
+COLMAP-Standard & 4096 Plain-SIFT, Overlap 15, Guided Matching aus,
+Peak-Threshold 0,003\\
+STS & 7000 Gesamtiterationen, 5000 Objektcurriculum\\
+Mesh & 200000 Zielvertices, 5000000 Surface-Samples, Poisson-Tiefe 10,
+Seed 42\\
+Masken & RGB \texttt{default}, DN \texttt{middle}, keine zusätzliche
+Dilatation\\
+Centerline & \texttt{single}, Voxel 0,1, B-Spline Grad 10\\
+Bildmetriken & ausschließlich objektmaskierte PSNR, SSIM und LPIPS\\
+\bottomrule
+\end{tabularx}
+\caption{Zentrale Variablen und kontrollierte Standardparameter.}
+\label{tab:versuchsparameter}
+\end{table}
+
+Die Bildmetriken sind die einzigen Qualitätsmetriken für Renderings.
+Maskenabdeckung, Registrierungsquote, Laufstatus und Laufzeit werden als
+technische Zusatzgrößen geführt. Sie werden nicht zu weiteren Bildmetriken
+umdefiniert.
+
+\subsection{COLMAP-Voruntersuchung}
+
+Eine getrennte CPU-Voruntersuchung vergleicht die Sparse-SfM-Stufe. Sie umfasst
+unter anderem 4096 gegen 8192 SIFT-Merkmale, Guided Matching und zwei
+Kompressionsprofile. Alle fünf ausgewerteten Hauptläufe registrierten 240 von
+240 Bildern. Die Untersuchung begründet den Standard 4096 Plain-SIFT und
+deaktiviertes Guided Matching, ist aber kein vollständiger STS-/Meshvergleich.
+
+\subsection{Smoke-Test und Replay}
+
+Der Lauf \path{matrix_smoke_low_pipe_full} ist ein einzelner Low-
+Auflösungstest mit 5 FPS, \texttt{SIMPLE\_RADIAL} und Route A. Er prüft die Kette von den
+idealen Masken über einen vorhandenen STS-Checkpoint bis zu Mesh, Rendering,
+Metriken und Postprocessing. Der Zusatz \texttt{full} bedeutet, dass dieser
+einzelne Lauf nicht nach der Maskenprüfung beendet wurde; er bezeichnet keine
+vollständige Parameter-Matrix.
+
+Der Replay startet an einer Schrittgrenze und stellt nur die dafür notwendigen
+Artefakte wieder her. Dadurch können teure, bereits validierte Stufen
+wiederverwendet werden, ohne einen abgebrochenen Optimierer innerhalb einer
+Iteration fortzusetzen.
+
+\subsection{Kameramodell-/FPS-/Auflösungsmatrix}
+
+Die bereits ausgeführte A-Route wurde nicht erneut gerechnet. Die Folge-Matrix
+\path{matrix_rest} enthält PINHOLE-A und OPENCV-A. Die gezielte
+SuGaR-Folgeprüfung verwendet die separate Konfiguration
+\path{tools/experiment_matrix_sugar.tsv} mit SIMPLE-RADIAL-SuGaR und
+OPENCV-SuGaR. Damit werden Kameramodell, FPS und Auflösung getrennt von der
+Meshroute untersucht.
+
+Die zusammengeführte Hauptauswertung enthält sechs historische
+\texttt{simple\_radial\_a}-Versuche und 18 Folgeexperimente. Die Folgeexperimente
+umfassen \texttt{PINHOLE}-A, \texttt{OPENCV}-A und die damalige
+\texttt{SIMPLE\_RADIAL}-SuGaR-Route über jeweils drei Auflösungen und zwei
+FPS-Profile. Der Runner arbeitet seriell, weil alle Versuche denselben
+Live-Workspace verwenden und zwischen den Läufen archiviert und bereinigt wird.
+
+\subsection{Vierfeld-Ablation der Meshgewinnung}
+
+Die Ursache sichtbarer Meshunterschiede wird mit vier Coarse-only-Varianten
+getrennt:
+
+\begin{enumerate}
+  \item A: Original-STS-GS mit projizierter Diamond-Mesh-Tiefe;
+  \item B: Original-STS-GS mit Gaussian-Rasterizer-Tiefe;
+  \item C: SuGaR-Coarse $c=9000$ mit Diamond-Mesh-Tiefe;
+  \item D: SuGaR-Coarse $c=9000$ mit Gaussian-Rasterizer-Tiefe.
+\end{enumerate}
+
+Kameras, Eingabemasken, Surface-Level, Poisson-Tiefe, Dichtequantil,
+Vertexziel, Samplezahl, Projektion und Seed bleiben konstant. Dadurch werden
+Gaussian-Optimierung und Tiefenroute als getrennte Einflussfaktoren untersucht.
+Die aus gleichmäßig gesampelten Meshpunkten berechneten gerichteten Distanzen
+sind relative Vergleichsgrößen zwischen den Varianten, keine Abweichungen von
+einer Ground Truth.
+
+\subsection{Abgeschlossene SuGaR-Folgeprüfung}
+
+Die frühere SuGaR-Matrix scheiterte nach vorhandenen STS-Baselinewerten im
+separaten Renderpfad. Nach Korrektur von Importpfad und Tensorlayout wurde die
+Konfiguration mit zwölf Läufen ausgeführt: \texttt{SIMPLE\_RADIAL} und
+\texttt{OPENCV}, jeweils mit \texttt{sugar\_coarse}, drei Auflösungen und zwei
+FPS-Profilen. Alle zwölf Manifeste und Coarse-Metrikdateien sind erfolgreich
+archiviert. Ein verfeinertes PLY wurde in diesen Läufen nicht exportiert; die
+Folgematrix bewertet daher die Coarse-Route, nicht die SuGaR-Refined-Stufe.
+
+\subsection{Evaluationsprotokoll}
+
+Für jeden Lauf werden Masken- und Warp-Coverage sowie die COLMAP-Ausgaben
+archiviert. Hinzu kommen STS-Checkpoint, Mesh-/Postprocess-Ausgaben, feste
+Eval-Frames und objektmaskierte PSNR-, SSIM- und LPIPS-Werte. Die Daten werden über
+\texttt{manifest.json}, \texttt{parameters.json}, \texttt{run.log} und
+\texttt{run.md} nachvollziehbar gehalten.
+
+Die Matrixgrafiken verwenden den arithmetischen Mittelwert aus 2 und 5 FPS nur,
+wenn beide Läufe derselben Konfiguration vollständig erfolgreich waren. Ein
+technischer Fehler wird nicht als schlechter Qualitätswert in einen Mittelwert
+umgewandelt.
+
+Ein Lauf erhält nur dann den Status vollständig erfolgreich, wenn alle für
+seine Route vorgesehenen Stufen gültig sind: Masken und Coverage,
+COLMAP-Modell, Roh-/Ideal-Domäne, vollständig gematchter Eval-Split,
+STS-Checkpoint, Objektselektion, Mesh, Postprocessing, objektmaskierte Metriken
+und Ergebnisarchiv. Für SuGaR-Coarse muss zusätzlich das SuGaR-Rendering
+erfolgreich sein. Eine zuvor erzeugte \texttt{sts\_masked.json} bleibt eine
+STS-Baseline und wird nicht als SuGaR-Messung gewertet.
+
+\subsection{Erfolgskriterien der Projektarbeit}
+
+Die PA gilt als technisch erfolgreich, wenn:
+
+\begin{enumerate}
+  \item die zentrale Pipeline für den Testdatensatz durchläuft;
+  \item die Bild- und Maskendomänen konsistent sind;
+  \item STS, Meshgewinnung und Centerline-Extraktion reproduzierbar arbeiten;
+  \item der Status jedes Matrixlaufs und die Fehlerursache archiviert sind;
+  \item die Ergebnisse für eine spätere GNSS-basierte Bachelorbewertung
+        geeignet abgelegt werden.
+    \item interaktiver Vollauf, Replay, Autopilot und Matrixrunner in ihrer
+      jeweiligen Funktion eindeutig dokumentiert und mindestens über einen
+      archivierten Lauf oder Vertragstest nachgewiesen sind.
+\end{enumerate}
+
+Die PSNR-/SSIM-/LPIPS-Werte sind dabei Funktions- und Visualisierungsmetriken.
+Sie ersetzen nicht die spätere geometrische Bewertung mit Centerline-RMSE,
+Hausdorff-Distanz und GNSS-Referenz.

@@ -1,0 +1,144 @@
+\section{Diskussion und Grenzen}
+
+\subsection{Technische Machbarkeit und Robustheit}
+
+Die Hauptfrage kann für den kontrollierten Alurohrdatensatz und den
+nachgewiesenen Matrix-/Smoke-/Replaypfad grundsätzlich positiv beantwortet
+werden. Die Verarbeitungskette kann aus einer Bildsequenz Masken und Kameras
+erzeugen, objektbezogene Gaussians trainieren, ein Mesh ableiten und daraus
+eine lokale Centerline samt B-Spline exportieren. Der wissenschaftlich
+relevante Befund ist dabei nicht nur ein einzelner erfolgreicher Lauf. Die im
+Matrix-/Replaypfad wirksamen Quality-Gates für Masken, Kameramodelle, ideale
+Bilddomäne, Eval-Split und Ergebnisarchive verhindern mehrere zuvor
+beobachtete stille oder verspätete Fehler; der Inline-Vollauf muss vor der
+Abgabe noch auf dieselbe Gate-/Warp-Kette gebracht oder separat begrenzt werden.
+
+Robustheit bedeutet in dieser Arbeit nicht Fehlerfreiheit unter jeder
+denkbaren Eingabe. Sie bedeutet, dass bekannte Voraussetzungen geprüft,
+unvollständige Routen eindeutig markiert, teure Stufen an kontrollierten
+Grenzen wiederholt und Ergebnisse reproduzierbar archiviert werden. Die
+Untersuchung nur eines Testvideos begrenzt weiterhin die externe Validität.
+
+\subsection{Masken, Domänen und Geometrie}
+
+Die zentrale Domänentrennung löst einen methodischen Widerspruch: SfM profitiert
+von unmaskierten Hintergrundmerkmalen, während STS und objektmaskierte
+Metriken eine semantisch begrenzte ideale Bilddomäne benötigen. Die gemeinsame
+Transformation von Bildern, Kameras und Masken stellt diese Konsistenz her.
+
+Masken sind dennoch keine geometrische Referenz. Sie gewichten oder selektieren
+Bildpixel und Objektzuordnungen. Position, Skalierung und Orientierung der
+Gaussians, Kamerafehler, Surface-Sampling und Poisson-Rekonstruktion können die
+3D-Geometrie weiterhin verändern. Deshalb ist die zunächst plausible Aussage,
+eine niedrige Auflösung genüge bei korrekten Masken und registriertem COLMAP,
+nur als technische Hypothese zulässig. Für einen erfolgreichen Lauf müssen alle
+Datenverträge gelten; für geometrische Genauigkeit wäre zusätzlich eine
+unabhängige Referenz notwendig.
+
+\subsection{Kameramodell, FPS und Auflösung}
+
+Die Matrix zeigt, dass Kameramodell, zeitliche Samplingdichte und Auflösung
+nicht isoliert interpretiert werden dürfen. Die 2-FPS-Profile enthalten weniger
+zeitlich benachbarte Ansichten; bei dünnen Objekten kann dies die SAM-
+Propagation und die verfügbare Überdeckung erschweren. Die Beobachtung ist
+jedoch nicht monoton: Einzelne Low- und 720p-Läufe bleiben maskenstabil.
+
+Die nativen Bildmetriken werden in unterschiedlichen Pixelräumen berechnet.
+Downsampling kann Bildfehler und Maskengrenzen mitteln. Ein strengerer
+Auflösungsvergleich müsste alle Renderings auf eine gemeinsame Zielauflösung
+und identische Eval-Views bringen. Die derzeitige Matrix ist deshalb ein
+Engineering-Screening.
+
+Der direkte PINHOLE-Lauf darf nicht als Nachweis einer Entzerrung interpretiert
+werden. Er erzwingt auf den Rohbildern die Annahme einer idealen Kamera. Der
+Produktionsweg mit \texttt{SIMPLE\_RADIAL} schätzt dagegen zunächst eine
+Verzeichnung und erzeugt anschließend eine separate ideale Szene. OPENCV kann
+zusätzliche Verzeichnungsanteile modellieren, besitzt aber mehr Freiheitsgrade.
+Aus den Bildmetriken allein lässt sich daher keine generell beste
+Kamerakonfiguration ableiten.
+
+\subsection{Original-GS und SuGaR-Coarse}
+
+Die Vierfeld-Ablation zeigt, dass nicht nur die verwendete Tiefenroute, sondern
+auch die zusätzliche SuGaR-Coarse-Optimierung die resultierende Oberfläche
+verändert. Route A bewahrt den STS-Zustand am direktesten und ist für das Ziel
+einer stabilen Centerline deshalb der plausibelste Produktionsstandard. Mehr
+Vertices oder sichtbar feinere Strukturen sind nicht automatisch besser, wenn
+sie zugleich Spitzen oder veränderte Randstützen erzeugen.
+
+Die Entscheidung ist bewusst vorläufig. Die Meshdistanzen vergleichen nur
+Varianten untereinander. Sie geben keinen Abstand zum realen Alurohr an. Die
+zwischenzeitlich abgeschlossene zwölfteilige SuGaR-Coarse-Folgematrix zeigt,
+dass der reparierte Coarse-Renderpfad über beide Kameramodelle, drei
+Auflösungen und zwei FPS-Profile technisch durchläuft. Sie liefert damit eine
+breitere technische Evidenz als der einzelne Smoke-Checkpoint. Da in keinem
+der zwölf Läufe ein `refined.ply` exportiert wurde, ist die Aussage weiterhin
+auf SuGaR-Coarse beschränkt; eine SuGaR-Refined-Auswertung bleibt offen.
+
+\subsection{Autopilot, Replay und Batchfähigkeit}
+
+Der Matrixrunner belegt die serielle Batchverarbeitung deklarierter
+Konfigurationen. Der Replay reduziert Wiederholungsaufwand, verlangt aber
+vollständige und kompatible Eingabeartefakte an der gewählten Schrittgrenze.
+Der Autopilot füllt interaktive Entscheidungen mit Standardwerten und kann den
+manuellen GCP-Breakpoint überspringen. Diese drei Funktionen sind verwandt,
+aber nicht identisch.
+
+Vor einer endgültigen Aussage zur nutzerseitigen Autonomie muss ein
+Autopilot-Vollauf oder ein gleichwertiger Vertragstest archiviert werden. Die
+Containerisierung und nichtinteraktive Matrix bereiten einen Serverbetrieb vor;
+ein Deployment, Mehrbenutzerbetrieb und Betriebsmonitoring wurden nicht
+evaluiert. Benutzerfreundlichkeit wird deshalb nur als reduzierte Zahl
+manueller Entscheidungen, nicht als formale Usability-Messung bewertet.
+
+\subsection{Laufzeit und Effizienz}
+
+Der Zeit-/Qualitätsquotient ist ebenfalls sekundär. Er kombiniert normalisierte
+PSNR-, SSIM- und invertierte LPIPS-Werte mit gleichen Gewichten und verwendet
+nur die archivierten STS-bis-Postprocess-Zeiten. SAM3- und COLMAP-Zeit sowie
+Container-Overheads der Rendering- und Metrikschritte sind nicht vollständig
+enthalten. Für die Bachelorarbeit müssen Rohmetriken und geometrische
+Referenzmetriken höher gewichtet werden.
+
+Die Effizienzanalyse ist trotzdem praktisch relevant: Ein automatischer
+Screeninglauf kann ungeeignete Kombinationen aussortieren, bevor eine
+hochaufgelöste Produktionsrechnung erfolgt. Wegen unvollständiger
+End-to-End-Laufzeiten bleibt die Zeit-/Qualitätsmatrix im Anhang und dient nicht
+als primäre wissenschaftliche Rangliste.
+
+\subsection{Centerline, Georeferenzierung und externer Geltungsbereich}
+
+Die größte technische Restaufgabe ist die echte Georeferenzierung. Ein
+Translation-Fallback prüft zwar die Ausführung, sagt aber nichts über Lage-
+oder Höhengenauigkeit aus. Ebenso sind die Testdaten keine reale Rohr- oder
+Kabeltrasse und enthalten keine unabhängige GNSS-Referenzkurve.
+
+Auch die lokale Centerline ist bisher nur als erzeugtes Artefakt, nicht als
+geometrisch richtige Scheitelachse validiert. Der \texttt{single}-Modus ist für
+eine einzelne Trasse robust, verwirft aber bewusst Netzwerktopologie. Eine
+Übertragung auf Abzweigungen erfordert neue Referenzdaten und eigene
+Graphmetriken.
+
+Für die Bachelorarbeit folgen daraus vier priorisierte Schritte: reale
+Aufnahmebedingungen, echte GCP-/GNSS-Daten, validierte relative
+4x4-Transformation sowie RMSE- und Hausdorff-Distanz einer extrahierten
+Centerline gegen eine unabhängige Referenzkurve. Erst damit kann die
+ingenieurtechnische Toleranz geprüft werden.
+
+\subsection{Beantwortung der Forschungsfragen}
+
+\begin{enumerate}
+  \item Die konsistente Übergabe erfordert ein erhaltenes Originalmodell, eine
+	  getrennte ideale Bilddomäne, denselben Warp für Masken, einen
+	  nichtleeren gematchten Eval-Split und explizite Statusprüfungen aller
+	  Ergebnisstufen.
+  \item Kameramodell, FPS und Auflösung verändern Pipelineerfolg und
+	  Ansichtsmetriken, jedoch nicht monoton. Die aktuelle Matrix erlaubt ein
+	  Screening, aber keinen isolierten Kausal- oder Geometrienachweis.
+  \item Route A bewahrt die Original-STS-Gaussians direkter und zeigt im
+	  relativen Vergleich weniger unerwünschte Oberflächenveränderung. Ihre
+	  absolute geometrische Richtigkeit bleibt offen.
+  \item Replay und Matrixrunner sind für reproduzierbare Wiederholungen und
+	  Batchläufe nachgewiesen. Der Autopilot ist implementiert; sein
+	  vollständiger End-to-End-Nachweis bleibt vor Abgabe zu archivieren.
+\end{enumerate}

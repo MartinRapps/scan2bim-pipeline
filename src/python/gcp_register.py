@@ -33,21 +33,92 @@ Point = np.ndarray  # shape (3,)
 
 # --- COLMAP TXT parsing -------------------------------------------------------
 
+CAMERA_PARAMETER_COUNTS = {
+    "SIMPLE_PINHOLE": 3,
+    "PINHOLE": 4,
+    "SIMPLE_RADIAL": 4,
+    "RADIAL": 5,
+    "OPENCV": 8,
+}
+
+
+def _parse_float_tokens(tokens: List[str], path: str, line_number: int) -> List[float]:
+    try:
+        return [float(token) for token in tokens]
+    except ValueError as error:
+        raise ValueError(
+            f"{path}:{line_number}: Kameraparameter enthalten keine gültige Zahl: {tokens}"
+        ) from error
+
+
+def _camera_parameter_tokens(
+    model: str, tokens: List[str], path: str, line_number: int
+) -> List[str]:
+    expected = CAMERA_PARAMETER_COUNTS.get(model)
+    if expected is None:
+        supported = ", ".join(sorted(CAMERA_PARAMETER_COUNTS))
+        raise ValueError(
+            f"{path}:{line_number}: Kameramodell '{model}' wird nicht unterstützt. "
+            f"Unterstützt: {supported}."
+        )
+
+    # Standard COLMAP TXT format:
+    # CAMERA_ID MODEL WIDTH HEIGHT PARAMS[]
+    if len(tokens) == expected:
+        return tokens
+
+    # Project helper format (colmap_bin_to_txt.py):
+    # CAMERA_ID MODEL WIDTH HEIGHT NUM_PARAMS PARAMS[]
+    if len(tokens) == expected + 1:
+        declared = tokens[0]
+        try:
+            declared_count = int(declared)
+        except ValueError:
+            declared_count = None
+        if declared_count == expected:
+            return tokens[1:]
+
+    raise ValueError(
+        f"{path}:{line_number}: Kameramodell '{model}' erwartet {expected} "
+        f"Parameter (Standardformat) oder eine vorangestellte Anzahl; "
+        f"gefunden wurden {len(tokens)} Werte: {' '.join(tokens)}"
+    )
+
 def parse_cameras_txt(path: str) -> Dict[int, dict]:
     cameras = {}
     with open(path, encoding="utf-8") as handle:
-        for line in handle:
+        for line_number, line in enumerate(handle, start=1):
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
             parts = line.split()
-            cam_id = int(parts[0])
-            model = parts[1]
-            width = int(parts[2])
-            height = int(parts[3])
-            num_params = int(parts[4])
-            params = [float(x) for x in parts[5:5 + num_params]]
+            if len(parts) < 5:
+                raise ValueError(
+                    f"{path}:{line_number}: erwartete COLMAP-Kamerazeile mit "
+                    "ID, Modell, Breite, Höhe und Parametern."
+                )
+            try:
+                cam_id = int(parts[0])
+                model = parts[1]
+                width = int(parts[2])
+                height = int(parts[3])
+            except ValueError as error:
+                raise ValueError(
+                    f"{path}:{line_number}: ungültige Kamera-ID, Modellgröße "
+                    f"oder Bildabmessung: {' '.join(parts[:4])}"
+                ) from error
+            if width <= 0 or height <= 0:
+                raise ValueError(
+                    f"{path}:{line_number}: Bildabmessungen müssen positiv sein, "
+                    f"gefunden: {width}x{height}."
+                )
+            parameter_tokens = _camera_parameter_tokens(model, parts[4:], path, line_number)
+            params = _parse_float_tokens(parameter_tokens, path, line_number)
+            if cam_id in cameras:
+                raise ValueError(f"{path}:{line_number}: doppelte Kamera-ID {cam_id}.")
             cameras[cam_id] = {"model": model, "width": width, "height": height, "params": params}
+    if not cameras:
+        raise ValueError(f"{path}: keine Kameradaten gefunden.")
     return cameras
 
 
@@ -267,9 +338,131 @@ def build_camera_index(images: List[dict], cameras: Dict[int, dict]) -> Dict[str
     return index
 
 
+def validate_gcp_inputs(
+    observations: List[dict],
+    camera_index: Dict[str, dict],
+    gcp_relative: Dict[str, np.ndarray],
+) -> dict:
+    """Validate the UI payload before triangulation and similarity fitting.
+
+    Three non-collinear GCPs are the mathematical minimum for the 3D
+    similarity fit. Four or more observations/GCPs are recommended for a
+    stable practical registration, but are intentionally not required here.
+    """
+    if not isinstance(observations, list) or not observations:
+        raise ValueError("Keine GCP-Beobachtungen vorhanden.")
+
+    grouped: Dict[str, List[dict]] = {}
+    errors: List[str] = []
+    for index, observation in enumerate(observations):
+        if not isinstance(observation, dict):
+            errors.append(f"Beobachtung {index + 1} ist kein Objekt.")
+            continue
+        missing = [
+            key for key in ("gcp_id", "image_name", "u", "v")
+            if key not in observation
+        ]
+        if missing:
+            errors.append(
+                f"Beobachtung {index + 1} enthält nicht die Felder: {', '.join(missing)}."
+            )
+            continue
+        gcp_id = str(observation["gcp_id"])
+        image_name = str(observation["image_name"])
+        if gcp_id not in gcp_relative:
+            errors.append(f"{gcp_id}: keine relativen Koordinaten in gcp_relative.csv.")
+            continue
+        camera = camera_index.get(image_name)
+        if camera is None:
+            errors.append(f"{gcp_id}/{image_name}: Frame ist im COLMAP-Modell nicht vorhanden.")
+            continue
+        try:
+            u = float(observation["u"])
+            v = float(observation["v"])
+        except (TypeError, ValueError) as error:
+            errors.append(f"{gcp_id}/{image_name}: Pixelkoordinaten sind keine Zahlen.")
+            continue
+        if not math.isfinite(u) or not math.isfinite(v):
+            errors.append(f"{gcp_id}/{image_name}: Pixelkoordinaten sind nicht endlich.")
+            continue
+        if not (0 <= u < camera["width"] and 0 <= v < camera["height"]):
+            errors.append(
+                f"{gcp_id}/{image_name}: Pixel ({u:.3f}, {v:.3f}) liegt außerhalb "
+                f"des Frames ({camera['width']}x{camera['height']})."
+            )
+            continue
+        grouped.setdefault(gcp_id, []).append(observation)
+
+    duplicate_observations = []
+    usable_by_gcp: Dict[str, List[dict]] = {}
+    for gcp_id, items in grouped.items():
+        seen_frames = set()
+        usable_by_gcp[gcp_id] = []
+        for item in items:
+            image_name = str(item["image_name"])
+            if image_name in seen_frames:
+                duplicate_observations.append(f"{gcp_id}/{image_name}")
+                continue
+            seen_frames.add(image_name)
+            usable_by_gcp[gcp_id].append(item)
+        if len(usable_by_gcp[gcp_id]) < 2:
+            errors.append(
+                f"{gcp_id}: nur {len(usable_by_gcp[gcp_id])} nutzbare Beobachtung(en); "
+                "mindestens 2 erforderlich."
+            )
+
+    if duplicate_observations:
+        errors.append(
+            "Doppelte GCP-/Frame-Beobachtungen: "
+            + ", ".join(duplicate_observations[:5])
+        )
+
+    valid_gcp_ids = [
+        gcp_id for gcp_id, items in usable_by_gcp.items() if len(items) >= 2
+    ]
+    if len(valid_gcp_ids) < 3:
+        errors.append(
+            f"Nur {len(valid_gcp_ids)} GCPs mit mindestens zwei nutzbaren "
+            "Beobachtungen; mindestens 3 nichtkollineare GCPs erforderlich."
+        )
+    else:
+        target_points = np.array([gcp_relative[gcp_id] for gcp_id in valid_gcp_ids])
+        centered = target_points - target_points.mean(axis=0)
+        if np.linalg.matrix_rank(centered, tol=1e-9) < 2:
+            errors.append(
+                "Die relativen GCP-Koordinaten sind kollinear oder nahezu "
+                "kollinear; für eine 3D-Ähnlichkeitstransformation werden "
+                "nichtkollineare Punkte benötigt."
+            )
+
+    if errors:
+        raise ValueError("GCP-Preflight fehlgeschlagen:\n- " + "\n- ".join(errors))
+
+    warnings = []
+    if len(valid_gcp_ids) == 3:
+        warnings.append(
+            "Nur 3 GCPs verwendet; 4 oder mehr räumlich gut verteilte GCPs "
+            "sind für eine robuste Kontrolle empfohlen."
+        )
+    total_usable_observations = sum(
+        len(items) for items in usable_by_gcp.values()
+    )
+    return {
+        "num_observations_input": len(observations),
+        "num_observations_usable": total_usable_observations,
+        "num_gcps_input": len(grouped),
+        "num_gcps_usable": len(valid_gcp_ids),
+        "gcp_observations": {
+            gcp_id: len(usable_by_gcp[gcp_id]) for gcp_id in valid_gcp_ids
+        },
+        "warnings": warnings,
+    }
+
+
 def register_gcps(observations: List[dict], camera_index: Dict[str, dict],
                   gcp_relative: Dict[str, np.ndarray], refine: bool) -> dict:
     """Triangulate GCPs, fit similarity, build report."""
+    preflight = validate_gcp_inputs(observations, camera_index, gcp_relative)
     # Group observations by gcp_id.
     by_gcp: Dict[str, List[dict]] = {}
     for obs in observations:
@@ -377,6 +570,7 @@ def register_gcps(observations: List[dict], camera_index: Dict[str, dict],
     matrix_4x4[:3, 3] = t
 
     return {
+        "preflight": preflight,
         "num_gcps_used": len(pairs),
         "num_observations": int(sum(o["num_observations"] for o in per_gcp_report if o.get("status") == "ok")),
         "scale": round(float(s), 8),

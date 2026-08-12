@@ -70,6 +70,35 @@ class ParseTests(unittest.TestCase):
         finally:
             os.unlink(path)
 
+    def test_parse_cameras_txt_standard_colmap_without_parameter_count(self):
+        import tempfile
+        fd, path = tempfile.mkstemp(suffix=".txt")
+        os.close(fd)
+        try:
+            with open(path, "w") as fh:
+                fh.write("# Standard COLMAP format\n")
+                fh.write("1 SIMPLE_RADIAL 768 432 571.57988887649526 384 216 -0.010094692027767839\n")
+            cams = parse_cameras_txt(path)
+            self.assertEqual(cams[1]["model"], "SIMPLE_RADIAL")
+            self.assertEqual(cams[1]["width"], 768)
+            self.assertEqual(cams[1]["height"], 432)
+            self.assertEqual(len(cams[1]["params"]), 4)
+            self.assertAlmostEqual(cams[1]["params"][0], 571.57988887649526)
+        finally:
+            os.unlink(path)
+
+    def test_parse_cameras_txt_rejects_wrong_parameter_count(self):
+        import tempfile
+        fd, path = tempfile.mkstemp(suffix=".txt")
+        os.close(fd)
+        try:
+            with open(path, "w") as fh:
+                fh.write("1 SIMPLE_RADIAL 768 432 3 571.0 384.0 216.0 0.0\n")
+            with self.assertRaises(ValueError):
+                parse_cameras_txt(path)
+        finally:
+            os.unlink(path)
+
 
 @unittest.skipUnless(HAS_NUMPY, "numpy nicht installiert (Test wird in Container E / venv ausgefuehrt)")
 class GeometryTests(unittest.TestCase):

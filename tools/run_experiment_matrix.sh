@@ -48,25 +48,25 @@ Each run is sequential, archived below data/10_runs/<batch>, and cleaned before
  the next run. Raw input and data/hf_cache are never deleted.
 
 Options:
-  --dry-run                 Print the complete matrix without running it.
+    --dry-run                 Print the complete matrix without running it.
     --resolution ID           Run only 720p, qhd or low.
     --fps VALUE               Run only one FPS value, for example 5 or 2.
     --mask-only               Stop after ideal-mask coverage; do not run STS.
-  --variant ID              Run only one ID from tools/experiment_matrix.tsv.
-  --config FILE             Use another TSV matrix configuration.
-  --keep-live               Keep generated data after each experiment.
+    --variant ID              Run only one ID from tools/experiment_matrix.tsv.
+    --config FILE             Use another TSV matrix configuration.
+    --keep-live               Keep generated data after each experiment.
     --stop-on-error           Stop after the first failed experiment.
-                                                        Without this option, failed experiments are archived,
-                                                        cleaned up and skipped automatically.
-  --help                    Show this help.
+                            Without this option, failed experiments are archived,
+                            cleaned up and skipped automatically.
+    --help                    Show this help.
 
 Useful environment variables:
-  MATRIX_INPUT_VIDEO=/absolute/or/data/01_raw/video.mp4
+    MATRIX_INPUT_VIDEO=/absolute/or/data/01_raw/video.mp4
     MATRIX_PROMPT=pipe
     MATRIX_FPS_LIST=5,2
     MATRIX_STOP_ON_ERROR=0    Continue after failed experiments (default).
-  MATRIX_BATCH_ID=matrix_name
-  MATRIX_REFINEMENT_TIME=short|medium|long (default: per TSV)
+    MATRIX_BATCH_ID=matrix_name
+    MATRIX_REFINEMENT_TIME=short|medium|long (default: per TSV)
 EOF
 }
 
@@ -387,14 +387,7 @@ run_one() {
         -e COLMAP_SIFT_PEAK_THRESHOLD="$MATRIX_SIFT_PEAK_THRESHOLD" \
         colmap-sfm /app/src/scripts/run_sfm.sh
 
-    echo "[3/11] Fixed evaluation split..."
-    "${BASE_COMPOSE[@]}" run --rm sam3-preprocess \
-        python3 /app/src/python/create_eval_split.py \
-        --images-dir /data/04_sfm/undistorted/images \
-        --output /data/05_3dgs/eval_frames.txt \
-        --stride 8
-
-    echo "[4/11] Warp masks into the ideal STS image domain..."
+    echo "[3/11] Warp masks into the ideal STS image domain..."
     "${BASE_COMPOSE[@]}" run --rm sam3-preprocess \
         python3 /app/src/python/warp_masks_to_undistorted.py \
         --raw-masks-dir /data/03_masks \
@@ -417,6 +410,14 @@ run_one() {
         --mask-name middle \
         --max-empty-fraction "$MATRIX_MAX_EMPTY_MASK_FRACTION" \
         --report "$experiment_container_root/masks/ideal/mask_coverage_report.json"
+    echo "[4c/11] Fixed evaluation split (non-empty ideal masks)..."
+    "${BASE_COMPOSE[@]}" run --rm sam3-preprocess \
+        python3 /app/src/python/create_eval_split.py \
+        --images-dir /data/04_sfm/undistorted/images \
+        --masks-dir "$experiment_container_root/masks/ideal" \
+        --mask-name middle \
+        --output /data/05_3dgs/eval_frames.txt \
+        --stride 8
     if [[ "$MATRIX_MASK_ONLY" -eq 1 ]]; then
         write_result_manifest "$experiment_root/manifest.json" success "$resolution_id" "$variant" "$camera" "$mesh_mode" "mask coverage passed; STS intentionally skipped"
         write_experiment_report "$experiment_root" success "$resolution_id" "$variant" "$camera" "$mesh_mode" "mask coverage passed; STS intentionally skipped"
@@ -541,11 +542,12 @@ if [[ "$MATRIX_DRY_RUN" -eq 1 ]]; then
         for row in "${RESOLUTION_ROWS[@]}"; do
             IFS='|' read -r resolution_id max_side image_size <<< "$row"
             [[ -n "$MATRIX_ONLY_RESOLUTION" && "$MATRIX_ONLY_RESOLUTION" != "$resolution_id" ]] && continue
-            while read -r variant camera mesh_mode coarse refinement _; do
+            for matrix_row in "${MATRIX_ROWS[@]}"; do
+                read -r variant camera mesh_mode coarse refinement _ <<< "$matrix_row"
                 [[ -z "$variant" || "$variant" == \#* ]] && continue
                 [[ -n "$MATRIX_ONLY_VARIANT" && "$MATRIX_ONLY_VARIANT" != "$variant" ]] && continue
                 echo "${fps_value}fps $resolution_id ($image_size): $variant camera=$camera mesh=$mesh_mode coarse=$coarse refinement=$refinement"
-            done <<< "$(printf '%s\n' "${MATRIX_ROWS[@]}")"
+            done
         done
     done
     exit 0
@@ -558,11 +560,16 @@ for fps_value in "${MATRIX_FPS_VALUES[@]}"; do
     for row in "${RESOLUTION_ROWS[@]}"; do
         IFS='|' read -r resolution_id max_side image_size <<< "$row"
         [[ -n "$MATRIX_ONLY_RESOLUTION" && "$MATRIX_ONLY_RESOLUTION" != "$resolution_id" ]] && continue
-        while read -r variant camera mesh_mode coarse refinement _; do
+        for matrix_row in "${MATRIX_ROWS[@]}"; do
+            read -r variant camera mesh_mode coarse refinement _ <<< "$matrix_row"
             [[ -z "$variant" || "$variant" == \#* ]] && continue
             [[ -n "$MATRIX_ONLY_VARIANT" && "$MATRIX_ONLY_VARIANT" != "$variant" ]] && continue
             TOTAL=$((TOTAL + 1))
             fps_id="${fps_value}fps"
+            # Keep failure manifests/report files tied to the attempted FPS.
+            # run_one executes in a strict subshell, so its local assignment
+            # cannot update the parent shell after a failure.
+            MATRIX_FPS="$fps_value"
             # Do not call run_one directly as the condition of an `if`: Bash then
             # disables errexit throughout the called function. Run the experiment
             # in a dedicated strict subshell and inspect its status afterwards so a
@@ -593,7 +600,7 @@ for fps_value in "${MATRIX_FPS_VALUES[@]}"; do
                     break 3
                 fi
             fi
-        done <<< "$(printf '%s\n' "${MATRIX_ROWS[@]}")"
+        done
     done
 done
 

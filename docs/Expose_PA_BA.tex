@@ -65,12 +65,17 @@ Um die Automatisierung zu maximieren, wird die Pipeline über ein zentrales Mast
 Um den wissenschaftlichen Workflow anwenderfreundlich zu gestalten und manuelle Interaktionen auf ein Minimum zu reduzieren, wurde ein optionaler **Autopilot-Modus** in die Orchestrierungskonfiguration integriert. Direkt nach der Eingabe des Semantik-Prompts (z.\,B. \texttt{"cable"}) kann dieser aktiviert werden. 
 *   **Wirkungsweise:** Alle nachgelagerten Parameterentscheidungen werden vollautomatisch mit vordefinierten, wissenschaftlich erprobten Standardwerten belegt. 
 *   **Automatisierte Parameter:** Das FFMPEG-Pre-Processing erzeugt im aktuellen Projektarbeitsstandard ein komprimiertes Arbeitsvideo mit $1280 \times 720$ Pixeln bei $5$\,FPS, CRF $18$ und dem x264-Preset \texttt{medium}. Das STS-Training verwendet standardmäßig $7000$ Gesamtiterationen: $5000$ Iterationen fuer die Objekt-/Maskenphase und anschliessend $2000$ Iterationen fuer alle konfigurierten Objekte. Die Stage-2-Angabe ist dabei ein Curriculum-Fenster innerhalb der Gesamtzahl und kein zusaetzlicher Block nach dem Gesamttraining.
-*   **Anwendervorteil:** Bis auf den zwingenden physikalischen Messschritt (Breakpoint für das GCP-Point-Picking in CloudCompare) ist kein Benutzereingriff mehr erforderlich. Die Pipeline steuert alle fünf Microservices automatisiert an, führt den neuen Teilmodell-Wechsler (Best-Model-Resolver) selbständig aus und exportiert die georeferenzierten GIS-Daten fix und fertig in das Zielverzeichnis.
+*   **Anwendervorteil:** Im Autopilot ist kein Benutzereingriff für die
+Pipelinefortsetzung erforderlich; der GCP-Breakpoint wird dabei bewusst
+übersprungen und ein Fallback verwendet. Für eine echte GCP-Registrierung
+stehen die Bildmarkierungs-UI und alternativ der CloudCompare-Breakpoint
+zur Verfügung. Nur nach erfolgreicher Registrierung werden die
+georeferenzierten GIS-Daten mit der erzeugten Matrix exportiert.
 
 Es kommen fünf dedizierte Container zum Einsatz:
 \begin{itemize}
     \item \textbf{Container A (Vorverarbeitung):} Beinhaltet PyTorch 2.x und SAM 3. Benötigt das Nvidia Container Toolkit (CUDA >= 12.6).
-    \item \textbf{Container B (SfM):} Ein offizielles NVIDIA-Image für COLMAP (CUDA 11.8 oder 12.1). \textit{Nach Ausführung dieses Containers pausiert das Master-Skript automatisch (Breakpoint). Der Nutzer öffnet CloudCompare auf dem Host-System, pickt die GCPs und speichert die Transformationsmatrix. Anschließend wird das Skript mit ``Enter'' fortgesetzt.}
+    \item \textbf{Container B (SfM):} Ein offizielles NVIDIA-Image für COLMAP (CUDA 11.8 oder 12.1). Der interaktive CLI-Pfad kann nach diesem Container für das manuelle GCP-Point-Picking in CloudCompare pausieren. Der bevorzugte aktuelle Bildworkflow markiert die GCPs dagegen in der UI und berechnet Matrix und Report anschließend im Post-Processing-Container.
     \item \textbf{Container C (Object-specific 3DGS):} Beinhaltet Segment-then-Splat (STS). Empfängt die SAM 3 Masken und die COLMAP-Kameraposen und führt das objektspezifische 3DGS-Training mit dem nativen Object-specific Loss ($\mathcal{L}_{obj}$) durch. Benötigt CUDA 12.1 (PyTorch 2.3.1). SAM 3 ersetzt hierbei das intern vorgesehene AutoSeg-SAM2 als Masken-Frontend.
     \item \textbf{Zwischenschritt 3.5 (Kabel-Isolierung \& Qualitätsfilterung):} Das Skript \texttt{filter\_cable\_pc.py} erzeugt zusätzlich zur unveränderten Full-Scene-Punktwolke die echt gefilterte Objektwolke \texttt{point\_cloud\_filtered.ply}. Es selektiert die konfigurierte Ziel-Objekt-ID (im aktuellen Versuchsdatensatz \texttt{obj\_id\_m == 0}) und kann Opazitäts- sowie Farbschwellen anwenden. Eine zweite Kopie, \texttt{point\_cloud\_filtered\_opacity999999.ply}, übernimmt dieselben verbliebenen Datensätze und setzt ihre Opazitätslogits für den geometrieorientierten, maskenkonsistenten SuGaR-Eingang einheitlich auf \(\alpha=0{,}999999\). Diese Überschreibung ist eine Initialisierungspolitik und keine physikalische Aussage über die Transparenz des Objekts. Die getrennte Ablage verhindert, dass ein Objekt-Checkpoint versehentlich als unmaskierte Full-Scene-SuGaR-Baseline dient.
     \item \textbf{Container D (Meshing):} Beinhaltet SuGaR. Für die Full-Scene-Baseline wird der unveränderte STS-Checkpoint verwendet; für die Objektrekonstruktion wird eine private Kopie der gefilterten Punktwolke mit maskenkonsistenter SuGaR-Optimierung verarbeitet. Danach folgen Poisson-Mesh-Extraktion, maskiertes UV-Textur-Baking und ein Multi-View-Konsens-Crop. Wegen tiefer Abhängigkeiten zum \texttt{diff-gaussian-rasterization} Modul wird hier strikt CUDA 11.8 erzwungen. Das intern geforderte Conda-Environment wird systemweit über eine Anpassung der \texttt{ENV PATH} Variable im Dockerfile nativ zugänglich gemacht.
@@ -343,6 +348,66 @@ als aktuelle Default-Konfiguration interpretiert.
           kontrollierten Ablation deaktiviert.
 \end{itemize}
 
+\subsection*{GCP/UI-Korrektur und verifizierter Iststand}
+Die technische GCP-Ansicht wurde nach einem reproduzierten Fehlerszenario
+nochmals gegen den aktuellen Arbeitsbaum und den vorgesehenen Post-Processing-
+Container geprüft. Ausgangsseitig erschien die Frame-Liste zunächst leer,
+wenn die UI vor dem COLMAP-Lauf geöffnet wurde. Nach COLMAP wurden die Daten
+jedoch nicht automatisch neu geladen und es wurde kein erster Frame geöffnet.
+Zusätzlich wurden verschachtelte Dateien aus der rekursiven Serverantwort im
+Dashboard nicht angezeigt. Diese Befunde betrafen die Bedienoberfläche und
+waren kein Nachweis eines Fehlers in der SfM-Geometrie.
+
+Die Registrierung schlug zunächst aus zwei voneinander unabhängigen
+technischen Gründen fehl. Erstens wurde eine Standardzeile aus COLMAPs
+\texttt{cameras.txt} fälschlich so interpretiert, als müsse vor den
+Kameraparametern eine Parameteranzahl stehen. Das Standardformat enthält diese
+Anzahl nicht; bei der aktuellen Kamera
+\texttt{SIMPLE\_RADIAL} folgen direkt vier Parameter. Zweitens übergab der
+UI-Server beim Docker-Aufruf Host-Pfade an den Container. Dort sind die
+Bind-Mounts jedoch unter \texttt{/data} verfügbar. Auf dem verwendeten System
+führte außerdem die Compose-Standard-UID $1000:1000$ zu fehlenden
+Schreibrechten für \texttt{matrix.txt}.
+
+Die Korrektur umfasst daher vier Teile:
+\begin{itemize}[noitemsep]
+    \item Der GCP-Parser akzeptiert das Standardformat und das ältere
+        projektinterne Format mit expliziter Parameteranzahl und prüft
+        Modell, Bildgröße und Parameterzahl.
+    \item Die UI bietet ``Frames aktualisieren'', öffnet nach erfolgreichem
+        Laden automatisch den ersten registrierten Frame und zeigt Quelle,
+        fehlende Bilddateien sowie strukturierte Docker-/Native-Fehler an.
+    \item Der Docker-Aufruf verwendet die Containerpfade unter
+        \texttt{/data/04\_sfm} und \texttt{/data/01\_raw} sowie die aktuelle
+        Host-UID/GID. Dadurch können Matrix und Report in den Bind-Mount
+        geschrieben werden.
+    \item Die Dateivorschau flacht rekursive \texttt{children}-Einträge auf
+        Blattdateien ab, zeigt deren relativen Pfad und begrenzt lediglich
+        die sichtbare Liste bei sehr großen Ordnern.
+\end{itemize}
+
+Der verifizierte Stand verwendet 240 registrierte COLMAP-Frames und 17
+Bildbeobachtungen für drei lokale/synthetische GCPs (5, 5 und 7 Beobachtungen).
+Die Berechnung über den UI-Endpunkt lief im Docker-Modus erfolgreich und
+schrieb \texttt{data/04\_sfm/matrix.txt} sowie
+\texttt{data/04\_sfm/gcp\_report.json}. Der Report weist ein Gesamt-RMSE von
+$0{,}05933\,\mathrm{m}$ und ein maximales GCP-Residuum von
+$0{,}07362\,\mathrm{m}$ aus. Die Reprojektions-RMSE betragen für die drei
+GCPs $3{,}7916\,\mathrm{px}$, $2{,}8042\,\mathrm{px}$ und
+$6{,}9943\,\mathrm{px}$. Drei nichtkollineare GCPs sind das mathematische
+Minimum der 3D-Ähnlichkeitstransformation; für eine robuste praktische
+Kontrolle werden mindestens vier räumlich gut verteilte GCPs empfohlen.
+
+Die Regressionstests in \texttt{tests/test\_gcp\_register.py} umfassen elf
+erfolgreiche Tests. Ein Browser-Smoke-Test bestätigte den automatischen Start
+bei \texttt{00000.jpg}, 240 sichtbare Vorschaubilder, die Darstellung des
+GCP-Reports und die Anzeige verschachtelter Dateipfade. Damit ist die
+technische Bedien- und Berechnungskette repariert. Die Zahlen sind wegen der
+lokalen/synthetischen GCP-Koordinaten jedoch kein geodätischer
+Genauigkeitsnachweis für eine reale Trasse. Ebenso beweist ein erfolgreicher
+Autopilot-Status ohne erzeugte \texttt{matrix.txt} weiterhin keine echte
+GCP-Registrierung; dies muss am Matrix- und Reportartefakt geprüft werden.
+
 \subsection*{Reproduzierbarer Smoke-Test und Replay eines Matrixlaufs}
 Der Lauf \texttt{matrix\_smoke\_low\_pipe\_full} ist kein vollstaendiger
 Matrixlauf und kein wissenschaftliches Endergebnis. Der Begriff
@@ -440,6 +505,204 @@ Baseline fuer A. Die Ergebnisse belegen die technische Funktionsfaehigkeit von
 Rendern, Maskierung, Metrikberechnung und Postprocessing auf diesem
 Smoke-Test, sind aber weder ein Vergleich aller 24 Matrixlaeufe noch ein
 Nachweis der spaeteren geometrischen Genauigkeit.
+
+Der erste anschliessende Start der vollstaendigen Matrix unter
+\texttt{MATRIX\_BATCH\_ID=matrix\_full\_pipe} erzeugte nur sechs statt 24
+Versuche. Erfolgreich waren die vier \texttt{simple\_radial\_a}-Laeufe bei
+5~FPS in 720p, QHD und Low sowie bei 2~FPS in 720p. Die beiden 2-FPS-Laeufe in
+QHD und Low erreichten SuGaR, Postprocessing und Rendering, brachen jedoch bei
+der Metrikberechnung am leeren Eval-Frame \texttt{00056.jpg} ab. Die
+30-Prozent-Maskengrenze war mit 2 von 96 leeren Masken bewusst nicht erreicht;
+der Metrikcode war an dieser Stelle strenger als der vorgelagerte
+Qualitaetsguard.
+
+Die Varianten \texttt{simple\_radial\_sugar}, \texttt{pinhole\_a} und
+\texttt{opencv\_a} wurden in diesem Batch nicht fachlich getestet. Eine
+Bash-Schleifenimplementierung verbrauchte durch vererbten Standardinput nach
+dem ersten Varianteneintrag die restlichen TSV-Zeilen. Der Matrix-Runner wurde
+danach auf stdin-unabhaengige \texttt{for}-Schleifen umgestellt. Zusaetzlich
+wird der feste Eval-Split nun erst nach dem Mask-Warping aus nichtleeren idealen
+Masken erzeugt; ein teilweise nicht gematchter Split wird in SuGaR explizit
+abgelehnt. Der historische Batch bleibt als reproduzierbarer Fehlernachweis
+archiviert.
+
+\subsubsection*{Laufunterschiede und Hypothese zur 2-FPS-Maskenleere}
+Die bisherigen Matrixlaeufe unterscheiden zwei voneinander getrennte
+Einflussfaktoren: die zeitliche Samplingdichte und die raeumliche
+Bildaufloesung. Das 5-FPS-Profil erzeugte bei der rund 48-sekuendigen Aufnahme
+240 Bilder, das 2-FPS-Profil dagegen 96 Bilder. Die Aufloesungen wurden mit
+maximaler Bildseite 1280, 960 beziehungsweise 640 Pixeln erzeugt. Die
+folgende Tabelle fasst den ersten Batch zusammen; die Werte beziehen sich auf
+die damalige feste Evaluationsliste und ausschliesslich objektmaskierte
+STS-Metriken.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l r l X}
+\textbf{FPS} & \textbf{Aufloesung} & \textbf{Frames} &
+\textbf{Maskenstatus} & \textbf{Ergebnis}\\
+\hline
+5 & 720p & 240 & 0/240 leer & erfolgreich; PSNR 29.4164, SSIM 0.894742, LPIPS 0.123718\\
+5 & QHD & 240 & 2/240 leer (0.83\,\%) & erfolgreich; PSNR 28.2992, SSIM 0.884874, LPIPS 0.119272\\
+5 & Low & 240 & 0/240 leer & erfolgreich; PSNR 29.7890, SSIM 0.929571, LPIPS 0.082164\\
+2 & 720p & 96 & 0/96 leer & erfolgreich; PSNR 26.3382, SSIM 0.831956, LPIPS 0.121868\\
+2 & QHD & 96 & 2/96 leer (2.08\,\%) & Mesh/Postprocess/Rendern erfolgreich; Metrikabbruch bei \texttt{00056.jpg}\\
+2 & Low & 96 & 2/96 leer (2.08\,\%) & Mesh/Postprocess/Rendern erfolgreich; Metrikabbruch bei \texttt{00056.jpg}\\
+\end{tabularx}
+\end{center}
+
+Die Vermutung des Projekts ist, dass die leeren Masken bei 2 FPS durch eine
+Kombination aus groesserem zeitlichem Bildsprung und geringerer Objekt-
+ueberdeckung entstehen. Der SAM-3-Video-Predictor kann bei dichterer zeitlicher
+Abtastung die Objektmaske von einer Ansicht in die naechste mit kleineren
+Bewegungen propagieren. Bei 2 FPS ist die Bewegung zwischen zwei Eingabebildern
+groesser; bei QHD und Low stehen fuer das duenne Rohr zusaetzlich weniger
+stabile Pixel und Konturen zur Verfuegung. Dadurch kann die Propagation in
+einzelnen Frames abbrechen oder eine leere Maske erzeugen.
+
+Diese Erklaerung ist derzeit eine plausible Arbeitshypothese und noch kein
+isolierter Kausalnachweis. Gegen eine einfache Aussage ``niedrige Aufloesung
+allein verursacht leere Masken'' sprechen die 0/240 leeren Masken im 5-FPS-
+Low-Lauf und die 2/240 leeren Masken im 5-FPS-QHD-Lauf. Ebenso blieb der
+2-FPS-720p-Lauf leer-maskenfrei. Die Beobachtung spricht daher eher fuer eine
+Interaktion von FPS, Aufloesung, konkreter Kamerabewegung und
+frameabhaengiger SAM3-Stabilitaet. Die allgemeine 30-Prozent-Schranke wurde in
+keinem dieser beiden 2-FPS-Fehlerfaelle erreicht; der Abbruch entstand nur,
+weil der alte feste Eval-Split den konkreten leeren Frame \texttt{00056.jpg}
+auswaehlte. Der aktuelle Runner erstellt den Eval-Split deshalb erst nach dem
+Warping und beruecksichtigt nur nichtleere ideale \texttt{middle}-Masken.
+
+Die bereits ausfuehrlich getestete Produktionsroute
+\texttt{simple\_radial\_a} wird fuer die naechste Matrix nicht erneut
+gerechnet. Sie wurde aus \texttt{tools/experiment\_matrix.tsv} entfernt; die
+historischen Ergebnisse und Archive bleiben erhalten. Die verbleibende
+Matrix umfasst damit drei Varianten
+(\texttt{simple\_radial\_sugar}, \texttt{pinhole\_a}, \texttt{opencv\_a}),
+drei Aufloesungen und zwei FPS-Profile, also 18 neue Versuche.
+
+Die in den fehlgeschlagenen \texttt{simple\_radial\_sugar}-Versuchen
+vorhandenen \texttt{sts\_masked.json}-Dateien sind dabei ausschliesslich
+STS-Baseline-Metriken. Der Matrix-Runner berechnet diese vor dem separaten
+SuGaR-Coarse-Rendering. Die SuGaR-Metrikdatei wird erst im nachfolgenden
+Schritt geschrieben; dieser brach wegen des fehlenden Python-Importpfads fuer
+\texttt{sugar\_scene} ab. Die Baseline-Metrik darf daher nicht als
+erfolgreiches SuGaR-Ergebnis interpretiert werden.
+
+Die Zeit-/Qualitaetsmatrix wird als sekundäre Engineering-Auswertung
+beibehalten, nicht als alleinige wissenschaftliche Rangliste. Niedrigere
+Aufloesungen koennen durch Downsampling als scheinbar bessere Bildmetriken
+erscheinen: Kantenversatz, hochfrequentes Rauschen und kleine Maskenfehler
+werden bereits bei der Bildbildung geglaettet. Das ist keine automatische
+Aussage ueber bessere 3D-Geometrie. Die Messwerte sind zudem nicht monoton:
+OPENCV ist bei 5~FPS in Low besser als in QHD, PINHOLE erreicht dagegen bei
+5~FPS seinen hoechsten Wert in QHD. Die Ursache ist daher wahrscheinlich eine
+Interaktion aus Aufloesung, Kameramodell, konkreter Bewegung, Maskenabdeckung
+und STS-Optimierung.
+
+Der aktuelle Zeit-/Qualitaetsquotient verwendet einen explorativen, gleich
+gewichteten Min-Max-Index aus PSNR, SSIM und invertiertem LPIPS und summiert
+nur die archivierten STS-bis-Postprocess-Zeiten. SAM3, COLMAP, Rendering und
+Metrikcontainer sind darin nicht vollstaendig enthalten. Fuer die Hauptaussage
+sind deshalb die Rohmetriken sowie spaetere Centerline-/GNSS-Geometriemetriken
+massgeblich; die Zeit-/Qualitaetsmatrix wird im Effizienz-/Sensitivitaets-
+abschnitt oder im Anhang gezeigt. Ein fairerer Aufloesungsvergleich wuerde
+alle Renderings und Ground-Truth-Bilder zusaetzlich in eine gemeinsame
+Zielaufloesung und auf identische Eval-Views bringen.
+
+\subsubsection*{Vorlaeufige quantitative Matrixauswertung}
+Die kombinierte Uebersicht aus dem historischen \texttt{matrix\_full\_pipe}-
+Batch und dem Folge-Batch \texttt{matrix\_rest} ist in
+Abbildung~\ref{fig:matrix-overview} dargestellt. Die Zeilen beschreiben die
+jeweilige Laufvariante und Aufloesung. Innerhalb jeder FPS-Gruppe werden PSNR,
+SSIM und LPIPS ausschliesslich innerhalb der Objektmaske angegeben. Die
+Average-Spalte ist nur dann belegt, wenn sowohl der 2-FPS- als auch der
+5-FPS-Lauf derselben Konfiguration vollstaendig erfolgreich war.
+
+Insgesamt wurden 24 archivierte Versuche zusammengefuehrt; 16 davon sind
+vollstaendig erfolgreich, waehrend 8 als unvollstaendig markiert bleiben.
+Die sechs historischen \texttt{simple\_radial\_a}-Laeufe werden mit einem
+Stern als bereits ausgefuehrte Referenz gekennzeichnet. Die sechs
+\texttt{simple\_radial\_sugar}-Laeufe besitzen zwar STS-Baselinewerte, aber
+keine abgeschlossene SuGaR-Auswertung und werden deshalb nicht als erfolgreiche
+SuGaR-Messungen interpretiert.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_overview_table.pdf}
+    \caption{Vorlaeufige quantitative Matrixauswertung der objektmaskierten
+    STS-7000-Metriken. Die Gruppen zeigen 2 FPS, 5 FPS und den Average aus
+    beiden Profilen; gruen markiert das beste verfuegbare Ergebnis innerhalb
+    der jeweiligen Spaltengruppe. Fehlgeschlagene Routen werden farblich als
+    unvollstaendig ausgewiesen.}
+    \label{fig:matrix-overview}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_combined_overview_table.pdf}
+    \caption{Kombinierte Overview der erfolgreich abgeschlossenen historischen
+    STS-/Original-GS-A-Routen und der SuGaR-Coarse-Folgematrix. Die
+    Modellstufen werden getrennt ausgewiesen; historische Fehlrouten sind nicht
+    als erfolgreiche SuGaR-Metriken enthalten.}
+    \label{fig:matrix-combined-overview}
+\end{figure}
+
+Die Grafik ist als Screening- und Effizienzdarstellung geeignet, ersetzt aber
+keinen geometrischen Genauigkeitsnachweis. Insbesondere duerfen die scheinbar
+hohen Low-Aufloesungswerte nicht isoliert als bessere Rekonstruktion gelesen
+werden, weil die Auswertung jeweils in der nativen, bereits herunterskalierten
+Bilddomäne erfolgt. Fuer die abschliessende Bachelorbewertung sind deshalb
+zusammen mit dieser Grafik die Rohmetriken, die Maskenabdeckung sowie
+Centerline-/GNSS-Geometriemetriken zu berichten.
+
+Die getrennte SuGaR-Coarse-Folgematrix ist inzwischen ebenfalls abgeschlossen.
+Die separate Konfiguration
+\texttt{tools/experiment\_matrix\_sugar.tsv} enthält
+\texttt{SIMPLE\_RADIAL/sugar\_coarse} und
+	exttt{OPENCV/sugar\_coarse}; bei drei Aufloesungen und zwei FPS-Profilen
+entstanden zwölf vollständige Läufe. Die bereits ausgewerteten A-Routen wurden
+nicht wiederholt. Vor dem Folgeversuch wurde der technische SuGaR-Renderpfad
+repariert: Der Containerpfad \texttt{/opt/sugar} wird explizit in den
+Python-Importpfad aufgenommen und HWC-Renderergebnisse werden vor dem Speichern
+in das erwartete CHW-Tensorlayout ueberfuehrt. Alle zwölf Manifeste der
+	exttt{matrix\_sugar\_followup\_12} tragen den Status \texttt{success}; die
+Coarse-Meshgewinnung, das Coarse-Rendering, die objektmaskierte Auswertung und
+das Postprocessing wurden archiviert. Die \texttt{sugar\_refined\_masked.json}
+weist in allen zwölf Fällen jedoch \texttt{no refined.ply exported} aus. Der
+Folgelauf ist daher ein abgeschlossener SuGaR-Coarse-Nachweis, aber noch kein
+SuGaR-Refined-Vergleich.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_sugar_overview_table.pdf}
+    \caption{Abgeschlossene SuGaR-Coarse-Folgematrix mit objektmaskierten
+    PSNR-, SSIM- und LPIPS-Werten für SIMPLE-RADIAL und OPENCV. Average wird
+    nur aus vollständigen 2-/5-FPS-Paaren gebildet.}
+    \label{fig:matrix-sugar-overview}
+\end{figure}
+
+Die SuGaR-Coarse-Mittelwerte aus 2 und 5 FPS betragen für SIMPLE-RADIAL in
+720p 21,380 dB PSNR, 0,764 SSIM und 0,1534 LPIPS, in QHD 21,687 dB, 0,761 und
+0,1407 sowie in Low 21,887 dB, 0,752 und 0,1261. Für OPENCV ergeben sich in
+720p 21,453 dB, 0,764 und 0,1531, in QHD 21,624 dB, 0,764 und 0,1367 sowie in
+Low 21,808 dB, 0,749 und 0,1255. Diese Werte sind objektmaskierte
+Ansichtsmetriken; sie belegen keine geometrische oder geodätische Genauigkeit.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_sugar_status_table.pdf}
+    \caption{Statusübersicht der zwölf abgeschlossenen SuGaR-Coarse-Folgeläufe.}
+\end{figure}
+
+Die zugehörigen Einzelgrafiken für PSNR, SSIM, LPIPS und das sekundäre
+Zeit-/Qualitätsverhältnis liegen unter
+	exttt{docs/grafiken/matrix\_sugar\_psnr\_table.pdf},
+	exttt{matrix\_sugar\_ssim\_table.pdf},
+	exttt{matrix\_sugar\_lpips\_table.pdf} und
+	exttt{matrix\_sugar\_time\_quality\_table.pdf}. Die gemeinsame CSV-Datei
+	exttt{matrix\_thesis\_data.csv} kennzeichnet die Modellstufe über
+	exttt{model\_stage}; STS-Baselines und SuGaR-Coarse-Metriken werden damit
+nicht vermischt.
 
 \section{Effizienzanalyse und Optimierungspotenzial}
 

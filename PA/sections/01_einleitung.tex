@@ -1,0 +1,63 @@
+\section{Einleitung}
+
+\subsection{Motivation und Problemstellung}
+
+Die Rekonstruktion dünner, linearer Objekte aus Bildsequenzen verbindet mehrere
+schwierige Teilprobleme: Die Kamerabewegung muss stabil geschätzt werden, das
+Objekt muss über die Bilder hinweg konsistent segmentiert werden und die
+objektbezogene 3D-Repräsentation muss für nachgelagerte Geometrieoperationen
+verwendbar sein. Die Projektarbeit untersucht diesen Ablauf zunächst an einem
+kontrollierten Alurohr-Testdatensatz. Die spätere Bachelorarbeit soll die
+Pipeline auf reale Rohr- oder Kabeltrassen und geodätische Referenzen
+übertragen.
+
+\subsection{Zielsetzung und Eigenbeitrag}
+
+Das Ziel der Projektarbeit ist ein technischer Machbarkeitsnachweis. Dazu muss
+die Pipeline vom Video bis zur lokalen Centerline durchlaufen, die zentralen
+Datenverträge müssen überprüfbar sein und die wichtigsten Varianten müssen mit
+reproduzierbaren Parametern verglichen werden. Eine Aussage über die Einhaltung
+einer Toleranz von \(\pm 10\,\mathrm{cm}\) wird für die Projektarbeit nicht
+behauptet, weil dafür noch geeignete GNSS- oder Vermessungsreferenzen fehlen.
+Der Eigenbeitrag liegt in der Integration der heterogenen Komponenten, der
+Trennung von Roh- und Idealbilddomäne, der Definition überprüfbarer
+Datenverträge, der maskengetriebenen Objekt- und Meshgewinnung sowie der
+automatisierten Durchführung und wissenschaftlichen Interpretation der Tests.
+
+\subsection{Forschungsfragen}
+
+Die zentrale Arbeitsfrage lautet:
+\begin{quote}
+Lässt sich eine Docker-orchestrierte, objektbezogene Scan-to-BIM-Pipeline aus
+promptbarer SAM-3.1-Segmentierung, kameramodellbewusstem COLMAP-SfM,
+Segment-then-Splat und meshbasierter Nachverarbeitung für ein lineares
+Testobjekt robust und reproduzierbar bis zu einer lokalen Centerline betreiben?
+\end{quote}
+
+Zur Beantwortung werden vier Unterfragen betrachtet:
+
+\begin{enumerate}
+  \item Welche Bilddomänen, Datenverträge und Quality-Gates sind erforderlich,
+	  damit Masken, Kameras, Eval-Split, Gaussians, Mesh und Centerline
+	  konsistent übergeben werden?
+  \item Wie beeinflussen Kameramodell, zeitliche Abtastung und Bildauflösung
+	  den technischen Pipelineerfolg und die objektmaskierten Bildmetriken?
+  \item Welche der untersuchten Meshrouten -- direkte Original-STS-GS-Route A
+	  oder SuGaR-Coarse -- bewahrt die für die Centerline benötigte
+	  Objektgeometrie im Projektstand geeigneter?
+  \item Inwieweit ermöglichen interaktiver CLI-Betrieb, Replay, Autopilot und
+	  Matrixrunner reproduzierbare Einzel- und Batchläufe?
+\end{enumerate}
+
+\subsection{Abgrenzung und Aufbau}
+
+Die Arbeit konzentriert sich auf Grundlagen, Konzept, Implementierung,
+Funktions- und Vergleichstests sowie die Interpretation der Ergebnisse. Lange
+Installationsanleitungen, vollständige Quellcode-Dokumentation und spätere
+Bachelorarbeitsfragen werden bewusst außerhalb des Haupttextes gehalten. Nicht
+Gegenstand sind eine reale Vermessung einer Kabeltrasse, ein Nachweis von
+$\pm10\,\mathrm{cm}$, eine vollständige Bewertung aller Kameramodelle, eine
+allgemeine Einführung in Computer Vision oder eine Produktionsentscheidung
+allein aus PSNR, SSIM und LPIPS. Die vorhandene Web-UI bleibt ebenfalls
+außerhalb des Untersuchungsumfangs; betrachtet werden CLI, Autopilot, Replay
+und Matrixrunner.

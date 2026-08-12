@@ -6,6 +6,10 @@ let gcpFrames = [];
 let gcpObs = [];
 let gcpSelectedPoint = null;
 let gcpCurrentFrame = null;
+let gcpFrameSource = null;
+let gcpFrameError = null;
+let gcpMissingImageCount = 0;
+let gcpMissingImages = [];
 let gcpImg = null;
 let gcpScale = 1;
 let gcpOffsetX = 0;
@@ -13,6 +17,12 @@ let gcpOffsetY = 0;
 let gcpPanning = false;
 let gcpPanStart = null;
 let gcpReport = null;
+
+function gcpEscapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[char]));
+}
 
 function toggleGcpView() {
   const view = $('#gcp-view');
@@ -36,6 +46,19 @@ async function gcpLoadAll() {
   if (!gcpSelectedPoint && gcpPoints.length) {
     gcpSelectPoint(gcpPoints[0].gcp_id);
   }
+  if (!gcpCurrentFrame && gcpFrames.length) {
+    gcpLoadFrame(gcpFrames[0].name);
+  }
+}
+
+async function gcpRefreshFrames() {
+  const button = $('#gcp-refresh-btn');
+  if (button) { button.disabled = true; button.textContent = '⏳ Aktualisiere…'; }
+  try {
+    await gcpLoadAll();
+  } finally {
+    if (button) { button.disabled = false; button.textContent = '↻ Frames aktualisieren'; }
+  }
 }
 
 async function gcpLoadPoints() {
@@ -50,8 +73,19 @@ async function gcpLoadFrames() {
   try {
     const res = await fetch('/api/gcp/frames');
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     gcpFrames = data.frames || [];
-  } catch (e) { gcpFrames = []; }
+    gcpFrameSource = data.source || null;
+    gcpFrameError = data.error || null;
+    gcpMissingImageCount = Number(data.missing_image_count || 0);
+    gcpMissingImages = data.missing_images || [];
+  } catch (e) {
+    gcpFrames = [];
+    gcpFrameSource = null;
+    gcpFrameError = e.message;
+    gcpMissingImageCount = 0;
+    gcpMissingImages = [];
+  }
 }
 
 async function gcpLoadObservations() {
@@ -93,17 +127,41 @@ function gcpSelectPoint(gcpId) {
 
 function gcpRenderFrames() {
   const list = $('#gcp-frame-list');
-  if (!gcpFrames.length) {
-    list.innerHTML = '<div class="gcp-muted">Keine registrierten Frames. COLMAP-SfM ausf&uuml;hren (erzeugt sparse_txt).</div>';
+  const sourceLines = gcpFrameSource
+    ? [`COLMAP: ${gcpFrameSource.images_txt || 'unbekannt'}`, `Bilder: ${gcpFrameSource.frames_dir || 'unbekannt'}`, `${gcpFrames.length} registrierte Frames${gcpMissingImageCount ? `, ${gcpMissingImageCount} Bilddateien fehlen` : ''}`]
+    : [];
+  const sourceHint = gcpFrameSource
+    ? `<div class="gcp-muted gcp-frame-source">${sourceLines.map(gcpEscapeHtml).join('<br>')}${gcpMissingImages.length ? `<br>Fehlend: ${gcpMissingImages.slice(0, 3).map(name => gcpEscapeHtml(`${gcpFrameSource.frames_dir || 'data/02_frames'}/${name}`)).join(', ')}${gcpMissingImages.length > 3 ? ', …' : ''}` : ''}</div>`
+    : '';
+  if (gcpFrameError) {
+    list.innerHTML = `<div class="gcp-error">${gcpEscapeHtml(gcpFrameError)}</div>${sourceHint}<button class="gcp-btn" onclick="gcpRefreshFrames()">Erneut versuchen</button>`;
     return;
   }
-  list.innerHTML = gcpFrames.map(f => {
+  if (!gcpFrames.length) {
+    list.innerHTML = `${sourceHint}<div class="gcp-muted">Keine registrierten Frames. COLMAP-SfM ausführen und danach „Frames aktualisieren“ klicken.</div>`;
+    return;
+  }
+  list.innerHTML = `${sourceHint}${gcpFrames.map(f => {
     const active = f.name === gcpCurrentFrame ? ' active' : '';
+    const missing = f.image_exists === false;
     return `<div class="gcp-frame${active}" onclick="gcpLoadFrame('${f.name}')">
-      <img class="gcp-thumb" src="${f.thumb}" loading="lazy" onerror="this.style.visibility='hidden'">
+      <img class="gcp-thumb" src="${f.thumb}" loading="lazy" alt="${gcpEscapeHtml(f.name)}" onerror="gcpImageError(this, '${gcpEscapeHtml(f.name)}')">
       <span class="gcp-frame-name">${f.name}</span>
+      ${missing ? '<span class="gcp-frame-missing" title="Bilddatei nicht vorhanden">⚠</span>' : ''}
     </div>`;
-  }).join('');
+  }).join('')}`;
+}
+
+function gcpImageError(element, name) {
+  element.style.visibility = 'hidden';
+  element.title = `Bilddatei nicht geladen: ${name}`;
+  const parent = element.parentElement;
+  if (parent && !parent.querySelector('.gcp-frame-error')) {
+    const error = document.createElement('span');
+    error.className = 'gcp-frame-error';
+    error.textContent = 'Bild fehlt';
+    parent.appendChild(error);
+  }
 }
 
 async function gcpLoadFrame(name) {
@@ -114,7 +172,12 @@ async function gcpLoadFrame(name) {
   const url = frame ? frame.thumb : ('/api/file/data/02_frames/' + encodeURIComponent(name));
   gcpImg = new Image();
   gcpImg.onload = () => { gcpResetView(); gcpDraw(); };
-  gcpImg.onerror = () => { gcpImg = null; gcpDraw(); };
+  gcpImg.onerror = () => {
+    gcpImg = null;
+    const status = $('#gcp-current-frame');
+    if (status) status.textContent = `${name} – Bild konnte nicht geladen werden`;
+    gcpDraw();
+  };
   gcpImg.src = url;
 }
 
@@ -316,7 +379,7 @@ async function gcpCompute() {
     const res = await fetch('/api/gcp/compute', { method: 'POST' });
     const data = await res.json();
     if (data.error) {
-      rep.innerHTML = `<div class="gcp-error">Fehler: ${data.error}<br><pre>${(data.stderr || data.stdout || '').slice(0, 800)}</pre></div>`;
+      rep.innerHTML = `<div class="gcp-error">Fehler: ${gcpEscapeHtml(data.error)}</div>${gcpFormatErrorDetails(data)}`;
     } else {
       gcpReport = data;
       gcpRenderReport();
@@ -330,6 +393,17 @@ async function gcpCompute() {
   }
 }
 
+function gcpFormatErrorDetails(data) {
+  const details = data.error_details || {};
+  const blocks = Object.entries(details).map(([name, result]) => {
+    const output = [result.stdout, result.stderr].filter(Boolean).join('\n').trim();
+    return `<details open><summary>${gcpEscapeHtml(name)} (Exit ${gcpEscapeHtml(result.returncode ?? '?')})</summary><pre>${gcpEscapeHtml(output || 'Keine Ausgabe')}</pre></details>`;
+  });
+  if (blocks.length) return blocks.join('');
+  const fallback = [data.stderr, data.stdout].filter(Boolean).join('\n').trim();
+  return fallback ? `<pre>${gcpEscapeHtml(fallback)}</pre>` : '';
+}
+
 function gcpRenderReport() {
   const rep = $('#gcp-report');
   if (!gcpReport) {
@@ -338,6 +412,9 @@ function gcpRenderReport() {
   }
   const r = gcpReport;
   const good = (r.total_rmse_m || 0) <= 0.10;
+  const warnings = r.preflight && Array.isArray(r.preflight.warnings)
+    ? r.preflight.warnings.map(w => `<div class="gcp-warn">${gcpEscapeHtml(w)}</div>`).join('')
+    : '';
   rep.innerHTML = `
     <div class="gcp-report-row"><b>GCPs verwendet:</b> ${r.num_gcps_used}</div>
     <div class="gcp-report-row"><b>Beobachtungen:</b> ${r.num_observations}</div>
@@ -350,6 +427,7 @@ function gcpRenderReport() {
         <span>reproj ${g.reprojection_rmse_px}px</span>
         <span>${g.fit_residual_m} m</span></div>`).join('')}
     ${r.outliers_dropped && r.outliers_dropped.length ? `<div class="gcp-warn">Ausreißer verworfen: ${r.outliers_dropped.length}</div>` : ''}
+    ${warnings}
     <div class="gcp-muted" style="margin-top:6px">matrix.txt geschrieben nach data/04_sfm/matrix.txt</div>`;
 }
 

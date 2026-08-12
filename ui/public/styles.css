@@ -667,6 +667,7 @@ body {
 .preview-file-icon { font-size: 16px; flex-shrink: 0; }
 .preview-file-info { flex: 1; min-width: 0; }
 .preview-file-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preview-file-path { color: var(--text-muted); font-family: var(--font-data); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .preview-file-size { font-family: var(--font-data); font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 .preview-file-dl { color: var(--accent); font-size: 14px; }
 
@@ -834,6 +835,7 @@ body {
 .gcp-point-id { font-weight: 600; color: var(--text-primary); }
 .gcp-point-meta { font-size: 10px; color: var(--text-muted); font-family: var(--font-data); }
 .gcp-frame-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+.gcp-frame-source { line-height: 1.45; margin-bottom: 8px; word-break: break-word; }
 .gcp-frame {
   display: flex; align-items: center; gap: 8px;
   padding: 4px; border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -843,6 +845,8 @@ body {
 .gcp-frame.active { border-color: var(--accent); box-shadow: var(--shadow-active); }
 .gcp-thumb { width: 44px; height: 28px; object-fit: cover; border-radius: 3px; flex-shrink: 0; background: #000; }
 .gcp-frame-name { font-size: 10px; color: var(--text-secondary); font-family: var(--font-data); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gcp-frame-missing { color: var(--yellow); font-size: 12px; margin-left: auto; }
+.gcp-frame-error { color: var(--red); font-size: 9px; margin-left: auto; }
 .gcp-canvas-toolbar {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 12px; border-bottom: 1px solid var(--border); background: var(--bg-secondary);
@@ -868,6 +872,9 @@ body {
 .gcp-obs-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 0 2px; }
 .gcp-obs-del:hover { color: #ff8a80; }
 .gcp-report { font-size: 12px; }
+.gcp-report details { margin-top: 8px; }
+.gcp-report summary { color: var(--yellow); cursor: pointer; }
+.gcp-report pre { max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--red); font-size: 10px; margin: 5px 0 0; }
 .gcp-report-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--border); }
 .gcp-report-sub { font-size: 10px; color: var(--text-muted); margin-top: 8px; text-transform: uppercase; }
 .gcp-ok { color: var(--green); }

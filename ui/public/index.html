@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Scan-to-BIM Pipeline Dashboard</title>
-<link rel="stylesheet" href="styles.css?v=1.2">
+<link rel="stylesheet" href="styles.css?v=1.3">
 </head>
 <body>
 <div id="app">
@@ -110,6 +110,7 @@
   <div class="gcp-toolbar">
     <button class="gcp-btn" onclick="closeGcpView()">&#8592; Zur&uuml;ck zum Dashboard</button>
     <span class="gcp-title">GCP-Registrierung (Passpunkte in Bildern markieren)</span>
+    <button class="gcp-btn" id="gcp-refresh-btn" onclick="gcpRefreshFrames()">&#8635; Frames aktualisieren</button>
     <button class="gcp-btn gcp-primary" id="gcp-compute-btn" onclick="gcpCompute()">&#9881; Matrix berechnen</button>
   </div>
   <div class="gcp-body">
@@ -142,7 +143,7 @@
   </div>
 </div>
 
-<script src="app.js?v=1.3"></script>
-<script src="gcp.js?v=1.1"></script>
+<script src="app.js?v=1.4"></script>
+<script src="gcp.js?v=1.2"></script>
 </body>
 </html>

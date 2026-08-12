@@ -1,0 +1,166 @@
+\section{Konzept und Pipeline-Idee}
+
+\subsection{Leitprinzip und Datenfluss}
+
+Die Pipeline trennt die Bilddomäne, die semantische Domäne und die
+Geometriedomäne. Der Ablauf ist:
+
+\begin{enumerate}
+  \item Aus dem Rohvideo werden Arbeitsframes erzeugt.
+  \item SAM~3.1 propagiert den Objektprompt und speichert hierarchische Masken.
+  \item COLMAP schätzt aus unmaskierten Frames ein ursprüngliches
+        Kameramodell und eine sparse Punktwolke.
+  \item Bei verzeichnungsbehafteten Kameramodellen wird eine ideale PINHOLE-
+        Szene erzeugt; die Masken werden mit derselben Abbildung gewarpt.
+  \item STS trainiert die objektspezifische Gaussian-Repräsentation.
+  \item Die Hochopazitätskopie der Objekt-Gaussians wird über die gewählte
+        Meshroute in ein Coarse-Mesh überführt.
+  \item DGtal extrahiert daraus eine lokale Centerline; anschließend können
+        B-Spline und GeoJSON erzeugt werden.
+\end{enumerate}
+
+Abbildung~\ref{fig:pa-pipeline-flow} fasst diesen Datenfluss zusammen. Sie ist
+aus dem Flowchart des Exposés abgeleitet, wurde für den aktuellen
+Projektarbeitsstand jedoch angepasst: Die Web-UI und der nicht systematisch
+untersuchte SAHI-Fallback sind nicht Bestandteil des Diagramms. Stattdessen
+werden die beiden aktuellen Meshrouten A und \texttt{sugar\_coarse} explizit
+getrennt dargestellt. Der CloudCompare-Schritt ist als optionaler
+Georeferenzierungszweig enthalten und nicht als validierter PA-
+Genauigkeitsnachweis zu lesen.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+      node distance=1.35cm and 2.0cm,
+      box/.style={rectangle, draw=blue!65, fill=blue!5, very thick,
+            minimum width=4.4cm, minimum height=0.9cm, align=center,
+            rounded corners, text width=4.2cm},
+      route/.style={rectangle, draw=purple!70, fill=purple!7, very thick,
+            minimum width=4.6cm, minimum height=0.9cm, align=center,
+            rounded corners, text width=4.4cm},
+      decision/.style={diamond, draw=red!65, fill=red!7, very thick,
+            text width=2.7cm, align=center, aspect=2.0},
+      arrow/.style={-{Stealth[scale=1.05]}, thick},
+      container/.style={rectangle, draw, dashed, rounded corners, inner sep=0.35cm}
+]
+      \node[box] (input) {Rohvideo\\Arbeitsframes\\Prompt \texttt{pipe}};
+      \node[box, below=of input] (sam) {\textbf{Container A: SAM 3.1}\\Temporale Segmentierung\\default / middle / small};
+      \node[box, below=of sam] (colmap) {\textbf{Container B: COLMAP}\\Unmaskiertes SfM\\Originales Kameramodell und Sparse-Modell};
+      \node[box, below left=1.55cm and 2.4cm of colmap] (ideal) {Idealbilddomäne\\\texttt{image\_undistorter}\\Maskenwarp mit identischer Abbildung};
+      \node[box, below right=1.55cm and 2.4cm of colmap] (gcp) {Originalmodell\\GCP-/CloudCompare-Zweig\\Matrix optional und PA-seitig nicht validiert};
+      \node[box, below=1.55cm of ideal] (sts) {\textbf{Container C: STS}\\Objekt-ID-Zuordnung\\Objektbezogene Gaussian-Repräsentation};
+      \node[decision, below=1.55cm of sts] (meshroute) {Meshroute};
+      \node[route, below left=1.55cm and 1.7cm of meshroute] (original) {\textbf{Route A: Original-GS}\\Surface-Sampling, Poisson, Decimation\\kein SuGaR-Coarse/Refinement/UV};
+      \node[route, below right=1.55cm and 1.7cm of meshroute] (coarse) {\textbf{SuGaR-Coarse-Vergleich}\\mask-aware Fork, Coarse, optional Refinement/UV};
+      \node[box, below=2.0cm of meshroute] (post) {\textbf{Container E: DGtal/GDAL}\\lokales Mesh $\rightarrow$ Centerline\\B-Spline $\rightarrow$ lokale CSV/GeoJSON};
+      \node[box, below right=1.8cm and 1.8cm of post] (geo) {Optionaler Exportzweig\\4x4-Transformation + Anchor\\UTM/GIS nur mit validierter Matrix};
+
+      \begin{pgfonlayer}{background}
+            \node[container, fill=blue!8, draw=blue!75, fit=(input) (sam)] {};
+            \node[container, fill=orange!8, draw=orange!75, fit=(colmap)] {};
+            \node[container, fill=cyan!8, draw=cyan!75, fit=(ideal) (sts)] {};
+            \node[container, fill=red!8, draw=red!75, fit=(gcp)] {};
+            \node[container, fill=purple!8, draw=purple!75, fit=(meshroute) (original) (coarse)] {};
+            \node[container, fill=teal!8, draw=teal!75, fit=(post) (geo)] {};
+      \end{pgfonlayer}
+
+      \draw[arrow] (input) -- (sam);
+      \draw[arrow] (sam) -- (colmap);
+      \draw[arrow] (colmap) -- (ideal);
+      \draw[arrow] (colmap) -- (gcp);
+      \draw[arrow] (ideal) -- (sts);
+      \draw[arrow] (sts) -- (meshroute);
+      \draw[arrow] (meshroute) -- node[above left] {A} (original);
+      \draw[arrow] (meshroute) -- node[above right] {Vergleich} (coarse);
+      \draw[arrow] (original) |- (post);
+      \draw[arrow] (coarse) |- (post);
+      \draw[arrow] (post) -- (geo);
+      \draw[arrow] (gcp) |- (geo);
+\end{tikzpicture}%
+}
+\caption{Aktualisierter Datenfluss der fünf Container mit Original-GS-
+Produktionsroute, SuGaR-Coarse-Vergleich und optionalem
+Georeferenzierungszweig.}
+\label{fig:pa-pipeline-flow}
+\end{figure}
+
+Das Konzept verfolgt zwei gleichrangige Ziele. Erstens soll ein geführter
+Einzellauf von der Eingabe bis zum Endprodukt ohne manuelle Neuverkabelung der
+Werkzeuge möglich sein. Zweitens müssen teure Stufen kontrolliert wiederholt
+und als Matrix ausgeführt werden können. Jeder Übergang besitzt deshalb
+prüfbare Eingaben und persistente Ausgaben.
+
+\subsection{Domänentrennung als zentraler Datenvertrag}
+
+Die methodische Kernidee ist die Domänentrennung: GCP und SfM bleiben im
+Originalraum, STS und SuGaR arbeiten in einer idealisierten, konsistenten
+Bilddomäne. Dadurch wird vermieden, dass eine Bildverzeichnung nur in den
+Kameraparametern, nicht aber in den Masken berücksichtigt wird.
+
+Bei \texttt{SIMPLE\_RADIAL} und \texttt{OPENCV} wird zuerst ein originales
+COLMAP-Modell auf den Rohframes geschätzt. Der Undistorter erzeugt daraus eine
+separate ideale Szene. Die Masken werden mit der identischen
+Kameramodellabbildung transformiert. Bei \texttt{PINHOLE} wird dieselbe
+Schnittstelle als Pass-through verwendet. Somit sehen STS, Renderer,
+SuGaR-Route und Metrikberechnung stets zueinander passende Pixel- und
+Kamerakoordinaten.
+
+Diese vollständige Domänenkette ist im automatisierten Matrixpfad sowie im
+restaurierten Smoke-/Replaypfad nachgewiesen. Der historische Inline-Vollauf
+und der allgemeine \texttt{--from}-Dispatcher erzeugen zwar die ideale
+COLMAP-Szene, rufen den separaten Maskenwarp derzeit jedoch nicht selbst auf.
+Bis zur Vereinheitlichung des Codes beziehen sich Aussagen über die vollständig
+gewarpten Bild-/Maskendomäne daher ausdrücklich auf Matrix- und Replayläufe.
+
+\subsection{Semantische Objektkette}
+
+Die SAM-Masken erfüllen mehrere getrennte Funktionen. Sie definieren die
+Objektzuordnung in STS, begrenzen die Auswahl der Ziel-Gaussians und stellen die
+Objektregion für die Bildmetriken bereit. In der SuGaR-Coarse-Vergleichsroute
+begrenzen sie zusätzlich die photometrische Supervision. Diese mehrfache
+Nutzung darf nicht mit einer geometrischen Garantie verwechselt werden: Eine
+binäre Maske beschreibt Bildpixel, während ein räumlich ausgedehnter Gaussian
+und das aus Samples rekonstruierte Mesh zusätzliche Unsicherheiten besitzen.
+
+\subsection{Produktions- und Vergleichsroute}
+
+Für die Projektarbeit wird Variante A als Produktionsroute verwendet. SuGaR-
+Coarse und Refinement bleiben als Vergleichsroute erhalten, sind aber nicht
+notwendig, um die direkte STS-Gaussian-Geometrie zu vermessen. Das Mesh ist ein
+abgeleitetes Produkt; die Gaussian-Wolke bleibt die primäre geometrische
+Hypothese.
+
+Route A führt keinen neuen SuGaR-Splat ein. Sie extrahiert die Oberfläche aus
+der vorbereiteten Original-STS-Gaussian-Wolke. Die Vergleichsroute optimiert
+dieselbe Ausgangslage zunächst mit dem lokalen maskenbewussten SuGaR-Fork und
+kann anschließend ein gebundenes Refinement und UV-Baking ausführen. Die
+Trennung ermöglicht, Änderungen der Gaussian-Geometrie von Änderungen der
+eigentlichen Mesh-Extraktion zu unterscheiden.
+
+\subsection{Ausführungsformen}
+
+Der interaktive Vollauf führt durch Eingabeauswahl und Parameterentscheidungen.
+Der Autopilot übernimmt validierte Defaults und überspringt den manuellen
+CloudCompare-Breakpoint, wenn keine echte Transformationsmatrix bereitsteht.
+Der Replay-Pfad startet an einer festgelegten Schrittgrenze mit vorhandenen,
+konsistenten Artefakten. Er setzt kein abgebrochenes Training innerhalb einer
+Iteration fort. Der Matrixrunner führt deklarierte Kombinationen
+stdin-unabhängig nacheinander aus, archiviert jeden Lauf und setzt den
+Live-Arbeitsbereich zurück. Diese Modi nutzen dieselben fachlichen
+Pipelinekomponenten, erfüllen aber verschiedene Aufgaben der Benutzerführung
+und Reproduzierbarkeit.
+
+Die Projektarbeit untersucht die CLI-zentrierte Ausführung. Eine vorhandene
+Web-UI und ein tatsächliches Serverdeployment bleiben außerhalb des Scopes.
+Die Containerisierung und die nichtinteraktive Matrix zeigen eine für einen
+späteren Serverbetrieb geeignete Architektur, aber noch keinen validierten
+Produktiv-Rollout.
+
+\subsection{Lokaler Endpunkt und vorbereitete Georeferenzierung}
+
+Die Georeferenzierung ist als nachgelagerter Datenvertrag vorgesehen. Die
+Centerline wird zunächst lokal erzeugt. Erst eine validierte Transformation aus
+GCP-Picking und ein separater Anchor überführen sie in ein UTM-System. Ein
+Fallback mit reiner Translation dient nur der technischen Pipelineprüfung und
+nicht als Genauigkeitsnachweis.

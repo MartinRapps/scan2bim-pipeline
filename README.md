@@ -231,6 +231,23 @@ Rohvideos wird nicht unbeabsichtigt in die Testreihe übernommen.
 Der Matrix-Standardprompt ist `pipe`; ein anderer Begriff kann explizit über
 `MATRIX_PROMPT` gesetzt werden.
 
+Der erste vollständige Matrixstart (`matrix_full_pipe`) wurde als historischer
+Fehlerbatch archiviert: vier `simple_radial_a`-Läufe waren erfolgreich, zwei
+2-FPS-Läufe scheiterten erst bei einer leeren Eval-Maske, und die Varianten
+`simple_radial_sugar`, `pinhole_a` und `opencv_a` wurden wegen eines
+stdin-bedingten Bash-Schleifenfehlers noch nicht gestartet. Der Runner verwendet
+nun stdin-unabhängige `for`-Schleifen; der feste Eval-Split wird außerdem erst
+nach dem Warp aus nichtleeren idealen Masken gebildet. Da `simple_radial_a`
+bereits separat ausreichend getestet wurde, ist diese Zeile aus der aktuellen
+TSV entfernt. Der nächste Matrixstart umfasst daher 18 neue Läufe.
+
+Für die Auswertung eines abgeschlossenen Batches erzeugt
+[tools/analyze_matrix_results.py](tools/analyze_matrix_results.py) aus
+`matrix_rest` eine Statusgrafik, eine PSNR-Grafik, eine Masken-Coverage-Grafik,
+eine CSV-Tabelle und einen Markdown-Bericht. Das Werkzeug verwendet keine
+zusätzlichen Python-Pakete. Die Ergebnisse liegen unter
+`data/10_runs/matrix_rest/analysis/`.
+
 Nach SAM3 wird die Maskenabdeckung über alle Frames geprüft. Standardmäßig
 bricht die Matrix bei mindestens 30 % leeren oder fehlenden `middle`-Masken ab
 (`MATRIX_MAX_EMPTY_MASK_FRACTION=0.30`). Der Coverage-Report wird im jeweiligen
@@ -240,7 +257,7 @@ Experimentarchiv gespeichert.
 
 `matrix_smoke_low_pipe_full` war ein einzelner Low-Resolution-Integrationstest
 (`pipe`, 5 FPS, 640×360, `SIMPLE_RADIAL`, Variante A), nicht die vollständige
-24er-Matrix. „Smoke“ bedeutet hier: die Übergaben zwischen SAM3, COLMAP, STS
+damalige 24er-Matrix und nicht der aktuelle 18er-Folgeplan. „Smoke“ bedeutet hier: die Übergaben zwischen SAM3, COLMAP, STS
 und SuGaR mit einem kleinen, reproduzierbaren Lauf prüfen, bevor alle Varianten
 gerechnet werden. `full` bedeutet nur, dass dieser einzelne Versuch nicht im
 `--mask-only`-Modus beendet wurde.
@@ -274,7 +291,47 @@ Eine Vorschau ohne Pipelineausführung ist mit
 `./tools/run_experiment_matrix.sh --dry-run` möglich. Die Matrix arbeitet
 sequenziell, archiviert jeden Lauf unter `data/10_runs/<batch>/` und verwendet
 vor dem nächsten Versuch den nichtinteraktiven Modus von
-[clean_data_interactive.sh](clean_data_interactive.sh). Rohdaten,
+[clean_data_interactive.sh](clean_data_interactive.sh).
+
+Für die nachträgliche SuGaR-Coarse-Prüfung mit beiden Kameramodellen wurde die
+separate Konfiguration
+[tools/experiment_matrix_sugar.tsv](tools/experiment_matrix_sugar.tsv) bereit.
+Sie enthält `SIMPLE_RADIAL/sugar_coarse` und
+`OPENCV/sugar_coarse` bei drei Auflösungen und zwei FPS-Profilen. Die daraus
+entstandenen zwölf Läufe liegen unter
+`data/10_runs/matrix_sugar_followup_12/` und sind vollständig erfolgreich für
+die Coarse-Mesh-, Coarse-Render-, objektmaskierte Metrik- und Postprocess-Stufe.
+Ein `refined.ply` wurde in diesen zwölf Läufen nicht exportiert; die
+Refined-Stufe ist daher nicht Teil dieses Follow-ups. Die bereits ausgewerteten
+Varianten `simple_radial_a`, `pinhole_a` und `opencv_a` wurden nicht erneut
+gerechnet.
+
+Die druckfertigen Thesis-Grafiken für die beiden Matrixbatches liegen unter
+[docs/grafiken](docs/grafiken). Die Tabellen enthalten getrennte Spalten für
+2 FPS, 5 FPS und `Average`. Der Average wird nur gebildet, wenn beide
+FPS-Läufe derselben Konfiguration vollständig erfolgreich sind. Verfügbare
+Grafiken sind [PSNR](docs/grafiken/matrix_psnr_table.pdf),
+[SSIM](docs/grafiken/matrix_ssim_table.pdf),
+[LPIPS](docs/grafiken/matrix_lpips_table.pdf),
+[die übergeordnete PSNR/SSIM/LPIPS-Matrix](docs/grafiken/matrix_overview_table.pdf),
+[die kombinierte STS-/SuGaR-Overview](docs/grafiken/matrix_combined_overview_table.pdf),
+[Matrixstatus](docs/grafiken/matrix_status_table.pdf) und das
+[Zeit-Qualitäts-Verhältnis](docs/grafiken/matrix_time_quality_table.pdf).
+Die stage-getrennten SuGaR-Coarse-Grafiken sind [SuGaR-Overview](docs/grafiken/matrix_sugar_overview_table.pdf),
+[SuGaR-Status](docs/grafiken/matrix_sugar_status_table.pdf),
+[SuGaR-PSNR](docs/grafiken/matrix_sugar_psnr_table.pdf),
+[SuGaR-SSIM](docs/grafiken/matrix_sugar_ssim_table.pdf),
+[SuGaR-LPIPS](docs/grafiken/matrix_sugar_lpips_table.pdf) und
+[SuGaR-Zeit/Qualität](docs/grafiken/matrix_sugar_time_quality_table.pdf).
+Die zugrunde liegenden Werte stehen in
+[matrix_thesis_data.csv](docs/grafiken/matrix_thesis_data.csv); die Methodik
+ist in [matrix_thesis_method.md](docs/grafiken/matrix_thesis_method.md)
+beschrieben. Die stage-getrennte Erzeugung aller LaTeX-Quellen und PDFs erfolgt
+mit `bash tools/build_matrix_figures.sh`. Das zugrunde liegende Python-Skript
+zur reproduzierbaren Datenauswertung ist
+[tools/create_matrix_thesis_figures.py](tools/create_matrix_thesis_figures.py).
+
+Rohdaten,
 `data/01_raw/output.mp4` und `data/hf_cache` werden dabei nicht gelöscht.
 
 ### Centerline and GIS export
@@ -404,6 +461,17 @@ review its JSON report before using more aggressive crop options. For an already
 dense full-scene mesh, use `CROP_PROFILE=semantic-core` to retain only faces
 with semantic support and remove unobserved faces. It writes a separate
 `*_semantic_core.obj` result and never replaces the conservative output.
+
+---
+
+## Projektarbeit
+
+Die fokussierte wissenschaftliche Projektarbeit liegt in [PA/README.md](PA/README.md).
+Sie behandelt Grundlagen, Pipeline-Idee, Versuchsaufbau, ausgewählte Ergebnisse
+und die wissenschaftliche Abgrenzung zur späteren Bachelorarbeit, ohne die
+vollständige technische Repository-Dokumentation zu duplizieren. Das PDF wird
+mit `bash PA/build_pa.sh` erzeugt und liegt anschließend unter
+`PA/build/pa.pdf`.
 
 ---
 

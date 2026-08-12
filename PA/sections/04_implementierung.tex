@@ -1,0 +1,268 @@
+\section{Implementierung}
+
+\subsection{Containerarchitektur und Persistenz}
+
+Die fünf Container kapseln inkompatible CUDA- und Python-Abhängigkeiten. SAM
+läuft in einem modernen CUDA-12.6-Container, COLMAP in einem eigenen SfM-
+Container, STS in CUDA~12.1, SuGaR in CUDA~11.8 und DGtal/GDAL CPU-seitig.
+Bind-Mounts schreiben alle relevanten Artefakte in den gemeinsamen Host-
+Arbeitsbereich.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{1.4cm}p{3.4cm}XX}
+\toprule
+Stufe & Kernsoftware & Eingabe & Ausgabe\\
+\midrule
+A & SAM~3.1 & Video, Textprompt & Frames und hierarchische Masken\\
+B & COLMAP & unmaskierte Frames & Kameras, Sparse-Modell, ideale Szene\\
+C & STS & ideale Szene und Masken & objektannotierte 3D-Gaussians\\
+D & SuGaR-Fork/Open3D & Objekt-Gaussians und Kameras & Coarse-Mesh,
+optional Refined-Mesh\\
+E & DGtal/GDAL & kompatibles OBJ & lokale Centerline, B-Spline, CSV/GeoJSON\\
+\bottomrule
+\end{tabularx}
+\caption{Verantwortlichkeiten und zentrale Datenübergaben der fünf Container.}
+\label{tab:containerrollen}
+\end{table}
+
+Die Master-Skripte übernehmen die numerische Host-UID und -GID, sodass
+bind-gemountete Dateien auch auf Hochschul- und Domänensystemen lesbar bleiben.
+Run-Tags und Ausgabeordner werden vor unbeabsichtigtem Überschreiben geschützt.
+Manifeste, Parameter und Logs bleiben außerhalb kurzlebiger Container erhalten.
+
+\subsection{Mask-aware SuGaR-Fork und Codeänderungen}
+
+Der für die Vergleichsroute verwendete SuGaR-Stand ist kein unverändertes
+Vanilla-SuGaR. Er liegt als projektinterner Fork unter
+\path{third_party/SuGaR} und wurde als Git-Submodul in die Pipeline eingebunden.
+Die Erweiterungen sind funktionale Codeänderungen, nicht nur andere
+Startparameter. Der Grund dafür ist ein Zielkonflikt der ursprünglichen Route:
+Eine auf das Objekt reduzierte Gaussian-Wolke würde bei einem unveränderten
+Full-Image-RGB-Loss weiterhin gegen Boden und Hintergrund optimiert. Die
+Geometrieeingabe und die Bildsupervision würden damit unterschiedliche
+Objektdefinitionen verwenden.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{2.4cm}p{4.1cm}X}
+\toprule
+Forkstand & Geänderte Bereiche & Funktionale Änderung\\
+\midrule
+\texttt{48bbfdd} & \path{sugar_utils/mask_utils.py},
+\path{sugar_trainers/}, \path{sugar_extractors/}, \path{train.py} &
+Einführung eines \texttt{SemanticMaskProvider}; maskierter RGB-/L1-/DSSIM-
+Loss in den Coarse-Trainern und im Refinement; maskierte
+Depth-Normal-Consistency; konfigurierbare Maskenstufen und Dilatationen;
+maskenkonsistentes UV-Baking; zusätzliche Mesh- und Trainingsargumente.\\
+\texttt{8f4f7a2} & \path{sugar_extractors/coarse_mesh.py}, \path{train.py} &
+Schutz vor zu kleinen Punktwolken und ungültigen Normalen bei der
+Poisson-Rekonstruktion; Korrektur der Coarse-Zählerprüfung für geladene STS-
+Checkpoints oberhalb von 6999.\\
+\texttt{e254000} & \path{extract_mesh.py},
+\path{sugar_extractors/coarse_mesh.py} &
+Diagnoseoption für Tiefen aus dem Gaussian-Rasterizer gegenüber der
+projizierten Diamond-Mesh-Tiefe.\\
+\texttt{ecda7ef} & \path{extract_mesh.py},
+\path{sugar_extractors/coarse_mesh.py}, \path{sugar_scene/sugar_model.py} &
+Konfigurierbare Surface-Sampling-Parameter und explizite Behandlung der
+Background-Mesh-Komponente.\\
+\texttt{eca4ea1} / Arbeitsstand & \path{gaussian_splatting/scene/dataset_readers.py},
+\path{sugar_scene/gs_model.py} &
+Normalisierte feste Eval-Splits und Schutz gegen nicht gematchte Kameras; im
+aktuellen Arbeitsbaum wird die Split-Kardinalität zusätzlich explizit geprüft.\\
+\bottomrule
+\end{tabularx}
+\caption{Funktionale Änderungen des maskenbewussten SuGaR-Forks.}
+\label{tab:sugar-fork-aenderungen}
+\end{table}
+
+Der aktuelle Parent-Gitlink zeigt auf \texttt{ecda7ef}; der ausgecheckte
+Entwicklungszweig steht auf \texttt{eca4ea1}. Die zusätzlichen Änderungen in
+\path{dataset_readers.py} und \path{gs_model.py} sind zum Zeitpunkt dieser
+Fassung noch lokale Arbeitsbaumänderungen. Vor der Abgabe müssen Parent-
+Gitlink, Fork-Commit und Docker-Parameter \texttt{SUGAR\_REF} auf einen
+identischen, reproduzierbaren Stand gebracht werden. Die vollständige
+Commit-Historie und der lokale Diff gehören in den digitalen Anlagenindex.
+
+Für die Projektarbeit ist diese Forkentwicklung wissenschaftlich relevant,
+weil dadurch zwei Wirkorte derselben SAM-Semantik getrennt geprüft werden:
+STS selektiert die Objekt-Gaussians, die Coarse-Route verwendet die Maske für
+ihre Bildsupervision und UV nutzt sie nur für die spätere Farbakkumulation.
+Eine UV-Maske kann daher das Coarse-Mesh nicht verändern; eine RGB-Maske kann
+hingegen die trainierte Gaussian-Geometrie beeinflussen.
+
+\subsection{Mehrfache Bild- und Maskenablagen}
+
+Die scheinbar häufigen Duplikate entstehen überwiegend durch unterschiedliche
+Datenverträge, nicht dadurch, dass SAM dieselbe Inferenz mehrfach als
+notwendigen Funktionsschritt ausführt. Die aktuelle Ablage lässt sich wie folgt
+trennen:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{4.0cm}p{2.3cm}X}
+\toprule
+Ablage & Physische Kopie? & Zweck und Bewertung\\
+\midrule
+\path{data/02_frames/} & Ja & Von SAM erzeugte Arbeitsframes. Sie bilden den
+gemeinsamen Rohbildsatz für SAM und COLMAP und sind funktional notwendig.\\
+\path{data/04_sfm/undistorted/images/} & Ja & Durch
+\texttt{image\_undistorter} neu abgebildete ideale Bilder. Diese Kopie ist im
+aktuellen Domänenkonzept notwendig, weil STS nicht auf den verzerrten Rohpixeln,
+sondern auf der idealen PINHOLE-Szene arbeitet.\\
+\path{data/05_3dgs/images} & Nein, Symlink & STS benötigt den stabilen
+\texttt{source\_path/images}-Vertrag. Der Link verweist auf die ideale Szene
+und erzeugt keinen zweiten Bildbestand.\\
+\path{data/03_masks/_attempts/} & Ja & Prompt-Fallbacks werden getrennt
+gespeichert, damit bei OOM, leerer Maske oder ungeeignetem Prompt der beste
+Versuch ausgewählt werden kann. Nach der Auswahl sind diese Dateien für die
+Funktion nicht mehr nötig, aber als Diagnose wertvoll.\\
+Flache und hierarchische Masken & Ja & Die flache Maske dient als Auswahl- und
+Debugartefakt; \texttt{default}, \texttt{middle} und \texttt{small} bilden den
+STS-/SuGaR-Kompatibilitätsvertrag. Die Hierarchie ist semantisch nicht drei
+Inferenzläufe, sondern eine unveränderte Maske plus morphologische Ableitungen.\\
+\path{data/10_runs/} & Ja & Matrixläufe werden vollständig archiviert und vor
+dem nächsten Versuch vom Live-Workspace getrennt. Das ist Reproduzierbarkeit,
+keine zusätzliche Verarbeitung im Einzelrun.\\
+\bottomrule
+\end{tabularx}
+\caption{Funktionale Gründe für mehrere Bild- und Maskenablagen.}
+\label{tab:bildablagen}
+\end{table}
+
+Die wichtigste physische Bildkopie entsteht somit nicht durch eine unnötige
+SAM-Optimierung, sondern durch die geometrische Neuberechnung in die ideale
+Bilddomäne. Sie kann später durch einen Cache, eine kontrollierte gemeinsame
+Workspace-Struktur oder eine virtuelle Remap-Schicht speichereffizienter
+organisiert werden. Eine solche Optimierung ist für die Funktion des aktuellen
+Workflows nicht elementar: Würde sie die idealen Bilder oder den stabilen
+STS-Pfadvertrag entfernen, wären Kameras, Masken und Pixelkoordinaten nicht
+mehr konsistent.
+
+Speicher- und I/O-Optimierungen sind dennoch möglich. Die Promptversuche in
+\path{_attempts} können nach erfolgreicher Auswahl archiviert und aus dem
+Arbeitsbereich entfernt werden. Die STS-Kompatibilitätskopien können langfristig
+regenerierbar statt dauerhaft gespeichert werden. Der Symlink unter
+\path{data/05_3dgs/images} sollte dagegen erhalten bleiben. Diese Maßnahmen
+reduzieren Speicherbedarf und Kopierzeit, verändern aber nicht die zentrale
+Rekonstruktionslogik und sind deshalb nachrangig gegenüber korrekter
+Masken-/Kameradomäne, COLMAP-Registrierung und validierten Quality-Gates.
+
+\subsection{CLI, Autopilot und Replay}
+
+Die Pipeline verwendet einen geführten Vollpfad sowie einen Replay-Pfad.
+\path{run_pipeline.sh} mit \texttt{--from <step>} startet diesen Replay. Er
+ist kein Fortsetzen innerhalb eines abgebrochenen Trainings, sondern ein
+Neustart an einer
+Schrittgrenze mit bereits vorhandenen, zueinander passenden Artefakten.
+
+Die Konzentration auf ein zentrales CLI-Skript ist eine bewusste
+Scopeentscheidung. Zunächst soll eine robuste, automatisierbare Anwendung
+existieren; eine zusätzliche Bedienoberfläche würde eigene Zustands-, Upload-
+und Prozessfragen eröffnen. Der Autopilot verwendet unter anderem 5 FPS,
+$1280\times720$ Pixel, CRF 18, \texttt{SIMPLE\_RADIAL}, 4096 SIFT-Merkmale,
+Overlap 15, deaktiviertes Guided Matching, 7000 STS-Iterationen und Route A.
+Die Parameter werden protokolliert und können im interaktiven Modus erklärt
+beziehungsweise überschrieben werden.
+
+\subsection{Quality-Gates und Datenverträge}
+
+Qualitätsrelevante Implementierungsentscheidungen sind:
+
+\begin{itemize}
+  \item COLMAP verwendet unmaskierte Bilder, damit Hintergrund- und
+        Ankermerkmale für SfM und GCP erhalten bleiben.
+  \item Der Matrixrunner prüft die Maskenabdeckung vor STS; sein aktueller
+        Guard bricht bei mindestens 30\,\% leeren oder fehlenden
+        \texttt{middle}-Masken ab. Der Inline-Vollauf besitzt derzeit nicht
+        dieselbe prozentuale Coverage-Prüfung.
+  \item Im Matrix- und restaurierten Replaypfad wird der feste Eval-Split nach
+        dem Mask-Warping aus nichtleeren idealen Masken erzeugt und für STS,
+        SuGaR und Metriken wiederverwendet. Der Inline-Vollauf besitzt diesen
+        separaten Warp-Aufruf derzeit noch nicht.
+  \item Die SuGaR-Kameranamen werden als normalisierte Stems verglichen; leere
+        Kamera- oder Eval-Listen werden mit klaren Fehlern abgelehnt.
+  \item Die Bildauswertung ist ausschließlich objektmaskiert. Full-frame-Werte
+        würden bei einem object-only Splat überwiegend den nicht rekonstruierten
+        Hintergrund bewerten.
+\end{itemize}
+
+Zusätzlich prüfen Replay- und Matrixpfad, ob ein vollständiges COLMAP-Modell
+vorliegt, die Objektfilterung nicht alle Gaussians entfernt, die Poisson-
+Eingabe gültige Punkte und Normalen enthält und die für einen Replay
+notwendigen Artefakte aus demselben Frame-, Kamera- und Iterationsstand stammen.
+Der Matrixrunner archiviert jeden Lauf, bevor der Live-Arbeitsbereich für die
+nächste Konfiguration bereinigt wird.
+
+\subsection{STS-Objektfilterung und geometrischer Eingang}
+
+Der vollständige STS-Checkpoint bleibt unverändert erhalten. Ein separates
+Skript selektiert die konfigurierte Objekt-ID und kann Primitive unterhalb der
+Opazität 0,01 beziehungsweise sehr dunkle Primitive unterhalb eines
+Farbgrenzwerts von 0,08 entfernen. Fällt die Filterung leer aus, verhindert ein
+Quality-Gate die unbemerkte Übergabe. Die verbliebenen Datensätze werden in
+einer getrennten Kopie auf $\alpha=0{,}999999$ gesetzt. Dadurch bleibt die
+Originalwolke für Diagnose und Vergleich verfügbar.
+
+\subsection{Meshrouten und kompatibler Export}
+
+Die Produktionsroute A führt keine SuGaR-Coarse-Optimierung durch. Sie nutzt
+Surface-Sampling, Poisson-Rekonstruktion, Dichtebereinigung, Decimation und
+Vertexprojektion. Die Legacy-Route \texttt{sugar\_coarse} wird für eine
+kontrollierte Gegenüberstellung separat ausgeführt.
+
+Route A speichert das Coarse-PLY und konvertiert es für die bestehende
+Centerline-Schnittstelle zusätzlich in \texttt{refined.obj}. Dieser
+Kompatibilitätsname bedeutet ausdrücklich nicht, dass ein SuGaR-Refinement
+ausgeführt wurde. Die Vergleichsroute schreibt Coarse-, Refined- und
+gegebenenfalls Texturartefakte getrennt. Ein optionaler Multi-View-Crop bleibt
+deaktiviert, weil er in früheren Diagnosen entweder zu konservativ oder zu
+destruktiv war.
+
+\subsection{Centerline und Export}
+
+Container E führt den \texttt{single}-Centerline-Modus mit einer Voxelgröße von
+0,1 und einer Mindestpfadlänge von 0,75 aus. Die Eckensegmentierung ist
+deaktiviert; die lokale Kurve wird als geklemmter uniformer B-Spline Grad 10
+ausgegeben. Fehlt eine Transformationsmatrix, werden globale Ausgaben deutlich
+als Translation-Fallback bezeichnet. Die detaillierten GeoJSON- und
+Postprocessdateien befinden sich im digitalen Anlagenteil.
+
+\subsection{Ausgewählte Robustheitsmaßnahmen}
+
+Die Entwicklung enthielt mehrere negative Ergebnisse. Für den Haupttext sind
+nicht die jeweiligen Stacktraces, sondern die daraus abgeleiteten
+Schnittstellenregeln relevant. Tabelle~\ref{tab:robustheit-kern} fasst die
+wichtigsten Beispiele zusammen; die ausführlichere Chronologie befindet sich
+in Tabelle~\ref{tab:fehlerchronik} im Anhang.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{2.5cm}XXX}
+\toprule
+Problem & Ursache & Korrektur & Bedeutung\\
+\midrule
+Leerer SuGaR-Eval-Split & Dateiendung und Kamerastem unterschieden sich &
+Normalisierung und Kardinalitätsprüfung & Ein vorhandener Split ist erst nach
+erfolgreichem Matching gültig.\\
+Unvollständige Matrix & Unterprozesse konsumierten TSV-stdin &
+stdin-unabhängige Schleifen & Geplante und tatsächlich ausgeführte Läufe müssen
+getrennt geprüft werden.\\
+Leere Eval-Maske & Globaler Coverage-Guard war weniger streng als der feste
+Split & Split erst nach dem Warp aus nichtleeren Masken & Eval-Eignung ist ein
+eigener Datenvertrag.\\
+SuGaR-Renderfehler & Importpfad und HWC/CHW-Layout & expliziter Pfad und
+Layoutkonvertierung & STS-Zwischenmetriken dürfen nicht als SuGaR-Ergebnis
+gedeutet werden.\\
+Verästeltes Skelett & Medialflächen und kurze Stachel-Äste & Durchmesserpfad im
+\texttt{single}-Modus & Netzwerkobjekte bleiben außerhalb des Scopes.\\
+\bottomrule
+\end{tabularx}
+\caption{Kernprobleme und daraus abgeleitete Robustheitsmaßnahmen.}
+\label{tab:robustheit-kern}
+\end{table}

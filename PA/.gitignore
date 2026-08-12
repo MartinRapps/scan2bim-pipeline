@@ -1,0 +1,11 @@
+build/*
+!build/.gitkeep
+*.aux
+*.bcf
+*.blg
+*.log
+*.out
+*.run.xml
+*.toc
+*.fls
+*.fdb_latexmk

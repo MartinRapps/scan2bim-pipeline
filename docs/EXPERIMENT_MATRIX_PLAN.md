@@ -1,6 +1,6 @@
 # Plan: Kameramodell-, Splat- und Maskenvergleich
 
-Stand: 06.08.2026
+Stand: 11.08.2026
 
 Die erste Implementierung der zentralen Bausteine liegt jetzt vor:
 `tools/run_experiment_matrix.sh`, `tools/experiment_matrix.tsv`,
@@ -12,8 +12,18 @@ Maskenreviews. Ein vollständiger 24er-Matrixlauf wurde noch nicht gestartet.
 Der einzelne Low-Resolution-Integrationslauf
 `matrix_smoke_low_pipe_full/5fps/low/simple_radial_a` wurde dagegen nach
 Behebung des festen Eval-Split-Fehlers erfolgreich per `--from sugar`
-wiederholt, ohne SAM3, COLMAP oder STS erneut auszuführen.
+wiederholt, ohne SAM3, COLMAP oder STS erneut auszuführen. Die bereits
+ausreichend getestete Variante `simple_radial_a` ist inzwischen aus der
+Konfigurationsdatei entfernt; die aktuelle Matrix umfasst drei verbleibende
+Varianten, drei Auflösungen und zwei FPS-Profile, also 18 neue Versuche.
 
+Die zwölf Läufe wurden unter
+`data/10_runs/matrix_sugar_followup_12/` vollständig archiviert. Alle zwölf
+Coarse-Routen und Coarse-Renderings waren erfolgreich; die
+`sugar_refined_masked.json`-Dateien weisen jedoch jeweils auf den fehlenden
+`refined.ply`-Export hin. Ein archivierter 5-FPS-720p-Coarse-Checkpoint war der
+technische Vorabnachweis; die abgeschlossene Folgematrix ist die maßgebliche
+breitere Coarse-Auswertung.
 Jeder Matrixlauf erzeugt vor SAM3 ein eigenes skaliertes Arbeitsvideo. Die
 Matrix umfasst standardmäßig `MATRIX_FPS_LIST=5,2`; damit werden sowohl ein
 5-FPS- als auch ein ressourcensparender 2-FPS-Workflow getestet. Die drei
@@ -353,7 +363,6 @@ Die Matrixdatei kann um weitere Varianten ergänzt werden:
 
 ```text
 # id camera_model mesh_mode coarse_iterations refinement_time
-simple_radial_a SIMPLE_RADIAL original_gs - medium
 simple_radial_sugar SIMPLE_RADIAL sugar_coarse 9000 medium
 pinhole_a PINHOLE original_gs - medium
 opencv_a OPENCV original_gs - medium
@@ -366,9 +375,27 @@ Ein sicherer Vorschauaufruf ist:
 ```
 
 Einzelne Ausschnitte können mit `--resolution qhd` oder
-`--variant simple_radial_a` ausgeführt werden. Ein echter Lauf benötigt ein
+`--variant pinhole_a` ausgeführt werden. Ein echter Lauf benötigt ein
 Rohvideo und setzt `MATRIX_INPUT_VIDEO`, falls mehrere Videos in `data/01_raw`
 liegen.
+
+### Gezielte 12er-SuGaR-Folgeprüfung
+
+Für die erneute Prüfung der Legacy-SuGaR-Coarse-Route wird bewusst eine
+separate TSV-Datei verwendet:
+`tools/experiment_matrix_sugar.tsv`. Sie enthält genau zwei Routen:
+
+- `SIMPLE_RADIAL` + `sugar_coarse`;
+- `OPENCV` + `sugar_coarse`.
+
+Beide werden bei 720p, QHD und Low sowie bei 5 FPS und 2 FPS ausgeführt. Das
+ergibt zwölf neue Läufe. Die bereits abgeschlossenen A-Routen werden dadurch
+nicht erneut gerechnet. Der vorherige SuGaR-Fehler im Render-Helfer wurde vor
+diesem Folgeversuch korrigiert: `/opt/sugar` wird explizit in den Python-
+Importpfad aufgenommen und HWC-Renderergebnisse werden vor `save_image` in
+CHW-Layout umgewandelt. Ein archivierter 5-FPS-720p-Coarse-Checkpoint wurde
+damit bereits erfolgreich auf 30 Testviews gerendert und objektmaskiert
+ausgewertet; dieser Smoke-Test ersetzt die zwölf neuen Matrixläufe nicht.
 
 Der Runner führt pro Eintrag aus:
 
@@ -410,8 +437,10 @@ ein Experiment:
 - 200.000 Mesh-Vertices, 5.000.000 Oberflächenstichproben, Seed 42.
 
 `full` bedeutet in dieser Run-ID, dass der einzelne Versuch nicht als
-`--mask-only` beendet wurde. Es bedeutet nicht, dass alle 24 Kombinationen aus
-vier Varianten, drei Auflösungen und zwei FPS-Profilen gelaufen sind. Der
+`--mask-only` beendet wurde. Es bedeutet nicht, dass die damals geplanten 24
+Kombinationen aus vier Varianten, drei Auflösungen und zwei FPS-Profilen
+gelaufen sind. Die inzwischen aus der Konfiguration entfernte Variante
+`simple_radial_a` wird nicht erneut gerechnet. Der
 Smoke-Test dient dazu, die Datenverträge zwischen SAM3, COLMAP, STS und SuGaR
 vor dem teuren Matrixlauf zu prüfen.
 
@@ -471,6 +500,92 @@ wegen fehlendem `matrix.txt` ist kein Genauigkeitsnachweis. Damit sind der
 Replay-Vertrag, der Postprocess, das Rendering und die Metrikberechnung auf
 dem Smoke-Test nachgewiesen; die wissenschaftliche Bewertung und der
 vollständige 24er-Lauf bleiben separate Schritte.
+
+## 9b. Befund des ersten 24er-Matrixstarts
+
+Der erste Start mit `MATRIX_BATCH_ID=matrix_full_pipe` erzeugte nur sechs
+Versuche statt der erwarteten 24. Vier Versuche waren erfolgreich:
+
+- `5fps/720p/simple_radial_a`
+- `5fps/qhd/simple_radial_a`
+- `5fps/low/simple_radial_a`
+- `2fps/720p/simple_radial_a`
+
+Zwei Versuche liefen bis zu SuGaR, Postprocess, STS-Rendering und dem
+Metrikschritt, brachen aber bei der objektmaskierten Auswertung ab:
+
+- `2fps/qhd/simple_radial_a`
+- `2fps/low/simple_radial_a`
+
+In beiden Fällen enthielt der feste Split `00056.jpg`, dessen gewarpte
+Evaluationsmaske leer war. Die allgemeine Coverage-Prüfung ließ den Lauf
+korrekt passieren, weil nur 2 von 96 Masken leer waren und damit die
+Abbruchgrenze von 30 Prozent nicht erreicht wurde. Der Metrikcode behandelte
+jedoch bereits eine einzelne leere Eval-Maske als fatalen Fehler.
+
+Die übrigen 18 Läufe (`simple_radial_sugar`, `pinhole_a` und `opencv_a`) wurden
+nicht ausgeführt. Ursache war eine Bash-Implementierungsstörung: Die innere
+`while read`-Schleife bezog ihre Zeilen aus einem Here-String, während die
+Docker-/Pipeline-Kommandos denselben Standardinput erbten und verbrauchten.
+Nach dem ersten Varianteneintrag war die Schleife dadurch am Ende der Eingabe.
+Das war kein fachlicher Fehler von SuGaR, PINHOLE oder OPENCV.
+
+Der Runner verwendet nun `for`-Schleifen mit zeilenweiser Variablenzuweisung,
+plant für die aktuelle TSV alle 18 verbleibenden Einträge und schreibt bei
+Fehlern den tatsächlich versuchten FPS-Wert in Manifest und Bericht. Der feste
+Eval-Split wird erst
+nach dem Mask-Warping aus nichtleeren idealen `middle`-Masken gebildet.
+Zusätzlich lehnt SuGaR einen nur teilweise gematchten festen Split nun vor dem
+Rendering mit einer klaren Fehlermeldung ab. Ein neuer vollständiger Lauf muss
+unter einer neuen Batch-ID gestartet werden; der historische Batch bleibt als
+Fehlernachweis erhalten.
+
+## 9c. Interpretation der SuGaR-Metriken und der Auflösungsunterschiede
+
+Bei `simple_radial_sugar` existiert trotz des Status `failed` eine Datei
+`metrics/sts_masked.json`. Das ist kein erfolgreicher SuGaR-Wert. Der Runner
+rendert und bewertet zuerst den STS-7000-Baseline-Splat. Erst danach wird in
+einem getrennten Schritt der SuGaR-Coarse-Splat gerendert und als
+`sugar_coarse_masked.json` bewertet. In den `matrix_rest`-Läufen brach dieser
+zweite Schritt mit `ModuleNotFoundError: No module named 'sugar_scene'` ab.
+Die STS-Baseline-Datei blieb deshalb erhalten, obwohl die ausgewählte
+SuGaR-Route insgesamt fehlgeschlagen war. Der Fehler wurde in
+`src/python/render_sugar_checkpoint.py` durch einen expliziten
+`/opt/sugar`-Importpfad behoben; die historischen SuGaR-Metriken werden
+dadurch nicht nachträglich zu erfolgreichen SuGaR-Ergebnissen.
+
+Die scheinbar bessere Qualität einzelner Low-Auflösungsläufe ist nicht als
+Beweis einer besseren 3D-Rekonstruktion zu lesen. Jede Auflösung wird derzeit
+in ihrer eigenen Pixel- und Maskendomäne ausgewertet. Beim Herunterskalieren
+wirkt die Bildbildung wie ein Tiefpass: feine Texturfehler, Kantenversatz,
+Pixelrauschen und kleine Maskengrenzen werden gemittelt. Dadurch können PSNR
+und SSIM steigen und LPIPS sinken, obwohl die Geometrie nicht besser geworden
+ist. Zusätzlich unterscheiden sich die verfügbaren Ansichten, insbesondere
+zwischen 2 und 5 FPS.
+
+Die Beobachtung ist außerdem nicht monoton: Bei OPENCV erreicht Low bei 5 FPS
+höhere Werte als QHD und 720p, während PINHOLE bei 5 FPS in QHD den höchsten
+PSNR-/SSIM-Wert der drei Auflösungen erreicht. Das spricht gegen die Aussage,
+dass niedrige Auflösung allein die Ursache ist. Plausibler ist eine
+Interaktion aus Downsampling, Kameramodell, konkreter Kamerabewegung,
+Maskenabdeckung und STS-Optimierung.
+
+Die Zeit-/Qualitätsmatrix ist deshalb sinnvoll als sekundäre
+Engineering-/Screening-Auswertung: Sie zeigt Kosten-Nutzen-Tendenzen und
+Pareto-Kandidaten. Für die Bachelorarbeit darf ihr Quotient aber nicht als
+alleinige Qualitätsrangfolge verwendet werden. Der aktuelle Quotient basiert
+auf einer nachträglichen Min-Max-Normalisierung von PSNR, SSIM und invertiertem
+LPIPS mit gleichen Gewichten und umfasst nur die archivierten STS-bis-
+Postprocess-Schrittzeiten. SAM3, COLMAP, Rendering und Metrikcontainer sind
+nicht vollständig enthalten. Primär sollten daher Rohmetriken und später
+Centerline-/GNSS-Geometriemetriken berichtet werden; die Zeit-/Qualitätsmatrix
+gehört in einen Sensitivitäts- oder Effizienzabschnitt beziehungsweise in den
+Anhang.
+
+Für einen strengeren Auflösungsvergleich müssten alle Renderings und Ground-
+Truth-Bilder zusätzlich in eine gemeinsame Zielauflösung gebracht und auf
+identischen Eval-Views bewertet werden. Erst dann wäre ein Auflösungsranking
+weniger durch den Vorteil des Downsamplings geprägt.
 
 ## 10. Cleanup-Regeln
 

@@ -5,14 +5,35 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 from pathlib import Path
 
 import torch
 from torchvision.utils import save_image
 
+# This helper is mounted from /app/src, while SuGaR itself lives below
+# /opt/sugar in Container D. Executing a script by its absolute path does not
+# add the current working directory to Python's import path, so make the
+# mounted/bundled SuGaR root explicit before importing sugar_scene.
+SUGAR_ROOT = os.environ.get("SUGAR_ROOT", "/opt/sugar")
+if SUGAR_ROOT not in sys.path:
+    sys.path.insert(0, SUGAR_ROOT)
+
 from sugar_scene.gs_model import GaussianSplattingWrapper
 from sugar_scene.sugar_model import SuGaR
 from sugar_utils.spherical_harmonics import SH2RGB
+
+
+def as_chw(image: torch.Tensor) -> torch.Tensor:
+    """Normalize renderer output to torchvision's channel-first image layout."""
+    image = image.squeeze()
+    if image.ndim != 3:
+        raise ValueError(f"Expected a 3D image tensor, got shape {tuple(image.shape)}")
+    if image.shape[0] in (1, 3, 4):
+        return image
+    if image.shape[-1] in (1, 3, 4):
+        return image.permute(2, 0, 1)
+    raise ValueError(f"Could not infer image channel dimension from shape {tuple(image.shape)}")
 
 
 def main() -> int:
@@ -70,8 +91,8 @@ def main() -> int:
                 compute_color_in_rasterizer=True,
                 compute_covariance_in_rasterizer=True,
             ).clamp(0.0, 1.0)
-            save_image(image, str(render_dir / f"{index:05d}.png"))
-            save_image(camera.original_image[:3].clamp(0.0, 1.0), str(gt_dir / f"{index:05d}.png"))
+            save_image(as_chw(image), str(render_dir / f"{index:05d}.png"))
+            save_image(as_chw(camera.original_image[:3].clamp(0.0, 1.0)), str(gt_dir / f"{index:05d}.png"))
 
     print(f"Rendered {len(cameras.gs_cameras)} fixed-test views to {args.output_dir}")
     return 0

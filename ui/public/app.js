@@ -29,6 +29,12 @@ function fmtSize(bytes) {
   return (bytes/1048576).toFixed(1) + ' MB';
 }
 
+function appEscapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[char]));
+}
+
 function fmtTime(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -394,6 +400,17 @@ function updateFlowchartActive(activeId) {
 }
 
 // == Right Panel: Preview ==
+function flattenFileEntries(entries, output = []) {
+  (entries || []).forEach(entry => {
+    if (entry.children && entry.children.length) {
+      flattenFileEntries(entry.children, output);
+    } else if (!entry.is_dir) {
+      output.push(entry);
+    }
+  });
+  return output;
+}
+
 function renderPreview(step) {
   const container = $('#preview-content');
   $('#preview-step-name').textContent = step.label;
@@ -519,11 +536,11 @@ function renderPreview(step) {
 
   if (step.files && step.files.length) {
       const total = step.total_file_count || step.file_count;
+      const leafFiles = flattenFileEntries(step.files);
       html += `<div class="preview-section">
       <div class="preview-section-title">Alle Dateien (${total})</div>`;
-    const showCount = Math.min(step.files.length, total > 100 ? 8 : 20);
-    step.files.slice(0, showCount).forEach(f => {
-      if (f.is_dir) return;
+    const showCount = Math.min(leafFiles.length, total > 100 ? 12 : 30);
+    leafFiles.slice(0, showCount).forEach(f => {
       const icon = f.name.match(/\.(ply|obj)$/i) ? '🔷' :
                    f.name.match(/\.(jpg|jpeg|png|gif)$/i) ? '🖼️' :
                    f.name.match(/\.(mp4|mov)$/i) ? '🎥' :
@@ -532,15 +549,16 @@ function renderPreview(step) {
       html += `<a class="preview-file" href="/api/file/${f.path}" ${f.name.match(/\.(png|jpg|jpeg|gif|mp4|mov)$/i) ? '' : 'download'}>
         <span class="preview-file-icon">${icon}</span>
         <div class="preview-file-info">
-          <div class="preview-file-name">${f.name}</div>
+          <div class="preview-file-name">${appEscapeHtml(f.name)}</div>
+          <div class="preview-file-path">${appEscapeHtml(f.path || f.name)}</div>
           <div class="preview-file-size">${fmtSize(f.size)}</div>
         </div>
         <span class="preview-file-dl">${f.name.match(/\.(png|jpg|jpeg|gif)$/i) ? '👁' : '⬇'}</span>
       </a>`;
     });
-    if (total > showCount) {
+    if (leafFiles.length > showCount) {
       html += `<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:8px;">
-        + ${total - showCount} weitere Dateien</div>`;
+        + ${leafFiles.length - showCount} weitere Dateien</div>`;
     }
     html += `</div>`;
   }
@@ -821,6 +839,13 @@ function connectToStream(scriptId, sessionId) {
       $('#script-input').disabled = true;
       $('#script-send-btn').disabled = true;
       $$('.quick-answers button').forEach(b => b.disabled = true);
+      // Refresh step/file metadata after a pipeline run. The GCP view has its
+      // own COLMAP frame cache and must be refreshed separately as well.
+      loadAll();
+      const gcpView = $('#gcp-view');
+      if (msg.data === 0 && gcpView && gcpView.style.display !== 'none' && typeof gcpLoadAll === 'function') {
+        gcpLoadAll();
+      }
       if (msg.data === 0) {
         appendTerminal('\n[Prozess beendet mit Exit-Code 0]', 'success');
         $$('.progress-step').forEach(el => el.classList.add('done'));

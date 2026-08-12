@@ -1,0 +1,3 @@
+# id                   camera_model   mesh_mode      coarse_iterations refinement_time
+simple_radial_sugar     SIMPLE_RADIAL   sugar_coarse   9000              medium
+opencv_sugar            OPENCV          sugar_coarse   9000              medium

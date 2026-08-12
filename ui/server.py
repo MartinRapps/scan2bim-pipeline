@@ -977,25 +977,58 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def _gcp_frames(self):
         cams_path = os.path.join(SPARSE_TXT_DIR, "cameras.txt")
         imgs_path = os.path.join(SPARSE_TXT_DIR, "images.txt")
+        source = {
+            "cameras_txt": os.path.relpath(cams_path, PROJECT_ROOT),
+            "images_txt": os.path.relpath(imgs_path, PROJECT_ROOT),
+            "frames_dir": os.path.relpath(FRAMES_DIR, PROJECT_ROOT),
+            "cameras_exists": os.path.isfile(cams_path),
+            "images_exists": os.path.isfile(imgs_path),
+            "frames_dir_exists": os.path.isdir(FRAMES_DIR),
+        }
         if not (os.path.isfile(cams_path) and os.path.isfile(imgs_path)):
-            return {"error": "Kein COLMAP TXT-Export gefunden. Bitte COLMAP-SfM ausfuehren (erzeugt data/04_sfm/sparse_txt/).", "frames": []}
-        cams = _parse_cameras_txt_min(cams_path)
-        images = _parse_images_txt_min(imgs_path)
+            return {
+                "error": "Kein vollständiger COLMAP TXT-Export gefunden. "
+                         "Bitte zuerst COLMAP-SfM ausführen.",
+                "frames": [],
+                "source": source,
+            }
+        try:
+            cams = _parse_cameras_txt_min(cams_path)
+            images = _parse_images_txt_min(imgs_path)
+        except (OSError, ValueError, IndexError) as error:
+            return {
+                "error": f"COLMAP-TXT konnte für die GCP-Ansicht nicht gelesen werden: {error}",
+                "frames": [],
+                "source": source,
+            }
         frames = []
+        missing_images = []
         for img in images:
             cam = cams.get(img["camera_id"])
             if cam is None:
                 continue
             center = _camera_center(img["qvec"], img["tvec"])
+            image_path = os.path.abspath(os.path.join(FRAMES_DIR, img["name"]))
+            inside_frames = image_path == FRAMES_DIR or image_path.startswith(FRAMES_DIR + os.sep)
+            image_exists = inside_frames and os.path.isfile(image_path)
+            if not image_exists:
+                missing_images.append(img["name"])
             frames.append({
                 "name": img["name"],
                 "width": cam["width"],
                 "height": cam["height"],
                 "center": [round(c, 4) for c in center],
                 "thumb": "/api/file/data/02_frames/" + quote(img["name"], safe=""),
+                "image_exists": image_exists,
             })
         frames.sort(key=lambda f: f["name"])
-        return {"frames": frames}
+        return {
+            "frames": frames,
+            "source": source,
+            "registered_count": len(frames),
+            "missing_image_count": len(missing_images),
+            "missing_images": missing_images[:20],
+        }
 
     def _gcp_points(self):
         rel = _parse_gcp_csv(GCP_RELATIVE_CSV)
@@ -1074,11 +1107,25 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.send_json({"deleted": len(obs) < before, "count": len(obs)})
 
     def _gcp_compute(self):
-        if not os.path.isfile(os.path.join(SPARSE_TXT_DIR, "cameras.txt")):
-            self.send_json({"error": "Kein COLMAP TXT-Export (data/04_sfm/sparse_txt/). Erst SfM ausfuehren."}, 400)
+        required_paths = {
+            "cameras.txt": os.path.join(SPARSE_TXT_DIR, "cameras.txt"),
+            "images.txt": os.path.join(SPARSE_TXT_DIR, "images.txt"),
+            "gcp_relative.csv": GCP_RELATIVE_CSV,
+        }
+        missing = [name for name, path in required_paths.items() if not os.path.isfile(path)]
+        if missing:
+            self.send_json({
+                "error": "GCP-Berechnung kann nicht starten; Eingabedateien fehlen.",
+                "missing_files": missing,
+                "paths": {name: os.path.relpath(path, PROJECT_ROOT) for name, path in required_paths.items()},
+            }, 400)
             return
-        if not _read_observations():
-            self.send_json({"error": "Keine Beobachtungen. Bitte GCPs in Bildern markieren."}, 400)
+        observations = _read_observations()
+        if not observations:
+            self.send_json({
+                "error": "Keine Beobachtungen. Bitte GCPs in registrierten Bildern markieren.",
+                "observation_path": os.path.relpath(GCP_OBS_PATH, PROJECT_ROOT),
+            }, 400)
             return
 
         # Common args for both paths.
@@ -1089,8 +1136,18 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             "--output-matrix", os.path.join(SFM_DIR, "matrix.txt"),
             "--report", GCP_REPORT_PATH,
         ]
-        docker_cmd = ["docker", "compose", "run", "--rm", "post-processing",
-                      "python3", "/app/src/python/gcp_register.py", *common_args]
+        # The post-processing container mounts the host data directory at
+        # /data. Host absolute paths are not meaningful inside that container.
+        docker_args = [
+            "--sfm-txt", "/data/04_sfm/sparse_txt",
+            "--observations", "/data/04_sfm/gcp_observations.json",
+            "--gcp-relative", "/data/01_raw/gcp_relative.csv",
+            "--output-matrix", "/data/04_sfm/matrix.txt",
+            "--report", "/data/04_sfm/gcp_report.json",
+        ]
+        docker_cmd = ["docker", "compose", "run", "--rm",
+                  "--user", f"{os.getuid()}:{os.getgid()}", "post-processing",
+                      "python3", "/app/src/python/gcp_register.py", *docker_args]
         native_cmd = ["python3",
                       os.path.join(PROJECT_ROOT, "src", "python", "gcp_register.py"),
                       *common_args]
@@ -1123,17 +1180,42 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     if proc2.returncode == 0:
                         proc, mode = proc2, "native"
                     else:
-                        self.send_json({"error": "gcp_register fehlgeschlagen (docker + native)",
-                                        "docker_stderr": proc.stderr[-2000:],
-                                        "native_stderr": proc2.stderr[-2000:]}, 500)
+                        self.send_json({
+                            "error": "gcp_register fehlgeschlagen: Docker und nativer Fallback.",
+                            "error_details": {
+                                "docker": {
+                                    "returncode": proc.returncode,
+                                    "stdout": proc.stdout[-4000:],
+                                    "stderr": proc.stderr[-4000:],
+                                },
+                                "native": {
+                                    "returncode": proc2.returncode,
+                                    "stdout": proc2.stdout[-4000:],
+                                    "stderr": proc2.stderr[-4000:],
+                                },
+                            },
+                            "observation_count": len(observations),
+                        }, 500)
                         return
                 except FileNotFoundError:
-                    self.send_json({"error": "gcp_register fehlgeschlagen (docker); python3 fehlt fuer Fallback",
-                                    "stderr": proc.stderr[-2000:]}, 500)
+                    self.send_json({
+                        "error": "gcp_register im Docker fehlgeschlagen; python3 fehlt für den nativen Fallback.",
+                        "error_details": {"docker": {
+                            "returncode": proc.returncode,
+                            "stdout": proc.stdout[-4000:],
+                            "stderr": proc.stderr[-4000:],
+                        }},
+                    }, 500)
                     return
             else:
-                self.send_json({"error": "gcp_register fehlgeschlagen",
-                                "stderr": proc.stderr[-2000:], "stdout": proc.stdout[-2000:]}, 500)
+                self.send_json({
+                    "error": "gcp_register fehlgeschlagen.",
+                    "error_details": {"native": {
+                        "returncode": proc.returncode,
+                        "stdout": proc.stdout[-4000:],
+                        "stderr": proc.stderr[-4000:],
+                    }},
+                }, 500)
                 return
 
         if not os.path.isfile(GCP_REPORT_PATH):

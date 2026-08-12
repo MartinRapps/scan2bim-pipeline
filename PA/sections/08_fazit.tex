@@ -1,0 +1,38 @@
+\section{Fazit und Ausblick}
+
+Die Projektarbeit zeigt für den kontrollierten Alurohrdatensatz die technische
+Machbarkeit einer Docker-basierten Scan-to-BIM-Pipeline. SAM~3.1, unmaskiertes
+COLMAP-SfM, ideale Bilddomäne, objektspezifisches STS, Original-GS-
+Meshgewinnung und DGtal-Centerline können im nachgewiesenen Matrix-/Smoke-/
+Replaypfad als reproduzierbare Kette betrieben und archiviert werden. Der
+historische Inline-Vollauf benötigt vor einer allgemeinen Gleichsetzung noch
+die Integration beziehungsweise Prüfung desselben Maskenwarp- und
+Quality-Gate-Pfads.
+
+Der Eigenbeitrag besteht insbesondere in der kameramodellbewussten Trennung von
+Roh- und Idealbilddomäne, der konsistenten Nutzung der SAM-Masken, den
+prüfbaren Datenverträgen zwischen fünf Containerumgebungen, der direkten
+Original-GS-Meshroute sowie der automatisierten Versuchs- und
+Fehlerauswertung. Interaktiver CLI-Betrieb, Replay und Matrixrunner decken
+Erstlauf, gezielte Wiederholung und Batchverarbeitung ab.
+
+Variante A ist für den Projektstand die bevorzugte Meshroute, weil sie die
+STS-Gaussian-Geometrie direkter erhält als eine zusätzliche SuGaR-Coarse-
+Optimierung. PINHOLE und OPENCV sind als Kameramodell-Ablationen technisch
+vergleichbar. SuGaR-Coarse bleibt eine wichtige Vergleichsroute; die
+zwölfteilige Folgematrix mit SIMPLE-RADIAL und OPENCV ist inzwischen technisch
+vollständig durchgelaufen und in den Grafiken ausgewertet. Sie weist jedoch
+nur die Coarse-Stufe nach, weil keine verfeinerten PLY-Dateien exportiert
+wurden. Die SuGaR-Refined-Stufe bleibt deshalb ein getrenntes offenes Thema.
+
+Die Ergebnisse liefern einen Funktionsnachweis, aber keinen
+Vermessungsnachweis. Die Bachelorarbeit muss deshalb reale Aufnahmen,
+geeignete GCP-/GNSS-Messungen, echte 4x4-Georeferenzierung und geometrische
+Fehlermetriken ergänzen. Die in dieser PA aufgebaute Struktur trennt diese
+wissenschaftlichen Fragen von den bereits geprüften technischen
+Zwischenschritten.
+
+Die endgültige Kurzfassung und dieses Fazit werden nach Auswahl eines
+konsistenten Golden Runs nochmals gegen die tatsächlichen Ergebnisartefakte
+geprüft. Die abgeschlossene SuGaR-Coarse-Folgematrix ist dabei bereits
+berücksichtigt; eine mögliche SuGaR-Refined-Auswertung bleibt getrennt.
