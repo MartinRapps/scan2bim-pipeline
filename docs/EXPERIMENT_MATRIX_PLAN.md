@@ -215,10 +215,11 @@ Referenzmaske verwendet:
   angewendet.
 3. Für PSNR wird der Fehler nur über gültige Objektpixel gemittelt; die Zahl
   gültiger Pixel wird protokolliert.
-4. Für SSIM wird eine maskengewichtete Auswertung durchgeführt. Fenster, die
-  keinen ausreichenden gültigen Objektanteil besitzen, werden verworfen oder
-  entsprechend gewichtet; dadurch wird der Hintergrund nicht als Objektfehler
-  bewertet.
+4. Für SSIM wird zunächst mit `skimage` eine vollständige lokale SSIM-Karte
+  berechnet. Anschließend werden nur die SSIM-Werte an gültigen Objekt-
+  maskenpixeln aggregiert. Lokale Fenster am Maskenrand können deshalb noch
+  Kontext außerhalb der Maske enthalten; diese Randwirkung wird als
+  Einschränkung des Messprotokolls dokumentiert.
 5. Für LPIPS wird ein dokumentierter Objekt-Crop aus der gemeinsamen Maske
   verwendet. Pixel außerhalb der Maske werden innerhalb dieses Crops auf
   einen neutralen, in beiden Bildern identischen Wert gesetzt. Der Crop und
@@ -227,8 +228,10 @@ Referenzmaske verwendet:
   bezeichnet werden, weil das LPIPS-Netzwerk über seine rezeptiven Felder
   auch benachbarte Pixel berücksichtigen kann.
 
-Damit wird der Außenbereich bei PSNR und SSIM tatsächlich ausgeschlossen. Bei
-LPIPS wird er auf den gemeinsamen Objekt-Crop begrenzt und außerhalb der
+Damit wird der Außenbereich bei PSNR pixelweise ausgeschlossen; bei SSIM wird
+die Aggregation auf Maskenpixel begrenzt, die lokale Fensterauswertung kann aber
+Randkontext enthalten. Bei LPIPS wird der Außenbereich auf den gemeinsamen
+Objekt-Crop begrenzt und außerhalb der
 Maske vereinheitlicht; die verbleibende Randkontextwirkung ist Bestandteil der
 explizit dokumentierten LPIPS-Protokolldefinition. Zusätzlich werden immer
 `valid_pixel_count`, `mask_bbox`, `mask_area_fraction` und bei LPIPS

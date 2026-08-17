@@ -17,16 +17,16 @@ fi
     --current data/10_runs/matrix_rest \
     --previous data/10_runs/matrix_full_pipe \
     --sugar-followup data/10_runs/matrix_sugar_followup_12 \
-    --output-dir docs/grafiken
+    --output-dir docs/grafiken/verwendet_verbessert
 
-for source in docs/grafiken/matrix_*.tex; do
+for source in docs/grafiken/verwendet_verbessert/matrix_*.tex; do
     name="$(basename "${source%.tex}")"
     "$PDFLATEX_BIN" \
         -interaction=nonstopmode \
         -halt-on-error \
         -output-directory="$BUILD_DIR" \
         "$source" >/dev/null
-    cp "$BUILD_DIR/$name.pdf" "docs/grafiken/$name.pdf"
+    cp "$BUILD_DIR/$name.pdf" "docs/grafiken/verwendet_verbessert/$name.pdf"
 done
 
 echo "Matrix graphics written to $PROJECT_ROOT/docs/grafiken"

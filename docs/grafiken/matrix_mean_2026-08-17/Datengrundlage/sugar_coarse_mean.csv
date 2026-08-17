@@ -1,0 +1,13 @@
+camera_model,camera_short,stage,route,fps,resolution,source_run_count,source_batches,evaluation_frame_count,runtime_s,psnr_masked,ssim_masked,lpips_masked
+SIMPLE_RADIAL,SR,sugar_coarse,SuGaR-Coarse,2,720p,2,matrix_repeat_20260812;matrix_sugar_followup_12,12,2064.5,21.62396526604121,0.7523515621821086,0.15450557911147675
+SIMPLE_RADIAL,SR,sugar_coarse,SuGaR-Coarse,2,qhd,2,matrix_repeat_20260812;matrix_sugar_followup_12,12,1582.0,21.795923920773276,0.7472878446181614,0.1296347587679823
+SIMPLE_RADIAL,SR,sugar_coarse,SuGaR-Coarse,2,low,2,matrix_repeat_20260812;matrix_sugar_followup_12,12,1147.5,21.95754551573455,0.7328618963559468,0.12729330686852336
+SIMPLE_RADIAL,SR,sugar_coarse,SuGaR-Coarse,5,720p,2,matrix_repeat_20260812;matrix_sugar_followup_12,30,2239.5,21.189352717405367,0.7773008793592453,0.15177572139849266
+SIMPLE_RADIAL,SR,sugar_coarse,SuGaR-Coarse,5,qhd,2,matrix_repeat_20260812;matrix_sugar_followup_12,30,1782.0,21.47751190502238,0.7708061248064041,0.1514764649172624
+SIMPLE_RADIAL,SR,sugar_coarse,SuGaR-Coarse,5,low,2,matrix_repeat_20260812;matrix_sugar_followup_12,30,1283.5,21.803196134341718,0.7707370618979137,0.12412121184170247
+OPENCV,OPENCV,sugar_coarse,SuGaR-Coarse,2,720p,2,matrix_repeat_20260812;matrix_sugar_followup_12,12,2121.0,21.70630496664117,0.7450977514187496,0.15514735101411742
+OPENCV,OPENCV,sugar_coarse,SuGaR-Coarse,2,qhd,2,matrix_repeat_20260812;matrix_sugar_followup_12,12,1699.0,21.982314810770433,0.7481644426782926,0.1281134986008207
+OPENCV,OPENCV,sugar_coarse,SuGaR-Coarse,2,low,2,matrix_repeat_20260812;matrix_sugar_followup_12,12,1310.5,21.740271427772875,0.721774992843469,0.1269391051804026
+OPENCV,OPENCV,sugar_coarse,SuGaR-Coarse,5,720p,2,matrix_repeat_20260812;matrix_sugar_followup_12,30,2214.5,21.129204080573817,0.7791953335205715,0.15214804019778966
+OPENCV,OPENCV,sugar_coarse,SuGaR-Coarse,5,qhd,2,matrix_repeat_20260812;matrix_sugar_followup_12,30,1791.0,21.237724416500853,0.7697069416443507,0.15238601739207902
+OPENCV,OPENCV,sugar_coarse,SuGaR-Coarse,5,low,2,matrix_repeat_20260812;matrix_sugar_followup_12,30,1264.5,21.904629632768163,0.7742220650116602,0.12494864047815403

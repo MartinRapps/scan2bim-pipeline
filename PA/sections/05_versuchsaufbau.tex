@@ -46,6 +46,16 @@ Maskenabdeckung, Registrierungsquote, Laufstatus und Laufzeit werden als
 technische Zusatzgrößen geführt. Sie werden nicht zu weiteren Bildmetriken
 umdefiniert.
 
+Für die Maskenlogik werden zwei Funktionen getrennt: Die erodierte
+\texttt{middle}-Maske bildet einen konservativen Objektkern und wird für das
+Coverage-Gate sowie für die Auswahl nichtleerer Eval-Ansichten verwendet. Die
+eigentliche Bildmetrik wird anschließend mit der weniger beschnittenen
+\texttt{default}-Maske berechnet. Dadurch werden unsichere Randbereiche bei
+der Zulassung eines Frames streng geprüft, ohne die Bildmetriken unnötig auf
+eine erodierte Objektfläche zu beschränken. Das Feld
+\texttt{mask\_level=default} in den Metrik-JSONs dokumentiert diese tatsächliche
+Auswertungsmaske.
+
 \subsection{COLMAP-Voruntersuchung}
 
 Eine getrennte CPU-Voruntersuchung vergleicht die Sparse-SfM-Stufe. Sie umfasst
@@ -124,7 +134,12 @@ Eval-Frames und objektmaskierte PSNR-, SSIM- und LPIPS-Werte. Die Daten werden �
 Die Matrixgrafiken verwenden den arithmetischen Mittelwert aus 2 und 5 FPS nur,
 wenn beide Läufe derselben Konfiguration vollständig erfolgreich waren. Ein
 technischer Fehler wird nicht als schlechter Qualitätswert in einen Mittelwert
-umgewandelt.
+umgewandelt. Die neue Auswertung trennt zusätzlich die Modellstufen: Eine
+STS-Grafik liest ausschließlich die jeweiligen \texttt{sts\_masked.json}-Dateien,
+eine SuGaR-Grafik ausschließlich \texttt{sugar\_coarse\_masked.json}. Die
+\texttt{per\_frame}-Werte werden ergänzend als Boxplots mit Einzelpunkten
+dargestellt, damit Streuung und Ausreißer nicht durch den Mittelwert verborgen
+werden.
 
 Ein Lauf erhält nur dann den Status vollständig erfolgreich, wenn alle für
 seine Route vorgesehenen Stufen gültig sind: Masken und Coverage,

@@ -1,6 +1,6 @@
 # Aussagenprüfung der ausgearbeiteten PA
 
-**Prüfstand:** 11.08.2026, abgeschlossene Run-Archive und aktueller Arbeitsbaum
+**Prüfstand:** 12.08.2026, abgeschlossene Run-Archive und aktueller Arbeitsbaum
 nach Abschluss der `matrix_sugar_followup_12`. Dieses Dokument bleibt ein
 quellenbasierter Auditstand; nach dem finalen Versionsfreeze ist nur noch der
 Commit-/Manifestabgleich zu wiederholen.
@@ -74,7 +74,7 @@ Iststand getrennt ausgewiesen.
 | Hierarchische Live-Masken | je 240 `default`, `middle`, `small` | BESTÄTIGT |
 | GCP | `gcp_coordinates.csv`, `gcp_relative.csv`, `anchor.txt`, `gcp_observations.json`, `matrix.txt` und `gcp_report.json` vorhanden; der UI-Smoke-Test ist durchgeführt | BESTÄTIGT |
 | Aktuelle echte 4x4-Georeferenzierung | nicht nachgewiesen; Fallback ist der belegte Laufzustand | OFFEN |
-| PA-PDF | 38 Seiten, LaTeX-Build erfolgreich; 12 nichtkritische Overfull-Warnungen | BESTÄTIGT |
+| PA-PDF / Exposé-PDF | PA 49 Seiten, Exposé 61 Seiten; beide Builds erfolgreich, PA ohne Overfull-Boxen | BESTÄTIGT |
 
 Die neue Folgematrix ist inzwischen abgeschlossen. Die zwölf Manifeste und
 die zugehörigen Coarse-Metriken wurden in die Grafikquelle und die PA
@@ -227,6 +227,63 @@ Funktionsnachweis und kein geodätischer Genauigkeitsnachweis. Ebenso bleibt
 der im Autopilot angezeigte Status von einem echten GCP-Nachweis zu trennen:
 entscheidend sind `matrix.txt` und `gcp_report.json`, nicht allein der Exit
 Code des Gesamtprozesses.
+
+### 2.10 Metrik- und Grafik-Audit (12.08.2026)
+
+Die frühere gemeinsame Grafik war fachlich missverständlich, weil Zeilen mit
+der Variantenbezeichnung `simple_radial_sugar` teilweise Werte aus
+`sts_masked.json` enthielten. Diese Werte waren STS-Zwischenmetriken vor dem
+fehlgeschlagenen SuGaR-Renderpfad und keine SuGaR-Coarse-Ergebnisse.
+
+Die Grafikquellen wurden deshalb getrennt und neu erzeugt:
+
+| Auswertung | Verbindliche Quelle | Interpretation |
+|---|---|---|
+| STS-Vergleich | `sts_masked.json` | Bildqualität des STS-7000-Splats |
+| SuGaR-Coarse-Vergleich | `sugar_coarse_masked.json` | Bildqualität des SuGaR-Coarse-9000-Splats |
+| SuGaR-Refined | `sugar_refined_masked.json` | in allen zwölf Follow-up-Läufen übersprungen; kein Ergebnis |
+| Einzelansichten | `per_frame` in den jeweiligen JSONs | Streuung, Quartile und Ausreißer |
+| Gepaarter Delta-Vergleich | gleiche Follow-up-Konfiguration, SuGaR minus STS | Rendervergleich, kein Meshnachweis |
+
+Die neue Grafikserie liegt unter
+`docs/grafiken/neu_metriken_2026-08-12/`. Alte nicht mehr eingebundene
+Grafiken liegen unter `docs/grafiken/archiv_alt_2026-08-12/`; weiterhin
+verwendete Status- und Quellenartefakte unter
+`docs/grafiken/verwendet_verbessert/`.
+
+Die Boxplot-Achsen werden aus sämtlichen `per_frame`-Werten einschließlich
+Ausreißern abgeleitet. Die Punkte liegen auf ihrer jeweiligen x-Kategorie und
+werden nur geringfügig horizontal verteilt. Die Laufzeitgrafik verwendet fest
+15--40 Minuten auf der x-Achse; helle Blau-/Orangetöne kodieren 2/5 FPS und
+Punkt/Quadrat/Dreieck 720p/QHD/Low. Kameraangaben stehen auf der x-Achse,
+statt durch eine zusätzliche SR-/OPENCV-Legende doppelt dargestellt zu werden.
+Die Matrixstatusgrafik wurde aus dem PA-Anhang entfernt; Statusinformationen
+bleiben in der Tabelle und den Manifesten erhalten.
+
+Die `middle`-Maske ist nicht die Aggregationsmaske der Bildmetriken. Sie wird
+als erodierter Objektkern für Coverage und die Auswahl nichtleerer
+Evaluationsansichten verwendet. Die eigentliche PSNR-/SSIM-/LPIPS-Auswertung
+verwendet `default`, wie das Feld `mask_level` in den Metrikdateien bestätigt.
+Im SuGaR-Training bleibt `middle` zusätzlich die konservative Maske des
+Depth-Normal-Pfads.
+
+Die Interpretation der Metriken wurde verbindlich präzisiert:
+
+- PSNR, SSIM und LPIPS sind Ansichtsmetriken der gerenderten Gaussian-
+   Repräsentation, nicht direkte Meshmetriken.
+- Unterschiedliche Auflösungen dürfen nicht zu einer globalen Qualitätsrangliste
+   zusammengefasst werden, weil Downsampling Kanten- und Hochfrequenzfehler
+   glätten kann.
+- Belastbarer sind gepaarte Vergleiche bei identischer Auflösung, FPS,
+   Kameramodell, Eval-Liste und Maskendomäne.
+- 2 FPS und 5 FPS sind zusätzlich durch unterschiedliche Framezahlen und
+   zeitliche Überdeckung konfundiert.
+- Kameramodellvergleiche bewerten die gesamte SfM-/Warp-/Rendering-Kette und
+   beweisen keine allgemeine Überlegenheit eines Kameramodells.
+- Mesh-Vertices, Faces und relative Meshabstände beschreiben Meshkomplexität
+   beziehungsweise Variantenunterschiede. Centerline-RMSE, Hausdorff-Distanz
+   und GNSS-/Laserscanfehler bleiben die fehlenden absoluten Geometriemetriken
+   der späteren Bachelorarbeit.
 
 ## 3. Prüfung der Anhänge
 

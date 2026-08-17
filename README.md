@@ -306,30 +306,25 @@ Refined-Stufe ist daher nicht Teil dieses Follow-ups. Die bereits ausgewerteten
 Varianten `simple_radial_a`, `pinhole_a` und `opencv_a` wurden nicht erneut
 gerechnet.
 
-Die druckfertigen Thesis-Grafiken für die beiden Matrixbatches liegen unter
-[docs/grafiken](docs/grafiken). Die Tabellen enthalten getrennte Spalten für
-2 FPS, 5 FPS und `Average`. Der Average wird nur gebildet, wenn beide
-FPS-Läufe derselben Konfiguration vollständig erfolgreich sind. Verfügbare
-Grafiken sind [PSNR](docs/grafiken/matrix_psnr_table.pdf),
-[SSIM](docs/grafiken/matrix_ssim_table.pdf),
-[LPIPS](docs/grafiken/matrix_lpips_table.pdf),
-[die übergeordnete PSNR/SSIM/LPIPS-Matrix](docs/grafiken/matrix_overview_table.pdf),
-[die kombinierte STS-/SuGaR-Overview](docs/grafiken/matrix_combined_overview_table.pdf),
-[Matrixstatus](docs/grafiken/matrix_status_table.pdf) und das
-[Zeit-Qualitäts-Verhältnis](docs/grafiken/matrix_time_quality_table.pdf).
-Die stage-getrennten SuGaR-Coarse-Grafiken sind [SuGaR-Overview](docs/grafiken/matrix_sugar_overview_table.pdf),
-[SuGaR-Status](docs/grafiken/matrix_sugar_status_table.pdf),
-[SuGaR-PSNR](docs/grafiken/matrix_sugar_psnr_table.pdf),
-[SuGaR-SSIM](docs/grafiken/matrix_sugar_ssim_table.pdf),
-[SuGaR-LPIPS](docs/grafiken/matrix_sugar_lpips_table.pdf) und
-[SuGaR-Zeit/Qualität](docs/grafiken/matrix_sugar_time_quality_table.pdf).
-Die zugrunde liegenden Werte stehen in
-[matrix_thesis_data.csv](docs/grafiken/matrix_thesis_data.csv); die Methodik
-ist in [matrix_thesis_method.md](docs/grafiken/matrix_thesis_method.md)
-beschrieben. Die stage-getrennte Erzeugung aller LaTeX-Quellen und PDFs erfolgt
-mit `bash tools/build_matrix_figures.sh`. Das zugrunde liegende Python-Skript
-zur reproduzierbaren Datenauswertung ist
-[tools/create_matrix_thesis_figures.py](tools/create_matrix_thesis_figures.py).
+Die Grafiken sind jetzt nach Herkunft und Verwendungsstatus geordnet:
+
+- [verwendet_verbessert](docs/grafiken/verwendet_verbessert): weiterhin
+  aussagekräftige Statusgrafiken und die historische gemeinsame Matrixquelle;
+- [neu_metriken_2026-08-12](docs/grafiken/neu_metriken_2026-08-12): korrigierte,
+  stufentrennte STS-/SuGaR-Coarse-Übersichten, Boxplots der Einzelansichten,
+  gepaarte Delta-Grafik und explorative Metrik-/Laufzeitgrafik;
+- [archiv_alt_2026-08-12](docs/grafiken/archiv_alt_2026-08-12): ältere Tabellen,
+  kombinierte oder nicht mehr verwendete Grafikstände.
+
+Die neue STS-Auswertung liest ausschließlich `sts_masked.json`; die neue
+SuGaR-Coarse-Auswertung ausschließlich `sugar_coarse_masked.json`. Dadurch
+wird eine vorhandene STS-Zwischenmetrik aus einem fehlgeschlagenen SuGaR-Lauf
+nicht mehr als SuGaR-Ergebnis bezeichnet. Die Boxplots verwenden zusätzlich
+die Einzelwerte aus `per_frame`. Die neuen Quellen werden mit
+[tools/create_metric_diagnostic_figures.py](tools/create_metric_diagnostic_figures.py)
+erzeugt. Die historischen Tabellen können mit
+[tools/create_matrix_thesis_figures.py](tools/create_matrix_thesis_figures.py)
+und `bash tools/build_matrix_figures.sh` reproduziert werden.
 
 Rohdaten,
 `data/01_raw/output.mp4` und `data/hf_cache` werden dabei nicht gelöscht.

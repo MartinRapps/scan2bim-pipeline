@@ -24,24 +24,20 @@ Gesamt & 24 & 16 & 8\\
 \caption{Status der für die PA zusammengeführten Matrixbatches.}
 \end{table}
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{matrix_status_table.pdf}
-\caption{Statusmatrix der archivierten Versuche.}
-\end{figure}
-
 Die sechs historischen SuGaR-Coarse-Läufe des Batches
 \texttt{matrix\_rest} besitzen teilweise eine STS-Baseline-Metrik, sind aber
 wegen des damaligen technischen Importfehlers im SuGaR-Render-Helfer nicht als
 erfolgreiche SuGaR-Ergebnisse zu werten. Die Statusauswertung trennt daher
 technische Vollständigkeit und vorhandene Zwischenmetriken. Die vollständige
-STS-Übersicht liegt in \path{docs/grafiken/matrix_overview_table.pdf};
-die kombinierte Overview der erfolgreichen STS-/A-Routen und SuGaR-Coarse-
-Läufe liegt in \path{docs/grafiken/matrix_combined_overview_table.pdf};
-die neue SuGaR-Coarse-Übersicht liegt in
-\path{docs/grafiken/matrix_sugar_overview_table.pdf}. Die gemeinsame
-CSV-Quelle liegt in \path{docs/grafiken/matrix_thesis_data.csv}; die
-Spalte \texttt{model\_stage} trennt STS und SuGaR-Coarse.
+STS-Übersicht liegt in
+\path{docs/grafiken/neu_metriken_2026-08-12/sts_masked_overview.pdf};
+die getrennte SuGaR-Coarse-Übersicht liegt in
+\path{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_masked_overview.pdf}.
+Die gemeinsame historische CSV-Quelle liegt in
+\path{docs/grafiken/verwendet_verbessert/matrix_thesis_data.csv}; die neue
+stufenspezifische Auswertung schreibt zusätzlich
+\path{docs/grafiken/neu_metriken_2026-08-12/sts_masked_summary.csv} und
+\path{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_masked_summary.csv}.
 
 \subsection*{Abgeschlossene SuGaR-Coarse-Folgematrix}
 
@@ -85,7 +81,7 @@ Geometrienachweis.}
 
 Die vollständigen Einzelwerte und die getrennten Darstellungen für Status,
 PSNR, SSIM, LPIPS und Zeit/Qualität liegen in den digitalen Anlagen unter
-\path{docs/grafiken/matrix_sugar_*}. Alle zwölf Läufe verwendeten den
+\path{docs/grafiken/neu_metriken_2026-08-12/}. Alle zwölf Läufe verwendeten den
 festen Eval-Split; bei 2 FPS wurden zwölf und bei 5 FPS dreißig gültige
 Evaluationsansichten ausgewertet. Die Laufzeit-/Qualitätsgrafik nutzt die
 archivierte vollständige Pipelinezeit und ist wie bei der STS-Matrix nur ein
@@ -94,36 +90,44 @@ sekundärer Screening-Index.
 \clearpage
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{matrix_sugar_status_table.pdf}
-\caption{Statusübersicht der zwölf abgeschlossenen SuGaR-Coarse-Folgeläufe.}
+\includegraphics[width=\textwidth]{sts_masked_overview.pdf}
+\caption{Objektmaskierte STS-Übersicht der vollständigen Original-GS-Route A.}
 \end{figure}
 
 \clearpage
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{matrix_sugar_psnr_table.pdf}
-\caption{Objektmaskiertes PSNR der SuGaR-Coarse-Folgematrix.}
+\includegraphics[width=\textwidth]{sts_masked_per_frame_boxplots.pdf}
+\caption{Boxplots und Einzelansichten der STS-Route-A-Metriken.}
 \end{figure}
 
 \clearpage
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{matrix_sugar_ssim_table.pdf}
-\caption{Objektmaskiertes SSIM der SuGaR-Coarse-Folgematrix.}
+\includegraphics[width=\textwidth]{sugar_coarse_masked_overview.pdf}
+\caption{Objektmaskierte SuGaR-Coarse-Übersicht mit PSNR, SSIM und LPIPS.}
 \end{figure}
 
 \clearpage
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{matrix_sugar_lpips_table.pdf}
-\caption{Objektmaskiertes LPIPS der SuGaR-Coarse-Folgematrix.}
+\includegraphics[width=\textwidth]{sugar_coarse_masked_per_frame_boxplots.pdf}
+\caption{Boxplots und Einzelansichten der SuGaR-Coarse-Metriken.}
 \end{figure}
 
 \clearpage
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{matrix_sugar_time_quality_table.pdf}
-\caption{Sekundäres Zeit-/Qualitätsverhältnis der SuGaR-Coarse-Folgematrix.}
+\includegraphics[width=\textwidth]{sugar_coarse_vs_sts_delta.pdf}
+\caption{Gepaarte Differenz von SuGaR-Coarse und STS bei identischen
+Konfigurationen.}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{metric_vs_runtime.pdf}
+\caption{Explorative Beziehung zwischen Bildmetriken und archivierter Laufzeit.}
 \end{figure}
 
 \clearpage

@@ -660,7 +660,7 @@ Geplante Anlagenstruktur:
 werden?**
 
 - [ ] technisch-kompakt und fachkundig
-- [ ] ausgewogen: kurze Grundlagen, ausführliche eigene Ergebnisse
+- [x] ausgewogen: kurze Grundlagen, ausführliche eigene Ergebnisse
 - [ ] stärker einführend, damit externe Leser folgen können
 
 Begründung:

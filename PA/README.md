@@ -41,8 +41,12 @@ Genauigkeitsnachweis bleibt davon getrennt.
   werden nicht dupliziert; LaTeX bindet sie direkt aus `../docs/grafiken` ein.
 - `results/`: Hinweise auf die archivierten Ergebnisquellen; keine Kopie der
   großen 10-Runs-Daten.
-- `docs/grafiken/matrix_sugar_*.pdf`: separate SuGaR-Coarse-Status-, Metrik- und
-  Zeit-/Qualitätsgrafiken aus `matrix_sugar_followup_12`.
+- `docs/grafiken/verwendet_verbessert/`: weiterhin verwendete Statusgrafiken
+  und historische gemeinsame Matrixquellen.
+- `docs/grafiken/neu_metriken_2026-08-12/`: korrigierte STS-/SuGaR-Coarse-
+  Übersichten, Einzelansichtsboxplots, gepaarte Delta- und Laufzeitgrafik.
+- `docs/grafiken/archiv_alt_2026-08-12/`: ältere, nicht mehr eingebundene
+  Tabellen- und Grafikstände.
 - `build/`: lokales LaTeX-Buildverzeichnis, nicht für Ergebnisse verwenden.
 
 ## Kompilieren

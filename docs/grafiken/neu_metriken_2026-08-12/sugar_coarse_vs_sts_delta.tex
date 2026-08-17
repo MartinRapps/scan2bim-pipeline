@@ -1,0 +1,49 @@
+\documentclass[10pt]{article}
+\usepackage[margin=1.0cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepgfplotslibrary{statistics}
+\pgfplotsset{compat=1.18}
+\definecolor{srblue}{HTML}{2F6B9A}
+\definecolor{opencvorange}{HTML}{D97706}
+\definecolor{fps2blue}{HTML}{B9D7EA}
+\definecolor{fps5orange}{HTML}{F6C28B}
+\definecolor{stslightgreen}{HTML}{A7D8B1}
+\definecolor{stsstronggreen}{HTML}{208B3A}
+\definecolor{sugarlightpurple}{HTML}{CBB7E8}
+\definecolor{sugarstrongpurple}{HTML}{763A9B}
+\definecolor{stsedge}{HTML}{1D4E89}
+\definecolor{sugaredge}{HTML}{B45309}
+\definecolor{incompletegray}{HTML}{9CA3AF}
+\definecolor{deltared}{HTML}{B91C1C}
+\definecolor{deltagreen}{HTML}{15803D}
+\begin{document}
+\pagestyle{empty}
+\begin{center}
+{\Large\bfseries Paired Delta: SuGaR-Coarse versus STS}\\[3pt]
+{\small Gleiche Konfiguration und gleicher Eval-Split; Delta = SuGaR-Coarse minus STS}\\[8pt]
+\begin{tikzpicture}
+\begin{axis}[height=5.8cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=-8.34,ymax=8.34,xtick=data,xticklabels={{\shortstack{SR\\2/720p}},{\shortstack{SR\\2/qhd}},{\shortstack{SR\\2/low}},{\shortstack{SR\\5/720p}},{\shortstack{SR\\5/qhd}},{\shortstack{SR\\5/low}},{\shortstack{OPENCV\\2/720p}},{\shortstack{OPENCV\\2/qhd}},{\shortstack{OPENCV\\2/low}},{\shortstack{OPENCV\\5/720p}},{\shortstack{OPENCV\\5/qhd}},{\shortstack{OPENCV\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={PSNR (dB) $\uparrow$},grid=major,grid style={gray!20},legend style={font=\scriptsize,at={(1.0,1.15)},anchor=south east,draw=none,fill=white,fill opacity=0.9,text opacity=1},xtick={0,1,2,3,4,5,6,7,8,9,10,11},ymin=-8.34,ymax=8.34,extra y ticks={0},extra y tick style={grid=major,black}]
+\addplot+[ybar,bar width=3pt,fill=srblue,draw=srblue] coordinates {(0,-5.18973858) (1,-5.48427677) (2,-5.46354980) (3,-8.07936620) (4,-6.55635757) (5,-8.04159887)};
+\addplot+[ybar,bar width=3pt,fill=opencvorange,draw=opencvorange] coordinates {(6,-4.66889789) (7,-5.09215720) (8,-5.81937916) (9,-8.33577635) (10,-8.16920905) (11,-7.96172297)};
+\end{axis}
+\end{tikzpicture}\par\vspace{2pt}
+\begin{tikzpicture}
+\begin{axis}[height=5.8cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=-0.16,ymax=0.16,xtick=data,xticklabels={{\shortstack{SR\\2/720p}},{\shortstack{SR\\2/qhd}},{\shortstack{SR\\2/low}},{\shortstack{SR\\5/720p}},{\shortstack{SR\\5/qhd}},{\shortstack{SR\\5/low}},{\shortstack{OPENCV\\2/720p}},{\shortstack{OPENCV\\2/qhd}},{\shortstack{OPENCV\\2/low}},{\shortstack{OPENCV\\5/720p}},{\shortstack{OPENCV\\5/qhd}},{\shortstack{OPENCV\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={SSIM $\uparrow$},grid=major,grid style={gray!20},legend style={font=\scriptsize,at={(1.0,1.15)},anchor=south east,draw=none,fill=white,fill opacity=0.9,text opacity=1},xtick={0,1,2,3,4,5,6,7,8,9,10,11},ymin=-0.16,ymax=0.16,extra y ticks={0},extra y tick style={grid=major,black}]
+\addplot+[ybar,bar width=3pt,fill=srblue,draw=srblue] coordinates {(0,-0.08653626) (1,-0.09355584) (2,-0.13193579) (3,-0.11909635) (4,-0.11215337) (5,-0.15903557)};
+\addplot+[ybar,bar width=3pt,fill=opencvorange,draw=opencvorange] coordinates {(6,-0.08358659) (7,-0.09818302) (8,-0.15019207) (9,-0.12089915) (10,-0.12872073) (11,-0.15571359)};
+\end{axis}
+\end{tikzpicture}\par\vspace{2pt}
+\begin{tikzpicture}
+\begin{axis}[height=5.8cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=-0.05,ymax=0.05,xtick=data,xticklabels={{\shortstack{SR\\2/720p}},{\shortstack{SR\\2/qhd}},{\shortstack{SR\\2/low}},{\shortstack{SR\\5/720p}},{\shortstack{SR\\5/qhd}},{\shortstack{SR\\5/low}},{\shortstack{OPENCV\\2/720p}},{\shortstack{OPENCV\\2/qhd}},{\shortstack{OPENCV\\2/low}},{\shortstack{OPENCV\\5/720p}},{\shortstack{OPENCV\\5/qhd}},{\shortstack{OPENCV\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={LPIPS $\downarrow$},grid=major,grid style={gray!20},legend style={font=\scriptsize,at={(1.0,1.15)},anchor=south east,draw=none,fill=white,fill opacity=0.9,text opacity=1},xtick={0,1,2,3,4,5,6,7,8,9,10,11},ymin=-0.05,ymax=0.05,extra y ticks={0},extra y tick style={grid=major,black}]
+\addplot+[ybar,bar width=3pt,fill=srblue,draw=srblue] coordinates {(0,0.03385678) (1,0.03257219) (2,0.04035377) (3,0.02897163) (4,0.03263591) (5,0.04225111)};
+\addplot+[ybar,bar width=3pt,fill=opencvorange,draw=opencvorange] coordinates {(6,0.02761486) (7,0.02379570) (8,0.03523691) (9,0.03419018) (10,0.03763223) (11,0.04074311)};
+\end{axis}
+\end{tikzpicture}\par\vspace{2pt}
+\vspace{3pt}
+\begin{minipage}{0.98\linewidth}\scriptsize Delta = SuGaR-Coarse minus STS for the same follow-up run. The x-label explicitly contains SR or OPENCV, FPS and resolution. For LPIPS, a negative delta favours SuGaR-Coarse because lower LPIPS is better. The paired comparison is only a rendering-stage comparison, not a mesh-accuracy test.\end{minipage}
+\end{center}
+\end{document}

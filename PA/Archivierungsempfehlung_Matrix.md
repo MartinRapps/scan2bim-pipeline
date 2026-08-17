@@ -35,7 +35,10 @@ Diese Dateien sind klein und sollten für jeden Lauf erhalten bleiben:
 - `masks/ideal/mask_coverage_report.json` – Maskenabdeckung;
 - `mesh_mode.txt` beziehungsweise eine vergleichbare Routendatei;
 - die kleine gemeinsame Grafikquelle
-  `docs/grafiken/matrix_thesis_data.csv` und deren Methodikbericht.
+  `docs/grafiken/verwendet_verbessert/matrix_thesis_data.csv` und deren
+  Methodikbericht;
+- die neue stufenspezifische Grafik- und Einzelansichtsquelle unter
+  `docs/grafiken/neu_metriken_2026-08-12/`.
 
 Für diese Dateien reichen normalerweise wenige Kilobyte pro Lauf. Sie erlauben
 Status-, Parameter- und Metrikvergleiche, ohne die gesamten Trainingsdaten zu

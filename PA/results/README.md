@@ -9,12 +9,16 @@ Experimente liegen unter:
 - `../../data/10_runs/matrix_sugar_followup_12/`: abgeschlossene zwölf SuGaR-
   Coarse-Folgeläufe mit SIMPLE_RADIAL und OPENCV bei 2/5 FPS und drei
   Auflösungen;
-- `../../docs/grafiken/`: zusammengeführte CSV, Status-, Metrik- und
-  Zeit/Qualitätsauswertung für STS und SuGaR-Coarse. Die SuGaR-Coarse-
-  Auswertung verwendet ausschließlich `metrics/sugar_coarse_masked.json`;
-  die übersprungenen `sugar_refined_masked.json`-Dateien werden nicht als
-  Refinement-Ergebnisse ausgegeben. Die kombinierte Overview ist
-  `matrix_combined_overview_table.pdf`.
+- `../../docs/grafiken/verwendet_verbessert/`: weiterhin verwendete
+  Statusgrafiken und historische gemeinsame CSV-/Methodikquellen;
+- `../../docs/grafiken/neu_metriken_2026-08-12/`: korrigierte, getrennte
+  STS-/SuGaR-Coarse-Übersichten, Einzelansichts-Boxplots, Delta- und
+  Laufzeitgrafik. Die SuGaR-Coarse-Auswertung verwendet ausschließlich
+  `metrics/sugar_coarse_masked.json`; übersprungene
+  `sugar_refined_masked.json`-Dateien werden nicht als Refinement-Ergebnisse
+  ausgegeben;
+- `../../docs/grafiken/archiv_alt_2026-08-12/`: ältere, nicht mehr eingebundene
+  Grafikstände.
 
 Die Kernkapitel verwenden nur zusammengefasste Werte. Einzelne Logs und
 COLMAP-Benchmarkdateien werden in den optionalen Anhängen referenziert. Die

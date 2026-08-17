@@ -1,14 +1,19 @@
 # PA-Grafiken
 
-Die PA verwendet die bereits erzeugten, zentral archivierten Grafiken aus
-`../docs/grafiken`. Die PDF-Dateien werden nicht in diesen Ordner kopiert,
-sondern über `\graphicspath` in `main.tex` aus der zentralen Quelle eingebunden.
+Die PA verwendet die zentral archivierten Grafiken aus
+`../docs/grafiken/verwendet_verbessert` und
+`../docs/grafiken/neu_metriken_2026-08-12`. Die PDF-Dateien werden nicht in
+diesen Ordner kopiert, sondern über `\graphicspath` in `main.tex` aus den
+zentralen Quellen eingebunden.
 So werden die Grafiken nicht doppelt gepflegt. Für die Arbeit sind insbesondere
 relevant:
 
-- `matrix_overview_table.pdf`: PSNR, SSIM und LPIPS in den Gruppen 2 FPS, 5 FPS
-  und Average;
-- `matrix_status_table.pdf`: erfolgreich/unvollständig;
-- `matrix_time_quality_table.pdf`: sekundäre Effizienz-/Screening-Auswertung;
-- `matrix_psnr_table.pdf`, `matrix_ssim_table.pdf`, `matrix_lpips_table.pdf`:
-  Detailansichten.
+- `neu_metriken_2026-08-12/sts_masked_overview.pdf`: getrennte STS-7000-
+  Bildmetriken;
+- `neu_metriken_2026-08-12/sugar_coarse_masked_overview.pdf`: ausschließlich
+  SuGaR-Coarse-9000-Bildmetriken;
+- `neu_metriken_2026-08-12/*boxplots.pdf`: Einzelansichtsstreuung;
+- `neu_metriken_2026-08-12/sugar_coarse_vs_sts_delta.pdf`: gepaarter
+  Rendervergleich;
+- Die Matrixstatuswerte stehen weiterhin als Tabelle im Matrixanhang; die
+  separate Statusgrafik ist bewusst nicht Bestandteil der PA.

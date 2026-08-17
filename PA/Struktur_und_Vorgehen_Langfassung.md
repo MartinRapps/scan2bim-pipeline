@@ -20,8 +20,9 @@
 - **[ABGESTIMMT]** Zunächst wird eine vollständige Langfassung erstellt. Der
   THWS-Richtwert darf bewusst überschritten werden; eine spätere Kürzung bleibt
   möglich.
-- **[ABGESTIMMT]** Die zwölf SuGaR-Folgeläufe sind Pflicht, bevor das
-  Ergebniskapitel als endgültig gilt.
+- **[ABGESCHLOSSEN]** Die zwölf SuGaR-Coarse-Folgeläufe sind archiviert und
+  bilden die getrennte Coarse-Auswertung; eine SuGaR-Refined-Auswertung bleibt
+  wegen fehlender `refined.ply` ausdrücklich ausgenommen.
 - **[NUTZER]** Web-UI und validierte Georeferenzierung sind nicht Bestandteil
   des PA-Nachweises.
 
@@ -119,7 +120,7 @@ einer lokalen Centerline betreiben?
 - **[ABGESCHLOSSEN]** zwölf SuGaR-Coarse-Folgeläufe mit stage-getrennten
   Grafiken ergänzen;
 - **[OFFEN]** konsistenten Golden Run und identische Vergleichsansichten
-  auswählen;
+  auswählen; die neue Metrikgrafikserie ist bereits stufenspezifisch erzeugt;
 - **[EMPFEHLUNG]** negative Ergebnisse als Robustheitsbefunde behandeln.
 
 ### 8. Diskussion
@@ -188,7 +189,8 @@ einer lokalen Centerline betreiben?
 
 ## Erstellungsreihenfolge
 
-1. **[OFFEN]** zwölf SuGaR-Folgeläufe abschließen;
+1. **[ABGESCHLOSSEN]** zwölf SuGaR-Coarse-Folgeläufe abschließen und getrennt
+  von den STS-Baselines auswerten;
 2. **[OFFEN]** Autopilot-End-to-End-Nachweis archivieren;
 3. **[OFFEN]** Golden Run und Abbildungsinventar bestimmen;
 4. Versuchsdesign und Erfolgskriterien einfrieren;

@@ -1,0 +1,52 @@
+\documentclass[10pt]{article}
+\usepackage[margin=1.0cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepgfplotslibrary{statistics}
+\pgfplotsset{compat=1.18}
+\definecolor{srblue}{HTML}{2F6B9A}
+\definecolor{opencvorange}{HTML}{D97706}
+\definecolor{fps2blue}{HTML}{B9D7EA}
+\definecolor{fps5orange}{HTML}{F6C28B}
+\definecolor{stslightgreen}{HTML}{A7D8B1}
+\definecolor{stsstronggreen}{HTML}{208B3A}
+\definecolor{sugarlightpurple}{HTML}{CBB7E8}
+\definecolor{sugarstrongpurple}{HTML}{763A9B}
+\definecolor{stsedge}{HTML}{1D4E89}
+\definecolor{sugaredge}{HTML}{B45309}
+\definecolor{incompletegray}{HTML}{9CA3AF}
+\definecolor{deltared}{HTML}{B91C1C}
+\definecolor{deltagreen}{HTML}{15803D}
+\begin{document}
+\pagestyle{empty}
+\begin{center}
+{\Large\bfseries SuGaR-Coarse: gemittelte objektmaskierte Bildmetriken}\\[3pt]
+{\small Mittelwerte aus historischer Folgematrix und Repeat-Läufen}\\[8pt]
+\begin{tikzpicture}
+\begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=20,ymax=31,xtick=data,xticklabels={{\shortstack{SR\\2/720p}},{\shortstack{SR\\2/qhd}},{\shortstack{SR\\2/low}},{\shortstack{SR\\5/720p}},{\shortstack{SR\\5/qhd}},{\shortstack{SR\\5/low}},{\shortstack{OPENCV\\2/720p}},{\shortstack{OPENCV\\2/qhd}},{\shortstack{OPENCV\\2/low}},{\shortstack{OPENCV\\5/720p}},{\shortstack{OPENCV\\5/qhd}},{\shortstack{OPENCV\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={PSNR (dB) $\uparrow$},grid=major,grid style={gray!20},xtick={0,1,2,3,4,5,6,7,8,9,10,11}]
+\addplot+[fill=srblue,draw=srblue,area legend] coordinates {(0,21.62396527) (1,21.79592392) (2,21.95754552) (3,21.18935272) (4,21.47751191) (5,21.80319613)};
+\addplot+[fill=opencvorange,draw=opencvorange,area legend] coordinates {(6,21.70630497) (7,21.98231481) (8,21.74027143) (9,21.12920408) (10,21.23772442) (11,21.90462963)};
+\end{axis}
+\end{tikzpicture}
+\par\vspace{2pt}
+\begin{tikzpicture}
+\begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=0.68,ymax=1.0,xtick=data,xticklabels={{\shortstack{SR\\2/720p}},{\shortstack{SR\\2/qhd}},{\shortstack{SR\\2/low}},{\shortstack{SR\\5/720p}},{\shortstack{SR\\5/qhd}},{\shortstack{SR\\5/low}},{\shortstack{OPENCV\\2/720p}},{\shortstack{OPENCV\\2/qhd}},{\shortstack{OPENCV\\2/low}},{\shortstack{OPENCV\\5/720p}},{\shortstack{OPENCV\\5/qhd}},{\shortstack{OPENCV\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={SSIM $\uparrow$},grid=major,grid style={gray!20},xtick={0,1,2,3,4,5,6,7,8,9,10,11}]
+\addplot+[fill=srblue,draw=srblue,area legend] coordinates {(0,0.75235156) (1,0.74728784) (2,0.73286190) (3,0.77730088) (4,0.77080612) (5,0.77073706)};
+\addplot+[fill=opencvorange,draw=opencvorange,area legend] coordinates {(6,0.74509775) (7,0.74816444) (8,0.72177499) (9,0.77919533) (10,0.76970694) (11,0.77422207)};
+\end{axis}
+\end{tikzpicture}
+\par\vspace{2pt}
+\begin{tikzpicture}
+\begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=0.05,ymax=0.2,xtick=data,xticklabels={{\shortstack{SR\\2/720p}},{\shortstack{SR\\2/qhd}},{\shortstack{SR\\2/low}},{\shortstack{SR\\5/720p}},{\shortstack{SR\\5/qhd}},{\shortstack{SR\\5/low}},{\shortstack{OPENCV\\2/720p}},{\shortstack{OPENCV\\2/qhd}},{\shortstack{OPENCV\\2/low}},{\shortstack{OPENCV\\5/720p}},{\shortstack{OPENCV\\5/qhd}},{\shortstack{OPENCV\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={LPIPS $\downarrow$},grid=major,grid style={gray!20},scaled y ticks=false,ytick={0.05,0.10,0.15,0.20},yticklabels={{0,05},{0,10},{0,15},{0,20}},xtick={0,1,2,3,4,5,6,7,8,9,10,11}]
+\addplot+[fill=srblue,draw=srblue,area legend] coordinates {(0,0.15450558) (1,0.12963476) (2,0.12729331) (3,0.15177572) (4,0.15147646) (5,0.12412121)};
+\addplot+[fill=opencvorange,draw=opencvorange,area legend] coordinates {(6,0.15514735) (7,0.12811350) (8,0.12693911) (9,0.15214804) (10,0.15238602) (11,0.12494864)};
+\end{axis}
+\end{tikzpicture}
+\par\vspace{2pt}
+\vspace{3pt}
+\begin{minipage}{0.98\linewidth}\scriptsize Alle zwölf Balkenpaare stammen aus \texttt{sugar\_coarse\_masked.json}; die STS-Baseline wird nicht als SuGaR-Ergebnis verwendet. PSNR/SSIM: höher ist besser; LPIPS: niedriger ist besser.\end{minipage}
+\end{center}
+\end{document}

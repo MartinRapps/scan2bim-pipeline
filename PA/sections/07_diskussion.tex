@@ -49,6 +49,15 @@ Auflösungsvergleich müsste alle Renderings auf eine gemeinsame Zielauflösung
 und identische Eval-Views bringen. Die derzeitige Matrix ist deshalb ein
 Engineering-Screening.
 
+Die Auflösungen dürfen daher nicht zu einer globalen Qualitätsrangliste
+zusammengefasst werden. Ein Low-Lauf kann durch geglättete Kanten und kleinere
+hochfrequente Fehler höhere PSNR-/SSIM-Werte oder niedrigere LPIPS-Werte
+erreichen, ohne eine bessere 3D-Oberfläche zu besitzen. Wissenschaftlich
+belastbarer sind gepaarte Vergleiche innerhalb derselben Auflösung,
+Kameramodell- und FPS-Konfiguration. Die neue Boxplot-Auswertung ergänzt die
+Mittelwerte um die Streuung der einzelnen Testansichten; sie ersetzt aber
+nicht die geometrische Referenzmessung.
+
 Der direkte PINHOLE-Lauf darf nicht als Nachweis einer Entzerrung interpretiert
 werden. Er erzwingt auf den Rohbildern die Annahme einer idealen Kamera. Der
 Produktionsweg mit \texttt{SIMPLE\_RADIAL} schätzt dagegen zunächst eine
@@ -74,6 +83,13 @@ Auflösungen und zwei FPS-Profile technisch durchläuft. Sie liefert damit eine
 breitere technische Evidenz als der einzelne Smoke-Checkpoint. Da in keinem
 der zwölf Läufe ein `refined.ply` exportiert wurde, ist die Aussage weiterhin
 auf SuGaR-Coarse beschränkt; eine SuGaR-Refined-Auswertung bleibt offen.
+
+Der gepaarte Delta-Vergleich der zwölf Follow-up-Konfigurationen ist deshalb
+als Rendervergleich zu lesen: SuGaR-Coarse wird jeweils mit dem STS-Splat
+derselben Konfiguration verglichen. Die beobachteten Unterschiede können neben
+der zusätzlichen SuGaR-Optimierung auch aus dem unterschiedlichen Renderpfad
+entstehen. Die Delta-Grafik beweist somit weder eine allgemeine Überlegenheit
+noch eine Unterlegenheit von SuGaR und keine Meshgenauigkeit.
 
 \subsection{Autopilot, Replay und Batchfähigkeit}
 

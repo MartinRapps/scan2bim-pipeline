@@ -1,0 +1,17 @@
+{
+  "schema": "scan2bim-metric-mean-v1",
+  "sources": [
+    "historical matrix_full_pipe",
+    "historical matrix_rest",
+    "matrix_sugar_followup_12",
+    "matrix_repeat_20260812"
+  ],
+  "aggregation": "arithmetic mean per camera x FPS x resolution x stage; per_frame values pooled for boxplots",
+  "sts_rows": 18,
+  "sugar_rows": 12,
+  "metrics": [
+    "psnr_masked",
+    "ssim_masked",
+    "lpips_masked"
+  ]
+}

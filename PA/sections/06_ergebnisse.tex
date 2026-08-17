@@ -55,6 +55,17 @@ Route A stützt sich deshalb vor allem auf die A/B/C/D-Geometrieablation und
 den direkten Erhalt der STS-Gaussian-Geometrie; die Matrix ergänzt diesen
 Befund um Robustheit und reproduzierbare Vergleichswerte.
 
+Die drei Bildmetriken sind dabei ausschließlich Ansichtsmetriken der jeweils
+gerenderten Gaussian-Repräsentation. Die STS-Grafik verwendet
+\texttt{sts\_masked.json}; die SuGaR-Grafik verwendet
+\texttt{sugar\_coarse\_masked.json}. Ein höherer PSNR- oder SSIM-Wert
+beziehungsweise ein niedrigerer LPIPS-Wert bedeutet deshalb zunächst nur eine
+ähnlichere Objektansicht zum Ground-Truth-Bild. Daraus folgt weder eine
+korrektere Meshoberfläche noch eine bessere Centerline. Für die Meshentscheidung
+sind weiterhin Vertex-/Face-Struktur, relative Meshabstände und die visuelle
+Artefaktprüfung maßgeblich; eine absolute geometrische Referenz fehlt in der
+Projektarbeit.
+
 Ein erneuter vollständiger Matrixlauf ist als Wiederholungsprüfung sinnvoll.
 Bei nominal gleichen Parametern sind kleine Abweichungen durch stochastische
 Optimierung, Surface-Sampling sowie Software- und Hardwarestände möglich. Eine
@@ -64,27 +75,38 @@ werden daher nicht alle wiederholten Arbeitskopien als eigenständige
 wissenschaftliche Ergebnisse benötigt; entscheidend sind die standardisierten
 Metriken, die Endprodukte und die reproduzierbaren Metadaten.
 
-Die zentrale Metrikübersicht ist in Abbildung~\ref{fig:pa-matrix-overview}
-angegeben. Für jede Laufbezeichnung werden die beiden FPS-Profile und der
-Average getrennt dargestellt. Die Farbcodierung markiert nicht nur den
-numerisch besten Wert, sondern auch fehlende oder technisch unvollständige
-Routen.
+Die zentrale Metrikübersicht ist nun nach Modellstufe getrennt. Die STS-Grafiken
+lesen ausschließlich vollständige Original-GS-Route-A-Läufe aus
+\texttt{sts\_masked.json}; die SuGaR-Grafiken lesen ausschließlich
+\texttt{sugar\_coarse\_masked.json}. Vorhandene STS-Dateien aus später
+fehlgeschlagenen SuGaR-Routen bleiben als Fehlernachweis archiviert, werden aber
+nicht zusätzlich in der STS-Auswertung dargestellt. Die beiden FPS-Profile und
+die jeweilige Runauflösung bleiben sichtbar; ein globales Ranking über
+verschiedene Auflösungen wird nicht vorgenommen.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{matrix_overview_table.pdf}
-  \caption{Übergeordnete Matrix der objektmaskierten PSNR-, SSIM- und
-  LPIPS-Werte.}
+  \includegraphics[width=\textwidth]{sts_masked_overview.pdf}
+  \caption{Getrennte STS-7000-Auswertung der vollständigen Original-GS-Route A
+  aus den archivierten \texttt{sts\_masked.json}-Dateien.}
   \label{fig:pa-matrix-overview}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{matrix_combined_overview_table.pdf}
-  \caption{Kombinierte Overview der erfolgreich abgeschlossenen historischen
-  STS-/Original-GS-A-Routen und der neuen SuGaR-Coarse-Folgeläufe. Die
-  Modellstufen sind in den Zeilen ausdrücklich getrennt.}
-  \label{fig:pa-combined-overview}
+  \includegraphics[width=\textwidth]{sts_masked_per_frame_boxplots.pdf}
+  \caption[STS-Einzelansichten]{Verteilung der Einzelansichten in den
+  vollständigen Original-GS-Route-A-Läufen. Punkte entsprechen den in
+  \texttt{per\_frame} archivierten Ansichtsmetriken.}
+  \label{fig:pa-sts-boxplots}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sugar_coarse_masked_overview.pdf}
+  \caption{Getrennte SuGaR-Coarse-9000-Auswertung. Die STS-Baseline wird
+  nicht als SuGaR-Wert verwendet.}
+  \label{fig:pa-sugar-overview}
 \end{figure}
 
 Die deutlich niedrigeren SuGaR-Werte gegenüber einigen alten
@@ -168,19 +190,49 @@ Domänenprüfung, STS-Training, SuGaR-Coarse-Mesh, SuGaR-Coarse-Rendering,
 objektmaskierte Metriken und Postprocessing für diese zwölf Konfigurationen
 archiviert.
 
-Die neuen Grafikquellen trennen die Modellstufen ausdrücklich. Die vorhandene
-STS-Matrix bleibt in Abbildung~\ref{fig:pa-matrix-overview} enthalten. Die
-SuGaR-Coarse-Folgematrix wird als zusätzliche Overview- und Statusgrafik
-dargestellt; die vollständigen PSNR-, SSIM-, LPIPS- und Zeit-/Qualitätsgrafiken
-liegen im digitalen Anlagenverzeichnis.
+Die neuen Grafikquellen trennen die Modellstufen ausdrücklich. Neben den beiden
+Übersichten werden die Streuung der Einzelansichten, die gepaarte Differenz
+zwischen SuGaR-Coarse und STS sowie die Beziehung zwischen Bildmetrik und
+archivierter Laufzeit separat dargestellt. Diese Zusatzgrafiken sind
+Diagnose- und Interpretationshilfen, keine neuen Geometriemetriken.
+
+Die Boxplotpunkte liegen jeweils in der x-Kategorie ihres Laufs und werden nur
+leicht horizontal verteilt. Die y-Achsen berücksichtigen alle archivierten
+Einzelwerte einschließlich Ausreißern. In der Laufzeitgrafik ist die x-Achse
+auf 15--40 Minuten begrenzt und zeigt die Gesamtlaufzeit des archivierten
+Pipeline-Laufs. Grün und Lila kodieren STS und SuGaR-Coarse; kräftige und
+blasse Farbtöne kodieren 5 beziehungsweise 2 FPS. Kreis, Quadrat und Dreieck
+stehen für 720p, QHD und Low. Die Kamera wird über die Achsenbeschriftung
+angegeben, nicht über eine zusätzliche SR-/OPENCV-Legende. Die separate Matrixstatusgrafik gehört
+nicht mehr zum PA-Anhang; der Status bleibt als Tabelle und Manifestinformation
+erhalten.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{matrix_sugar_overview_table.pdf}
-  \caption[SuGaR-Coarse-Folgematrix]{SuGaR-Coarse-Folgematrix mit objektmaskierten PSNR-, SSIM- und
-  LPIPS-Werten. Die Gruppen zeigen 2 FPS, 5 FPS und den Average aus beiden
-  Profilen.}
-  \label{fig:pa-sugar-overview}
+  \includegraphics[width=\textwidth]{sugar_coarse_masked_per_frame_boxplots.pdf}
+  \caption[SuGaR-Coarse-Einzelansichten]{Verteilung der Einzelansichten in
+  den zwölf SuGaR-Coarse-Läufen. Punkte entsprechen den in
+  \texttt{per\_frame} archivierten Ansichtsmetriken.}
+  \label{fig:pa-sugar-boxplots}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sugar_coarse_vs_sts_delta.pdf}
+  \caption{Gepaarte Differenz zwischen SuGaR-Coarse und STS bei identischer
+  Follow-up-Konfiguration. Negative PSNR-/SSIM-Werte und positive LPIPS-Werte
+  bedeuten in diesen Läufen eine schlechtere SuGaR-Coarse-Bildmetrik; die
+  Differenz ist kein Mesh-Genauigkeitsnachweis.}
+  \label{fig:pa-sugar-delta}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{metric_vs_runtime.pdf}
+  \caption{Explorative Beziehung zwischen objektmaskierten Bildmetriken und
+  der Gesamtlaufzeit des archivierten Pipeline-Laufs. SAM3- und COLMAP-Wandzeit
+  sind nur enthalten, wenn sie innerhalb des archivierten Laufs lagen.}
+  \label{fig:pa-metric-runtime}
 \end{figure}
 
 Die Mittelwerte der beiden FPS-Profile liegen für

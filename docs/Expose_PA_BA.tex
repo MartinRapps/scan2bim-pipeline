@@ -601,21 +601,51 @@ und STS-Optimierung.
 
 Der aktuelle Zeit-/Qualitaetsquotient verwendet einen explorativen, gleich
 gewichteten Min-Max-Index aus PSNR, SSIM und invertiertem LPIPS und summiert
-nur die archivierten STS-bis-Postprocess-Zeiten. SAM3, COLMAP, Rendering und
-Metrikcontainer sind darin nicht vollstaendig enthalten. Fuer die Hauptaussage
+die vollständige Dauer zwischen Laufstart und Laufende der archivierten
+Pipeline-Läufe. SAM3, COLMAP, Rendering und Metrikcontainer sind darin nur
+enthalten, wenn sie innerhalb dieses archivierten Laufs lagen. Für die Hauptaussage
 sind deshalb die Rohmetriken sowie spaetere Centerline-/GNSS-Geometriemetriken
 massgeblich; die Zeit-/Qualitaetsmatrix wird im Effizienz-/Sensitivitaets-
 abschnitt oder im Anhang gezeigt. Ein fairerer Aufloesungsvergleich wuerde
 alle Renderings und Ground-Truth-Bilder zusaetzlich in eine gemeinsame
 Zielaufloesung und auf identische Eval-Views bringen.
 
+\subsubsection*{Maskenrollen und Einzelansichtsstreuung}
+Die erodierte \texttt{middle}-Maske wird im Matrixpfad als konservativer
+Objektkern verwendet. Sie prüft die Maskenabdeckung und entscheidet, ob eine
+Ansicht in den festen Evaluationssplit aufgenommen werden darf. Für die
+eigentliche Bildmetrik wird dagegen die weniger beschnittene
+\texttt{default}-Maske verwendet; dies ist im JSON-Feld
+\texttt{mask\_level=default} nachvollziehbar. Die beiden Rollen dürfen nicht
+verwechselt werden: \texttt{middle} ist ein Robustheits-/Coverage-Gate,
+\texttt{default} die Aggregationsmaske für PSNR, SSIM und LPIPS. Im SuGaR-
+Coarse-Training bleibt \texttt{middle} zusätzlich die konservative Maske für
+den Depth-Normal-Pfad.
+
+Die neuen Boxplots verwenden die Einzelansichten aus dem Feld
+\texttt{per\_frame}. Sie zeigen, ob ein Gesamtmittelwert durch wenige sehr gute
+oder sehr schlechte Ansichten verdeckt wird. Das ist besonders relevant bei
+2 FPS und niedriger Auflösung, weil die Evaluationsmengen unterschiedlich groß
+sind (zwölf Ansichten bei 2 FPS, dreißig bei 5 FPS) und nicht exakt dieselben
+physischen Aufnahmezeitpunkte enthalten.
+
+Für SSIM wird zunächst eine vollständige lokale SSIM-Karte berechnet und
+anschließend an den gültigen Maskenpixeln aggregiert. Lokale Fenster am
+Maskenrand können deshalb weiterhin Kontext außerhalb der Maske enthalten.
+LPIPS wird in einem gemeinsamen Objekt-Crop mit neutralisiertem Außenbereich
+berechnet; auch hier bleibt eine begrenzte Randkontextwirkung durch die
+rezeptiven Felder des Netzes möglich. Diese Details machen die Werte
+reproduzierbar, ändern aber nichts an ihrer Einordnung als Bildmetriken der
+Gaussian-Repräsentation.
+
 \subsubsection*{Vorlaeufige quantitative Matrixauswertung}
-Die kombinierte Uebersicht aus dem historischen \texttt{matrix\_full\_pipe}-
-Batch und dem Folge-Batch \texttt{matrix\_rest} ist in
-Abbildung~\ref{fig:matrix-overview} dargestellt. Die Zeilen beschreiben die
-jeweilige Laufvariante und Aufloesung. Innerhalb jeder FPS-Gruppe werden PSNR,
-SSIM und LPIPS ausschliesslich innerhalb der Objektmaske angegeben. Die
-Average-Spalte ist nur dann belegt, wenn sowohl der 2-FPS- als auch der
+Die neue Auswertung trennt die Modellstufen. Abbildung~\ref{fig:matrix-overview}
+zeigt die archivierten STS-Metriken; die SuGaR-Coarse-Werte sind in der
+separaten Abbildung~\ref{fig:matrix-combined-overview} dargestellt. Die Zeilen
+beschreiben jeweils Laufvariante und Aufloesung. Innerhalb jeder FPS-Gruppe
+werden PSNR, SSIM und LPIPS objektmaskiert aggregiert; die SSIM-Fenster und
+LPIPS-Rezeptivfelder können am Rand noch lokalen Kontext enthalten. Ein
+Average wird nur gebildet, wenn sowohl der 2-FPS- als auch der
 5-FPS-Lauf derselben Konfiguration vollstaendig erfolgreich war.
 
 Insgesamt wurden 24 archivierte Versuche zusammengefuehrt; 16 davon sind
@@ -628,26 +658,30 @@ SuGaR-Messungen interpretiert.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/matrix_overview_table.pdf}
-    \caption{Vorlaeufige quantitative Matrixauswertung der objektmaskierten
-    STS-7000-Metriken. Die Gruppen zeigen 2 FPS, 5 FPS und den Average aus
-    beiden Profilen; gruen markiert das beste verfuegbare Ergebnis innerhalb
-    der jeweiligen Spaltengruppe. Fehlgeschlagene Routen werden farblich als
-    unvollstaendig ausgewiesen.}
+    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sts_masked_overview.pdf}
+    \caption{Getrennte quantitative STS-7000-Auswertung der vollständigen
+    Original-GS-Route A aus den \texttt{sts\_masked.json}-Dateien.}
     \label{fig:matrix-overview}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/matrix_combined_overview_table.pdf}
-    \caption{Kombinierte Overview der erfolgreich abgeschlossenen historischen
-    STS-/Original-GS-A-Routen und der SuGaR-Coarse-Folgematrix. Die
-    Modellstufen werden getrennt ausgewiesen; historische Fehlrouten sind nicht
-    als erfolgreiche SuGaR-Metriken enthalten.}
+    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sts_masked_per_frame_boxplots.pdf}
+    \caption{Streuung der Einzelansichten in den vollständigen STS-Route-A-Läufen.}
+    \label{fig:matrix-sts-boxplots}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_masked_overview.pdf}
+    \caption{Getrennte quantitative SuGaR-Coarse-9000-Auswertung. Verwendet
+    werden ausschließlich die zwölf Dateien
+    \texttt{sugar\_coarse\_masked.json}; STS-Baselines werden nicht als
+    SuGaR-Metriken eingesetzt.}
     \label{fig:matrix-combined-overview}
 \end{figure}
 
-Die Grafik ist als Screening- und Effizienzdarstellung geeignet, ersetzt aber
+Die beiden Grafiken sind als Screening- und Effizienzdarstellung geeignet, ersetzen aber
 keinen geometrischen Genauigkeitsnachweis. Insbesondere duerfen die scheinbar
 hohen Low-Aufloesungswerte nicht isoliert als bessere Rekonstruktion gelesen
 werden, weil die Auswertung jeweils in der nativen, bereits herunterskalierten
@@ -674,11 +708,29 @@ SuGaR-Refined-Vergleich.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/matrix_sugar_overview_table.pdf}
-    \caption{Abgeschlossene SuGaR-Coarse-Folgematrix mit objektmaskierten
-    PSNR-, SSIM- und LPIPS-Werten für SIMPLE-RADIAL und OPENCV. Average wird
-    nur aus vollständigen 2-/5-FPS-Paaren gebildet.}
+    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_masked_per_frame_boxplots.pdf}
+    \caption{Streuung der Einzelansichten in den zwölf SuGaR-Coarse-Läufen.
+    Die Punkte stammen aus den archivierten \texttt{per\_frame}-Einträgen;
+    Boxen zeigen Quartile und Whisker.}
     \label{fig:matrix-sugar-overview}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_vs_sts_delta.pdf}
+    \caption{Gepaarte Differenz SuGaR-Coarse minus STS bei identischer
+    Follow-up-Konfiguration. Die Darstellung ist ein Rendervergleich und kein
+    Mesh- oder Geometrienachweis.}
+    \label{fig:matrix-sugar-delta}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/metric_vs_runtime.pdf}
+    \caption{Explorative Beziehung zwischen Bildmetriken und der archivierten
+    Gesamtlaufzeit des archivierten Pipeline-Laufs. SAM3- und COLMAP-Zeit sind
+    nur enthalten, wenn sie innerhalb dieses archivierten Laufs lagen.}
+    \label{fig:matrix-metric-runtime}
 \end{figure}
 
 Die SuGaR-Coarse-Mittelwerte aus 2 und 5 FPS betragen für SIMPLE-RADIAL in
@@ -690,19 +742,30 @@ Ansichtsmetriken; sie belegen keine geometrische oder geodätische Genauigkeit.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/matrix_sugar_status_table.pdf}
+    \includegraphics[width=\textwidth]{docs/grafiken/verwendet_verbessert/matrix_sugar_status_table.pdf}
     \caption{Statusübersicht der zwölf abgeschlossenen SuGaR-Coarse-Folgeläufe.}
 \end{figure}
 
-Die zugehörigen Einzelgrafiken für PSNR, SSIM, LPIPS und das sekundäre
-Zeit-/Qualitätsverhältnis liegen unter
-	exttt{docs/grafiken/matrix\_sugar\_psnr\_table.pdf},
-	exttt{matrix\_sugar\_ssim\_table.pdf},
-	exttt{matrix\_sugar\_lpips\_table.pdf} und
-	exttt{matrix\_sugar\_time\_quality\_table.pdf}. Die gemeinsame CSV-Datei
-	exttt{matrix\_thesis\_data.csv} kennzeichnet die Modellstufe über
-	exttt{model\_stage}; STS-Baselines und SuGaR-Coarse-Metriken werden damit
-nicht vermischt.
+Die neue Auswertung liegt unter
+\texttt{docs/grafiken/neu\_metriken\_2026-08-12/}. Sie enthält getrennte
+    Übersichten für STS und SuGaR-Coarse, Einzelansichts-Boxplots, eine
+    gepaarte STS--SuGaR-Coarse-Deltagrafik sowie eine explorative
+    Metrik--Laufzeit-Darstellung. Die CSV-Dateien dokumentieren die
+    Run-Metadaten und die Einzelansichten; die Modellstufen werden nicht mehr
+    in einer einzigen Metrikzeile vermischt.
+
+Die Darstellungsregeln sind bewusst redundant lesbar: Die Kamera steht in der
+x-Achsenbeschriftung, daher ist keine zusätzliche SR-/OPENCV-Legende nötig.
+Bei den Boxplots liegen die einzelnen \texttt{per\_frame}-Punkte innerhalb
+der zugehörigen x-Kategorie und werden nur geringfügig horizontal verteilt,
+damit sie sich nicht gegenseitig verdecken. Die y-Achsen der Boxplots werden
+aus allen Einzelwerten einschließlich Ausreißern mit Rand berechnet. In der
+Laufzeitgrafik ist die x-Achse fest auf 15 bis 40 Minuten begrenzt. Grün und
+Lila kodieren STS und SuGaR-Coarse; blasse beziehungsweise kräftige Farbtöne
+kodieren 2 beziehungsweise 5 FPS; Kreis, Quadrat und Dreieck kodieren 720p,
+QHD und Low. Die Legende liegt oberhalb rechts
+außerhalb der eigentlichen Zeichenfläche. Die Statusgrafik wurde aus der PA
+entfernt; Statuszahlen bleiben als Tabelle und in den Manifesten erhalten.
 
 \section{Effizienzanalyse und Optimierungspotenzial}
 
