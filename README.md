@@ -219,9 +219,16 @@ Die automatisierte Testmatrix liegt unter
 [tools/run_experiment_matrix.sh](tools/run_experiment_matrix.sh) und führt jede
 konfigurierte Variante bei allen drei Auflösungen aus:
 
-- `720p`: 1280×720
+- `720p`: 1280×720 (Produktionsstandard, `RUN_RESOLUTION=720p`-Default)
 - `qhd`: 960×540
 - `low`: 640×360
+
+Im interaktiven Pipeline-Start fragt `run_pipeline.sh` nach dem Lauf-Preset
+(`720p`/`qhd`/`low`) und zeigt dabei die durchschnittlichen Laufzeiten aus den
+Matrixarchiven (Route A, 5 FPS, OPENCV; siehe
+[docs/EXPERIMENT_MATRIX_PLAN.md](docs/EXPERIMENT_MATRIX_PLAN.md) und
+`docs/grafiken/matrix_mean_2026-08-17/`). Im Autopilot-Modus wird immer
+`720p` mit allen Standardeingaben gewählt.
 
 Vor jedem Matrixlauf wird das Rohvideo unverändert gelassen und ein eigenes
 Arbeitsvideo erzeugt. Standardmäßig werden beide zeitlichen Profile getestet:

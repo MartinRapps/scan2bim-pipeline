@@ -20,9 +20,14 @@ reproduzierbaren Parametern verglichen werden. Eine Aussage über die Einhaltung
 einer Toleranz von \(\pm 10\,\mathrm{cm}\) wird für die Projektarbeit nicht
 behauptet, weil dafür noch geeignete GNSS- oder Vermessungsreferenzen fehlen.
 Der Eigenbeitrag liegt in der Integration der heterogenen Komponenten, der
-Trennung von Roh- und Idealbilddomäne, der Definition überprüfbarer
-Datenverträge, der maskengetriebenen Objekt- und Meshgewinnung sowie der
-automatisierten Durchführung und wissenschaftlichen Interpretation der Tests.
+Trennung von Roh- und Idealbilddomäne (die verzeichnungsbehafteten Rohbilder
+werden in verzeichnungsfreie PINHOLE-Bilder überführt, sodass Masken,
+Kamerageometrie, Splatting und Auswertung in derselben, konsistenten Domäne
+arbeiten), der Definition überprüfbarer Datenverträge (Schnittstellenregeln,
+die festlegen, welche Artefakte in welcher Bilddomäne zueinander passen
+müssen und nach welchen Kriterien eine Stufe als gültig gilt), der
+maskengetriebenen Objekt- und Meshgewinnung sowie der automatisierten
+Durchführung und wissenschaftlichen Interpretation der Tests.
 
 \subsection{Forschungsfragen}
 
@@ -59,5 +64,6 @@ Gegenstand sind eine reale Vermessung einer Kabeltrasse, ein Nachweis von
 $\pm10\,\mathrm{cm}$, eine vollständige Bewertung aller Kameramodelle, eine
 allgemeine Einführung in Computer Vision oder eine Produktionsentscheidung
 allein aus PSNR, SSIM und LPIPS. Die vorhandene Web-UI bleibt ebenfalls
-außerhalb des Untersuchungsumfangs; betrachtet werden CLI, Autopilot, Replay
+außerhalb des Untersuchungsumfangs und ist der späteren Bachelorarbeit
+vorbehalten; betrachtet werden CLI, Autopilot, Replay
 und Matrixrunner.

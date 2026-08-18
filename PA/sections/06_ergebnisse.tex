@@ -16,16 +16,29 @@ nachvollziehbar zugeordneten Ansichten zu exportieren. Eine Mischung aus
 verschiedenen Matrixläufen darf nicht als einzelne End-to-End-Kette erscheinen.
 \end{quote}
 
-Ein archivierter Low-Smoke-Test erfüllt bereits den technischen Vertrag ab der
-idealen Szene. Er verwendet 240 Kameras, davon 210 Training und 30 Evaluation,
-und erzeugte Route-A-Mesh, Rendering, objektmaskierte Metriken, Centerline,
-B-Spline und GeoJSON. Für den vollständigen Autopilotnachweis ist zusätzlich
-ein archivierter Autopilot-Vollauf oder ein gleichwertiger Vertragstest
-erforderlich; der Matrixrunner allein belegt nur die Batchfähigkeit.
+Ein archivierter Low-Smoke-Test weist die Pipeline ab dem Eintritt in die
+ideale, verzeichnungsfreie Bildszene nach: Ab dieser Stufe sind Bild-, Masken-
+und Kamerakoordinaten untereinander konsistent, sodass alle nachgelagerten
+Stufen (STS, Meshroute, Rendering, Metriken, Centerline) auf derselben Domäne
+arbeiten. Der Lauf verwendet 240 Kameras; davon dienen 210 dem Training und 30
+der Evaluation. Die Evaluationsbilder sind gerade dadurch bewertbar, dass sie
+nicht am Training beteiligt waren und unabhängig von ihm ausgewertet werden
+können. Der Lauf erzeugte Route-A-Mesh, Rendering, objektmaskierte Metriken,
+Centerline, B-Spline und GeoJSON. Für den vollständigen Autopilotnachweis ist
+zusätzlich ein archivierter Autopilot-Vollauf oder ein gleichwertiger
+Vertragstest erforderlich; der Matrixrunner allein belegt nur die
+Batchfähigkeit. Die historischen Zwischenstände, die zu den heutigen
+Einstellungen in STS, Objektfilterung und SuGaR geführt haben, sind in
+Kapitel~\ref{sec:implementierung} (Abschnitt
+``Historische Zwischenstände der STS- und Objektfilterungsroute'') sowie in
+Abschnitt~\ref{sec:sugar-folgepruefung} dokumentiert.
 
 \subsection{COLMAP-Voruntersuchung}
 
-Alle fünf dokumentierten Hauptläufe registrierten 240 von 240 Bildern. Guided
+Ebenso wurde vor den Matrixläufen eine Versuchsreihe mit COLMAP gestartet;
+dabei wurde geprüft, inwiefern sich einzelne Einstellungen im Hinblick auf den
+zeitlichen Aufwand und die Qualität der Sparse-Rekonstruktion lohnen. Alle
+fünf dokumentierten Hauptläufe registrierten 240 von 240 Bildern. Guided
 Matching erhöhte die Sparse-Punktzahl gegenüber Plain-SIFT 4096 nur um rund
 1,98\,\%, benötigte aber nahezu die doppelte Zeit und erhöhte den mittleren
 Reprojektionsfehler. 8192 Merkmale lieferten etwa 0,82\,\% mehr Punkte bei
@@ -140,6 +153,29 @@ einer Interaktion von Bildauflösung, zeitlicher Überdeckung, konkreter
 Kamerabewegung, Maskenstabilität, Kameramodell und STS-Optimierung. Ein
 isolierter Kausalnachweis für einen einzelnen Faktor liegt nicht vor.
 
+\subsection{Produktionskonfiguration aus der Matrixauswertung}
+\label{sec:produktionskonfiguration}
+
+Auf Grundlage der Matrixauswertung wurde die Produktionskonfiguration auf
+\texttt{OPENCV}, 5 FPS und Route A festgelegt. Bei 720p und 5 FPS erzielen die
+\texttt{OPENCV}-A-Läufe die höchsten objektmaskierten STS-Metriken der
+untersuchten Kameramodelle (29,61\,dB PSNR, 0,901 SSIM und 0,117 LPIPS
+gegenüber 29,37\,dB, 0,896 und 0,123 bei \texttt{SIMPLE\_RADIAL}); die
+Konfiguration ist über die archivierten Läufe reproduzierbar belegt. Die
+Umstellung bleibt dennoch eine datengestützte Projektentscheidung ohne
+unabhängige geometrische Referenz: Bei qhd liegt \texttt{SIMPLE\_RADIAL} mit
+28,21\,dB vor \texttt{OPENCV} (27,67\,dB), was die nichtmonotone Interaktion
+von Auflösung und Kameramodell unterstreicht. Der Standard gilt daher
+ausdrücklich für die Produktionsauflösung 720p bei 5 FPS.
+
+Für diese Produktionskonfiguration ergeben die über die Matrixarchive
+gemittelten Laufzeiten je Auflösung rund 2023 Sekunden (720p), 1648 Sekunden
+(qhd) und 1141 Sekunden (low). Diese Werte fließen in die Lauf-Preset-Abfrage
+des CLI ein (Kapitel~\ref{sec:implementierung}), mit der zwischen
+Bildauflösung und Rechenaufwand gewählt werden kann. Als reine Schrittzeiten
+von STS bis Postprocessing ersetzen sie keine vollständige End-to-End-
+Zeitmessung.
+
 \subsection{Vierfeld-Ablation und Produktionsentscheidung}
 
 Die kontrollierte Ablation trennt Original-STS-Gaussians beziehungsweise
@@ -177,9 +213,14 @@ Route A wird deshalb als Produktionsstandard gewählt: Sie bewahrt die
 Original-STS-Gaussians als primäre Geometriehypothese und vermeidet eine
 zusätzliche Coarse-Optimierung, die für die Centerline-Anwendung mehr Details,
 aber auch mehr Spitzen und Randartefakte erzeugen kann. Die Wahl bleibt eine
-begründete Projektentscheidung ohne unabhängige Ground Truth.
+begründete Projektentscheidung ohne unabhängige Ground Truth. Dass die
+Coarse-Route dennoch existiert, erklärt sich aus der SuGaR-Startarchitektur:
+Sie ist der dort übliche Weg zur Meshgewinnung, während die direkte Extraktion
+ohne Coarse-Optimierung erst im Projektverlauf ergänzend erprobt wurde
+(vgl. Kapitel~\ref{sec:grundlagen} sowie Abschnitt~\ref{sec:sugar-folgepruefung}).
 
 \subsection{Abgeschlossene SuGaR-Coarse-Folgeprüfung}
+\label{sec:sugar-folgepruefung}
 
 Die zwölf Läufe der separaten Matrix
 \texttt{matrix\_sugar\_followup\_12} wurden vollständig ausgeführt. Je sechs
@@ -189,6 +230,29 @@ zwölf Manifeste tragen den Status \texttt{success}. Damit sind Masken- und
 Domänenprüfung, STS-Training, SuGaR-Coarse-Mesh, SuGaR-Coarse-Rendering,
 objektmaskierte Metriken und Postprocessing für diese zwölf Konfigurationen
 archiviert.
+
+Die Coarse-Route ist der konzeptionelle Standardweg von SuGaR: Meshes werden
+dort üblicherweise erst nach einer zusätzlichen Coarse-Optimierung der
+Gaussian-Geometrie extrahiert. Die in dieser Arbeit als Produktionsroute
+verwendete Route A weicht bewusst von diesem Standardweg ab, weil sie direkt
+aus der unveränderten Original-STS-Gaussian-Wolke extrahiert. Diese Variante
+wurde erst im Projektverlauf ergänzend erprobt und hat anschließend die
+Produktionsrolle übernommen; die Coarse-Route wird deshalb nicht als
+Fehlversuch, sondern als wissenschaftlicher Vergleichsarm weitergeführt
+(vgl. Kapitel~\ref{sec:grundlagen}). Abbildung~\ref{fig:pa-panel-sugar}
+dokumentiert ausgewählte historische Zwischenstände dieser Entwicklung.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{pa_panel_sugar_iteration.png}
+  \caption{Historische SuGaR-Coarse-Zwischenstände: Meshstufen mit
+  Zielzähler 9001 sowie bilaterale Vergleichsläufe im 9000er-/10.000er- und
+  10.000er-/15.000er-Bereich. Die Angabe ``9200'' kam ausschließlich in zwei
+  historischen Screenshot-Dateinamen vor und ist weder durch Manifest noch
+  durch Log bestätigt; die zugehörigen Bilder sind hier einheitlich als
+  Stände mit Zielzähler 9001 eingeordnet.}
+  \label{fig:pa-panel-sugar}
+\end{figure}
 
 Die neuen Grafikquellen trennen die Modellstufen ausdrücklich. Neben den beiden
 Übersichten werden die Streuung der Einzelansichten, die gepaarte Differenz
@@ -248,10 +312,7 @@ beziehungsweise dreißig Evaluationsansichten. Die zugehörigen
 \texttt{sugar\_refined\_masked.json}-Dateien sind in allen zwölf Archiven
 wegen eines nicht exportierten \texttt{refined.ply} übersprungen. Der neue
 Befund weist daher die technische SuGaR-Coarse-Route nach, schließt aber noch
-keinen Vergleich der SuGaR-Refined-Stufe ein. Die sechs historischen
-\texttt{simple\_radial\_sugar}-Zeilen aus \texttt{matrix\_rest} bleiben als
-fehlgeschlagene Routen mit STS-Baselinewerten dokumentiert und werden nicht
-nachträglich als SuGaR-Ergebnisse umdeklariert.
+keinen Vergleich der SuGaR-Refined-Stufe ein.
 
 \subsection{Funktionsnachweis der Endstufen}
 
@@ -261,6 +322,19 @@ war in den Matrixarchiven mangels validierter CloudCompare-Matrix teilweise ein
 Translation-Fallback. Damit ist die technische Kette bis zu lokalen
 Geometrieprodukten nachgewiesen; eine globale Genauigkeit ist daraus nicht
 ableitbar.
+
+Abbildung~\ref{fig:pa-panel-alurohr} zeigt das für den Testdatensatz erzeugte
+Rohrmesh und die daraus abgeleitete lokale Centerline als Ergebnis der
+Endstufen.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{pa_panel_alurohr_endprodukt.png}
+  \caption{Alurohr-Endprodukt: rekonstruiertes Rohrmesh und die daraus
+  extrahierte lokale Centerline. Beide Ansichten stammen aus demselben
+  Entwicklungsstand (18. Juli 2026).}
+  \label{fig:pa-panel-alurohr}
+\end{figure}
 
 Beim archivierten Referenzlauf extrahierte DGtal 87 Rohpunkte; der
 Grad-10-B-Spline erzeugte 380 Ausgabepunkte. Diese Zahlen belegen die

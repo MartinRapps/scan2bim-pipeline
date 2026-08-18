@@ -7,11 +7,16 @@ Geometriedomäne. Der Ablauf ist:
 
 \begin{enumerate}
   \item Aus dem Rohvideo werden Arbeitsframes erzeugt.
-  \item SAM~3.1 propagiert den Objektprompt und speichert hierarchische Masken.
+  \item SAM~3.1 propagiert den Objektprompt und speichert hierarchische
+        Masken, das heißt die unveränderte \texttt{default}-Maske sowie die
+        erodierten Ableitungen \texttt{middle} und \texttt{small}.
   \item COLMAP schätzt aus unmaskierten Frames ein ursprüngliches
         Kameramodell und eine sparse Punktwolke.
   \item Bei verzeichnungsbehafteten Kameramodellen wird eine ideale PINHOLE-
-        Szene erzeugt; die Masken werden mit derselben Abbildung gewarpt.
+        Szene erzeugt; die Masken werden mit derselben Abbildung in diese
+        Szene gewarpt, das heißt per Pixel-Neuzuordnung (Nearest Neighbor)
+        auf die undistortierten Bilder übertragen, damit die binäre
+        Maskensemantik erhalten bleibt.
   \item STS trainiert die objektspezifische Gaussian-Repräsentation.
   \item Die Hochopazitätskopie der Objekt-Gaussians wird über die gewählte
         Meshroute in ein Coarse-Mesh überführt.
@@ -19,11 +24,8 @@ Geometriedomäne. Der Ablauf ist:
         B-Spline und GeoJSON erzeugt werden.
 \end{enumerate}
 
-Abbildung~\ref{fig:pa-pipeline-flow} fasst diesen Datenfluss zusammen. Sie ist
-aus dem Flowchart des Exposés abgeleitet, wurde für den aktuellen
-Projektarbeitsstand jedoch angepasst: Die Web-UI und der nicht systematisch
-untersuchte SAHI-Fallback sind nicht Bestandteil des Diagramms. Stattdessen
-werden die beiden aktuellen Meshrouten A und \texttt{sugar\_coarse} explizit
+Abbildung~\ref{fig:pa-pipeline-flow} fasst diesen Datenfluss zusammen: Die
+beiden aktuellen Meshrouten A und \texttt{sugar\_coarse} werden explizit
 getrennt dargestellt. Der CloudCompare-Schritt ist als optionaler
 Georeferenzierungszweig enthalten und nicht als validierter PA-
 Genauigkeitsnachweis zu lesen.
@@ -99,8 +101,12 @@ Bilddomäne. Dadurch wird vermieden, dass eine Bildverzeichnung nur in den
 Kameraparametern, nicht aber in den Masken berücksichtigt wird.
 
 Bei \texttt{SIMPLE\_RADIAL} und \texttt{OPENCV} wird zuerst ein originales
-COLMAP-Modell auf den Rohframes geschätzt. Der Undistorter erzeugt daraus eine
-separate ideale Szene. Die Masken werden mit der identischen
+COLMAP-Modell auf den Rohframes geschätzt. Der COLMAP-Undistorter
+(\texttt{image\_undistorter}) erzeugt daraus eine separate ideale Szene, indem
+er die verzerrten Rohbilder mithilfe des bereits geschätzten Kameramodells
+resampled: Jedes Pixel wird an seine radiale Position im verzeichnungsfreien
+PINHOLE-Bild neu abgetastet; es wird dabei kein neues Kameramodell geschätzt,
+sondern das gelöste Modell angewandt. Die Masken werden mit der identischen
 Kameramodellabbildung transformiert. Bei \texttt{PINHOLE} wird dieselbe
 Schnittstelle als Pass-through verwendet. Somit sehen STS, Renderer,
 SuGaR-Route und Metrikberechnung stets zueinander passende Pixel- und
@@ -109,9 +115,13 @@ Kamerakoordinaten.
 Diese vollständige Domänenkette ist im automatisierten Matrixpfad sowie im
 restaurierten Smoke-/Replaypfad nachgewiesen. Der historische Inline-Vollauf
 und der allgemeine \texttt{--from}-Dispatcher erzeugen zwar die ideale
-COLMAP-Szene, rufen den separaten Maskenwarp derzeit jedoch nicht selbst auf.
-Bis zur Vereinheitlichung des Codes beziehen sich Aussagen über die vollständig
-gewarpten Bild-/Maskendomäne daher ausdrücklich auf Matrix- und Replayläufe.
+COLMAP-Szene, rufen den separaten Maskenwarp derzeit jedoch nicht selbst
+auf. Das heißt: In diesen beiden Ausführungsformen entstünde die Maske
+weiterhin im Pixelraum der Rohbilder, während die idealen Bilder bereits
+verzeichnungsfrei vorliegen; nur beim Matrix- und Replaypfad werden Bild und
+Maske gemeinsam aus der idealen Szene gespeist. Bis zur Vereinheitlichung des
+Codes beziehen sich Aussagen über die vollständig gewarpten
+Bild-/Maskendomäne daher ausdrücklich auf Matrix- und Replayläufe.
 
 \subsection{Semantische Objektkette}
 
@@ -141,15 +151,21 @@ eigentlichen Mesh-Extraktion zu unterscheiden.
 \subsection{Ausführungsformen}
 
 Der interaktive Vollauf führt durch Eingabeauswahl und Parameterentscheidungen.
-Der Autopilot übernimmt validierte Defaults und überspringt den manuellen
+Vor der Parametrisierung fragt er nach einem Lauf-Preset für die
+Arbeitsvideoauflösung (720p, qhd oder low) und weist dabei die aus den
+Matrixläufen gemittelten Laufzeiten der Produktionskonfiguration aus
+(720p $\approx$ 34 Minuten, qhd $\approx$ 27 Minuten, low $\approx$ 19 Minuten);
+das Preset dient der bewussten Wahl zwischen Bildauflösung und Rechenaufwand.
+Der Autopilot übernimmt validierte Defaults, wählt automatisch das
+720p-Preset mit allen Standardeingaben und überspringt den manuellen
 CloudCompare-Breakpoint, wenn keine echte Transformationsmatrix bereitsteht.
-Der Replay-Pfad startet an einer festgelegten Schrittgrenze mit vorhandenen,
-konsistenten Artefakten. Er setzt kein abgebrochenes Training innerhalb einer
-Iteration fort. Der Matrixrunner führt deklarierte Kombinationen
-stdin-unabhängig nacheinander aus, archiviert jeden Lauf und setzt den
-Live-Arbeitsbereich zurück. Diese Modi nutzen dieselben fachlichen
-Pipelinekomponenten, erfüllen aber verschiedene Aufgaben der Benutzerführung
-und Reproduzierbarkeit.
+Der Matrixrunner führt deklarierte Kombinationen dateibasiert
+(stdin-unabhängig) nacheinander aus, das heißt er liest die Konfiguration aus
+der TSV-Datei und berührt dabei nicht den Standardinput, den nachgelagerte
+Unterprozesse für eigene Zwecke konsumieren könnten. Er archiviert jeden Lauf
+und setzt den Live-Arbeitsbereich zurück. Diese Modi nutzen dieselben
+fachlichen Pipelinekomponenten, erfüllen aber verschiedene Aufgaben der
+Benutzerführung und Reproduzierbarkeit.
 
 Die Projektarbeit untersucht die CLI-zentrierte Ausführung. Eine vorhandene
 Web-UI und ein tatsächliches Serverdeployment bleiben außerhalb des Scopes.
@@ -161,6 +177,9 @@ Produktiv-Rollout.
 
 Die Georeferenzierung ist als nachgelagerter Datenvertrag vorgesehen. Die
 Centerline wird zunächst lokal erzeugt. Erst eine validierte Transformation aus
-GCP-Picking und ein separater Anchor überführen sie in ein UTM-System. Ein
-Fallback mit reiner Translation dient nur der technischen Pipelineprüfung und
-nicht als Genauigkeitsnachweis.
+GCP-Picking und ein separater Anchor überführen sie in ein UTM-System. Fehlen
+sowohl die Transformationsdatei (\texttt{matrix.txt}) als auch der
+Ankerpunkt (\texttt{anchor.txt}), wendet die Pipeline automatisch eine reine
+Translation auf einen festen Ersatzanker an und kennzeichnet die Ausgaben mit
+dem Suffix \texttt{\_fallback\_georeferenced}. Dieser Fallback dient nur der
+technischen Pipelineprüfung und nicht als Genauigkeitsnachweis.

@@ -1,12 +1,17 @@
 \section{Implementierung}
+\label{sec:implementierung}
 
 \subsection{Containerarchitektur und Persistenz}
 
 Die fünf Container kapseln inkompatible CUDA- und Python-Abhängigkeiten. SAM
 läuft in einem modernen CUDA-12.6-Container, COLMAP in einem eigenen SfM-
 Container, STS in CUDA~12.1, SuGaR in CUDA~11.8 und DGtal/GDAL CPU-seitig.
-Bind-Mounts schreiben alle relevanten Artefakte in den gemeinsamen Host-
-Arbeitsbereich.
+Bind-Mounts\footnote{Bind-Mounts sind Verzeichniseinbindungen, bei denen ein
+Host-Ordner direkt an eine Stelle im Container gemountet wird; Dateien werden
+dabei nicht in die Container-Ebene kopiert, sondern beide Seiten greifen auf
+dieselben Dateisystemobjekte zu. Dadurch bleiben Artefakte nach Beendigung
+des Containers auf dem Host erhalten.} schreiben alle relevanten Artefakte in
+den gemeinsamen Host-Arbeitsbereich.
 
 \begin{table}[H]
 \centering
@@ -27,7 +32,12 @@ E & DGtal/GDAL & kompatibles OBJ & lokale Centerline, B-Spline, CSV/GeoJSON\\
 \label{tab:containerrollen}
 \end{table}
 
-Die Master-Skripte übernehmen die numerische Host-UID und -GID, sodass
+Die Master-Skripte übernehmen die numerische Host-UID und -GID\footnote{Die
+Host-UID/-GID sind die Benutzer- und Gruppenkennung des ausführenden Nutzers
+auf dem Host. Durch die Übergabe an die Container gehören neu erzeugte
+Dateien auf dem Host dem eigenen Benutzer und nicht dem Container-Root, sodass
+bind-gemountete Dateien auch auf Hochschul- und Domänensystemen lesbar und
+bearbeitbar bleiben.}, sodass
 bind-gemountete Dateien auch auf Hochschul- und Domänensystemen lesbar bleiben.
 Run-Tags und Ausgabeordner werden vor unbeabsichtigtem Überschreiben geschützt.
 Manifeste, Parameter und Logs bleiben außerhalb kurzlebiger Container erhalten.
@@ -38,11 +48,16 @@ Der für die Vergleichsroute verwendete SuGaR-Stand ist kein unverändertes
 Vanilla-SuGaR. Er liegt als projektinterner Fork unter
 \path{third_party/SuGaR} und wurde als Git-Submodul in die Pipeline eingebunden.
 Die Erweiterungen sind funktionale Codeänderungen, nicht nur andere
-Startparameter. Der Grund dafür ist ein Zielkonflikt der ursprünglichen Route:
-Eine auf das Objekt reduzierte Gaussian-Wolke würde bei einem unveränderten
-Full-Image-RGB-Loss weiterhin gegen Boden und Hintergrund optimiert. Die
+Startparameter. Der Grund dafür ist ein Zielkonflikt, der zunächst als
+Arbeitshypothese formuliert wurde: Eine auf das Objekt reduzierte
+Gaussian-Wolke würde bei einem unveränderten Full-Image-RGB-Loss weiterhin
+gegen Boden und Hintergrund optimiert. Die
 Geometrieeingabe und die Bildsupervision würden damit unterschiedliche
-Objektdefinitionen verwenden.
+Objektdefinitionen verwenden. Die maskenbewusste Fork-Variante war von Beginn
+der SuGaR-Vergleichsroute an eingebunden, nicht das Ergebnis einer späteren
+Nachrüstung; die anfänglich dokumentierten Ausfälle dieser Route betrafen den
+SuGaR-Renderpfad (Import- und Tensorlayoutfehler), nicht die
+Maskenbewusstheit des Trainings.
 
 \begin{table}[H]
 \centering
@@ -164,10 +179,27 @@ Die Konzentration auf ein zentrales CLI-Skript ist eine bewusste
 Scopeentscheidung. Zunächst soll eine robuste, automatisierbare Anwendung
 existieren; eine zusätzliche Bedienoberfläche würde eigene Zustands-, Upload-
 und Prozessfragen eröffnen. Der Autopilot verwendet unter anderem 5 FPS,
-$1280\times720$ Pixel, CRF 18, \texttt{SIMPLE\_RADIAL}, 4096 SIFT-Merkmale,
+$1280\times720$ Pixel, CRF 18, \texttt{OPENCV}, 4096 SIFT-Merkmale,
 Overlap 15, deaktiviertes Guided Matching, 7000 STS-Iterationen und Route A.
-Die Parameter werden protokolliert und können im interaktiven Modus erklärt
-beziehungsweise überschrieben werden.
+Das Kameramodell \texttt{OPENCV} wurde auf Grundlage der Matrixauswertung in
+Abschnitt~\ref{sec:produktionskonfiguration} von der historischen
+\texttt{SIMPLE\_RADIAL}-Baseline zum Standard erhoben. Die Parameter werden
+protokolliert und können im interaktiven Modus erklärt beziehungsweise
+überschrieben werden.
+
+Der interaktive Vollauf fragt nach der Autopilot-Entscheidung zusätzlich nach
+einem Lauf-Preset, das die Auflösung des Arbeitsvideos und damit die
+Frame-/STS-/SuGaR-Auflösung festlegt: 720p ($1280\times720$, Standard),
+qhd ($960\times540$) oder low ($640\times360$). Bei qhd und low werden die
+Zielauflösungsfragen im Video-Preprocessing fest vorbesetzt; bei 720p bleiben
+alle Eingabefragen erhalten. Die Abfrage weist die aus den Matrixläufen
+gemittelten Laufzeiten der Produktionskonfiguration (Route A, 5 FPS,
+\texttt{OPENCV}) aus: rund 34 Minuten für 720p, 27 Minuten für qhd und
+19 Minuten für low. Diese Werte umfassen die archivierten Schrittzeiten von
+STS bis Postprocessing; SAM3, COLMAP, Rendering und Metrikberechnung sind
+nicht vollständig enthalten. Im Autopilot-Modus wird automatisch das
+720p-Preset mit allen Standardeingaben gewählt; die gewählte Auflösung wird
+im Run-Report protokolliert.
 
 \subsection{Quality-Gates und Datenverträge}
 
@@ -207,6 +239,42 @@ Farbgrenzwerts von 0,08 entfernen. Fällt die Filterung leer aus, verhindert ein
 Quality-Gate die unbemerkte Übergabe. Die verbliebenen Datensätze werden in
 einer getrennten Kopie auf $\alpha=0{,}999999$ gesetzt. Dadurch bleibt die
 Originalwolke für Diagnose und Vergleich verfügbar.
+
+\subsection{Historische Zwischenstände der STS- und Objektfilterungsroute}
+
+Die folgenden Entwicklungsstände dokumentieren, welche Einstellungen und
+Fehlerbefunde schließlich zu den Parametern der aktuellen Route geführt haben.
+Sie sind historische Belege aus unterschiedlichen Entwicklungsphasen und
+bewusst nicht als quantitative Ergebnisreihe zu lesen.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{pa_panel_sts_entwicklung.png}
+  \caption{Historische STS-Entwicklung: von den ersten, teilweise invertiert
+  gerenderten Splats über Floaters und fehlerhafte Zwischenstände bis zu
+  verlässlichen Objekt-Splats. Die Bildausschnitte stammen aus verschiedenen
+  Entwicklungsständen (Juni bis Juli 2026) und untermauern die schrittweise
+  Fixierung der STS-/Rendering-Datenverträge.}
+  \label{fig:pa-panel-sts}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{pa_panel_mesh_filterung.png}
+  \caption{Historische Meshgewinnung und Objektfilterung: vom ersten
+  herausgeschnittenen Objekt über schlecht segmentierte Zwischenstände und
+  Floaters bis zum segmentierten Refined-Mesh der aktuellen Route. Die
+  Zielzählerangaben der Screenshots folgen den jeweiligen historischen
+  Dateinamen; nicht durch Manifest oder Log bestätigte Angaben sind in den
+  Bildunterschriften nicht als verifiziert zu werten.}
+  \label{fig:pa-panel-mesh}
+\end{figure}
+
+Die Panels zeigen insbesondere, dass ein funktionierendes STS-Rendering nicht
+selbstverständlich ist: Invertierte Splats, Floaters und maskeninkonsistente
+Zwischenstände traten auf, bevor die in Abschnitt~\ref{sec:implementierung}
+beschriebenen Quality-Gates (Masken-Coverage, fester Eval-Split,
+Renderkorrekturen) wirksam wurden.
 
 \subsection{Meshrouten und kompatibler Export}
 

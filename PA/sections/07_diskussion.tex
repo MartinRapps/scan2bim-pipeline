@@ -60,11 +60,15 @@ nicht die geometrische Referenzmessung.
 
 Der direkte PINHOLE-Lauf darf nicht als Nachweis einer Entzerrung interpretiert
 werden. Er erzwingt auf den Rohbildern die Annahme einer idealen Kamera. Der
-Produktionsweg mit \texttt{SIMPLE\_RADIAL} schätzt dagegen zunächst eine
-Verzeichnung und erzeugt anschließend eine separate ideale Szene. OPENCV kann
-zusätzliche Verzeichnungsanteile modellieren, besitzt aber mehr Freiheitsgrade.
-Aus den Bildmetriken allein lässt sich daher keine generell beste
-Kamerakonfiguration ableiten.
+Produktionsweg mit \texttt{OPENCV} (Standard seit der Matrixauswertung,
+Abschnitt~\ref{sec:produktionskonfiguration}) schätzt dagegen zunächst eine
+Verzeichnung und erzeugt anschließend eine separate ideale Szene; dasselbe
+gilt für die historische \texttt{SIMPLE\_RADIAL}-Baseline. OPENCV kann
+zusätzliche Verzeichnungsanteile modellieren, besitzt aber mehr
+Freiheitsgrade. Aus den Bildmetriken allein lässt sich daher keine generell
+beste Kamerakonfiguration ableiten; der gewählte Standard ist eine
+datengestützte Projektentscheidung für 720p bei 5 FPS und bleibt für
+veränderte Datensätze neu zu prüfen.
 
 \subsection{Original-GS und SuGaR-Coarse}
 

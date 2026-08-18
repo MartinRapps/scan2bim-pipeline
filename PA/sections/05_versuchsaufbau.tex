@@ -1,10 +1,15 @@
 \section{Versuchsaufbau}
+\label{sec:versuchsaufbau}
 
 Die Evaluation folgt einer gestuften Logik. Ein ressourcenschonender
 Smoke-Test prüft zunächst die Datenverträge. Separate COLMAP-Voruntersuchungen
 begründen den SfM-Standard. Danach untersuchen automatisierte Matrixläufe
 Kameramodell, FPS und Auflösung. Eine kontrollierte Vierfeld-Ablation lokalisiert
-den Einfluss von Gaussian-Optimierung und Tiefenroute. Abschließend
+den Einfluss von Gaussian-Optimierung und Tiefenroute\footnote{Die
+Tiefenroute bezeichnet die Art, wie die für das Surface-Sampling benötigte
+Oberflächentiefe gewonnen wird: entweder durch Projektion der
+SuGaR-``Diamond''-Primitive in einen Z-Buffer (Diamond-Mesh-Tiefe) oder
+direkt aus dem Gaussian-Rasterizer.}. Abschließend
 vervollständigt eine zwölf Läufe umfassende SuGaR-Folgeprüfung den technischen
 Meshroutenvergleich auf der Coarse-Stufe.
 
@@ -55,6 +60,14 @@ der Zulassung eines Frames streng geprüft, ohne die Bildmetriken unnötig auf
 eine erodierte Objektfläche zu beschränken. Das Feld
 \texttt{mask\_level=default} in den Metrik-JSONs dokumentiert diese tatsächliche
 Auswertungsmaske.
+
+Die Maskenhierarchie selbst ist im Projektverlauf vereinheitlicht worden:
+Historisch war zwischenzeitlich auch die \texttt{default}-Maske dilatiert;
+verbindlich gilt nun \texttt{default} = unverändert, \texttt{middle} = einfach
+erodiert, \texttt{small} = zweifach erodiert, ohne Dilatation. SuGaR nutzt
+dabei nicht alle Maskenstufen gleichzeitig: Der maskierte RGB-Verlust der
+Coarse-Route arbeitet auf \texttt{default}, die Depth-Normal-Consistency auf
+der konservativeren \texttt{middle}-Maske.
 
 \subsection{COLMAP-Voruntersuchung}
 
@@ -122,6 +135,48 @@ Konfiguration mit zwölf Läufen ausgeführt: \texttt{SIMPLE\_RADIAL} und
 FPS-Profilen. Alle zwölf Manifeste und Coarse-Metrikdateien sind erfolgreich
 archiviert. Ein verfeinertes PLY wurde in diesen Läufen nicht exportiert; die
 Folgematrix bewertet daher die Coarse-Route, nicht die SuGaR-Refined-Stufe.
+
+\subsection{Historische SuGaR-Zählerstände}
+
+Während der Entwicklung wurden für die SuGaR-Coarse-Route unterschiedliche
+Zielzählerstände verwendet. Für die Auswertung ist eine klare Trennung wichtig,
+weil nicht alle genannten Werte durch Laufmanifeste belegt sind.
+Tabelle~\ref{tab:sugar-zaehlerstaende} ordnet die in Dokumentation und
+historischen Dateinamen vorkommenden Stände ein.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{2.6cm}p{3.0cm}X}
+\toprule
+Bezeichnung & Zählerstand & Bedeutung und Nachweislage\\
+\midrule
+Aktueller Coarse-Standard & 9000 & Standard für Vierfeld-Ablation,
+Folgeprüfung und aktuelle Pipeline (Standardwert
+\texttt{COARSE\_ITERATIONS=9000}); durch Manifeste und
+Konfigurationsdateien belegt.\\
+Historische Ablationen & 9001, 10000, 18000 & In Exposé und
+Entwicklungsdokumentation aufgeführte Ablationsstufen; nicht der aktuelle
+Standard.\\
+Weitere historische Versuche & 12000, 15000 & In den Entwicklungsnotizen
+dokumentierte Vergleichsläufe.\\
+Historische Screenshots & 9200 & Kommt ausschließlich in zwei historischen
+Screenshot-Dateinamen vor; ein Zählerstand von 9200 ist nicht durch Manifest
+oder Log bestätigt. Die zugehörigen Bilder werden in der Arbeit einheitlich
+als historische Stände mit Zielzähler 9001 eingeordnet.\\
+\bottomrule
+\end{tabularx}
+\caption{In der Entwicklung verwendete SuGaR-Coarse-Zählerstände und ihre
+Nachweislage.}
+\label{tab:sugar-zaehlerstaende}
+\end{table}
+
+Die Abweichung zwischen dem früher üblichen Zielzähler 9001 und dem aktuellen
+Standardwert 9000 hat einen technischen Hintergrund: Die DN-/SDF-Terme des
+localen Forks werden erst oberhalb des Zählerstands 9000 aktiviert, sodass
+Läufe mit Zielzähler 9001 diese Terme gerade noch nicht erreichen. Für die
+Vergleichbarkeit gelten die in dieser Arbeit ausgewerteten Läufe
+(Folgeprüfung, Vierfeld-Ablation) einheitlich mit dem Standardwert 9000.
 
 \subsection{Evaluationsprotokoll}
 

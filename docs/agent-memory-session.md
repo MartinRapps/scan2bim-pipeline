@@ -39,6 +39,8 @@ Step 5: Postprocess (postprocess.sh → Centerline + B-Spline + GeoJSON)
 ```
 
 - **Autopilot-Modus:** `run_pipeline.sh` fragt nach Text-Prompt und Autopilot y/n. Bei y: alle weiteren Prompts werden mit Defaults übersprungen (Video-Komprimierung, SAM3-Auflösung, STS/SuGaR-Parameter, CloudCompare-Breakpoint, GCP-Reuse). Pipeline läuft komplett durch.
+- **Lauf-Preset (seit 08/2026):** Abfrage nach Autopilot y/n wählt `RUN_RESOLUTION` = `720p` (1280x720, Standard) | `qhd` (960x540) | `low` (640x360). Bei qhd/low werden die Zielbreiten-/Höhenfragen im Video-Preprocessing fest vorbesetzt. Der Prompt zeigt die durchschnittlichen Laufzeiten aus den Matrixarchiven (Route A, 5 FPS, OPENCV: 720p ≈ 2023 s, qhd ≈ 1648 s, low ≈ 1141 s; nur STS–Postprocess-Schrittzeiten).
+- **Produktionsstand (seit 08/2026):** `COLMAP_CAMERA_MODEL`-Default ist nun `OPENCV` (statt `SIMPLE_RADIAL`) — aus der Matrixauswertung als Standard gewählt; Route A (`SUGAR_MESH_MODE=original_gs`) und 5 FPS bleiben Default. Geändert in `run_pipeline.sh`, `src/scripts/pipeline_lib.sh`, `src/scripts/run_sfm.sh`, `.env.example`.
 - **Vor Autopilot-Auswahl bleiben 3 Eingaben:** HuggingFace-Token (einmalig, dann in `.env`), Text-Prompt (was segmentieren), Autopilot y/n.
 
 ## Centerline-Extraktion (Container E, `src/cpp/src/main.cpp`)

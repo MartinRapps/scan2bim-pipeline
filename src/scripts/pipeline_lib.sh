@@ -27,7 +27,7 @@ export HOST_GID="${HOST_GID:-$(id -g)}"
 # Pipeline state (set by configure_* functions, consumed by run_* functions)
 AUTOPILOT="${AUTOPILOT:-false}"
 FRAME_PROFILE_SCOPE="${FRAME_PROFILE_SCOPE:-all}"
-COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-SIMPLE_RADIAL}"
+COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-OPENCV}"
 COLMAP_MAX_FEATURES="${COLMAP_MAX_FEATURES:-4096}"
 COLMAP_SEQUENTIAL_OVERLAP="${COLMAP_SEQUENTIAL_OVERLAP:-15}"
 COLMAP_GUIDED_MATCHING="${COLMAP_GUIDED_MATCHING:-0}"
@@ -237,11 +237,13 @@ explain_frame_profile_scope() {
 
 explain_colmap_values() {
     echo ""
+    echo "  OPENCV: getrennte Brennweiten sowie radiale/tangentiale Parameter."
+    echo "          Aktueller Produktionsstandard; in der Matrixauswertung bei"
+    echo "          720p und 5 FPS die besten maskierten Objektmetriken."
     echo "  SIMPLE_RADIAL: eine Brennweite, Hauptpunkt und ein radialer Parameter."
     echo "  SIMPLE_PINHOLE: ideale Kamera ohne Verzeichnung; setzt bereits"
     echo "                  entzerrte Eingabebilder voraus. Fuer PINHOLE/"
     echo "                  SIMPLE_PINHOLE wird image_undistorter uebersprungen."
-    echo "  OPENCV: mehr radiale/tangentiale Freiheitsgrade, nicht automatisch besser."
     echo "  4096 SIFT-Merkmale: aktueller Kompromiss aus Punktdichte und Laufzeit."
     echo "  Guided Matching: zusaetzliche Zuordnung, im Test deutlich langsamer."
     echo "  Overlap: Anzahl zeitlicher Nachbarbilder im Sequential Matching."

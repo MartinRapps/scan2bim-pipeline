@@ -1,4 +1,5 @@
 \section{Technische und methodische Grundlagen}
+\label{sec:grundlagen}
 
 Dieses Kapitel führt nur die Verfahren ein, die für Architektur,
 Versuchsdesign und Interpretation der Pipeline notwendig sind. Die Arbeit
@@ -20,32 +21,40 @@ nicht, wenn das Objekt in späteren Frames verloren geht.
 Der kanonische SAM-Ausgang wird als Hierarchie gespeichert. \texttt{default}
 ist die unveränderte Objektmaske, \texttt{middle} entsteht durch eine
 $5\times5$-Erosion und \texttt{small} durch zwei Erosionsschritte. Die
-konservativeren Stufen entfernen unsichere Randpixel, können bei sehr dünnen
-Objekten aber auch relevante Objektfläche verlieren. Deshalb werden
-Maskenstufe und Dilatation als explizite Parameter behandelt.
-
-Ein Einzelbild- oder SAHI-Ansatz könnte kleine Strukturen räumlich vergrößert
-verarbeiten. Er besitzt jedoch nicht automatisch dieselbe zeitliche
-Objektkontinuität. Da ein systematischer Vergleich dieser Frontends nicht
-ausgeführt wurde, bleibt er außerhalb der PA und wird nur als möglicher
-Folgeversuch genannt.
+Erosion wendet ein quadratisches Strukturelement von $5\times5$ Pixeln an:
+Ein Pixel gehört nur dann weiterhin zur Maske, wenn die gesamte
+$5\times5$-Nachbarschaft maskiert ist; dadurch werden unsichere Randpixel
+rund zwei Pixel breit entfernt. Der Wert $5\times5$ ist ein pragmatischer
+Standard: Er glättet unscharfe Maskenränder und entfernt dünne
+Rauschfragmente, ohne das dünne lineare Objekt über eine sinnvolle Bildbreite
+hinaus schrumpfen zu lassen. Die konservativeren Stufen entfernen zusätzlich
+unsichere Randpixel, können bei sehr dünnen Objekten aber auch relevante
+Objektfläche verlieren. Maskenstufe und optionale Dilatation sind deshalb
+explizite Parameter; in der aktuellen Projektfassung wird keine Dilatation
+angewendet. Historisch war zwischenzeitlich auch die \texttt{default}-Maske
+dilatiert; solche Stände werden als Entwicklungszwischenstände nicht
+fortgeführt, sondern durch die verbindliche Festlegung
+\texttt{default} = unverändert, \texttt{middle} = einfach erodiert und
+\texttt{small} = zweifach erodiert ersetzt (vgl. Abschnitt~\ref{sec:versuchsaufbau}).
 
 \subsection{Structure-from-Motion und Kameramodelle}
 
 Structure-from-Motion schätzt aus korrespondierenden Bildmerkmalen die
 Kameraposen und eine sparse 3D-Punktwolke. COLMAP verbindet dafür
 SIFT-Merkmalsextraktion, Matching, inkrementelles Mapping und Bundle Adjustment
-\parencite{schoenberger2016sfm}. Das Projekt verwendet unmaskierte Bilder:
+\parencite{schoenberger2016sfm}. Die Pipeline verwendet unmaskierte Bilder:
 Hintergrund- und Ankermerkmale stabilisieren die Orientierung eines glatten,
 dünnen Zielobjekts und bleiben für einen späteren GCP-Bezug verfügbar.
 
-Die Matrix untersucht drei Kameramodelle. \texttt{PINHOLE} modelliert getrennte
-Brennweiten und einen Hauptpunkt, aber keine Verzeichnung. Es setzt damit eine
+Für die Projektarbeit sind drei Kameramodelle relevant. \texttt{PINHOLE}
+modelliert getrennte Brennweiten und einen Hauptpunkt, aber keine Verzeichnung. Es setzt damit eine
 ideale Bilddomäne voraus. \texttt{SIMPLE\_RADIAL} ergänzt eine gemeinsame
 Brennweite um einen radialen Verzeichnungsparameter. \texttt{OPENCV} besitzt
 zusätzliche radiale und tangentiale Freiheitsgrade. Das flexiblere Modell ist
 nicht grundsätzlich genauer, weil schwache oder ungünstig verteilte Merkmale
-zusätzliche Parameter schlecht konditionieren können.
+zusätzliche Parameter schlecht konditionieren können. Als Produktionsstandard
+ist \texttt{OPENCV} gewählt; die Begründung aus der Matrixauswertung steht in
+Abschnitt~\ref{sec:produktionskonfiguration}.
 
 Bei verzeichnungsbehafteten Modellen bleibt das geschätzte Originalmodell für
 SfM und GCP erhalten. Anschließend erzeugt der COLMAP-
@@ -58,7 +67,9 @@ Modellannahme und kein Nachweis einer erfolgreichen Entzerrung.
 \subsection{3D Gaussian Splatting und Segment-then-Splat}
 
 3D Gaussian Splatting stellt eine Szene als Menge anisotroper Gaussians dar
-\parencite{kerbl2023gaussian}. Ein Gaussian $i$ besitzt unter anderem einen
+\parencite{kerbl2023gaussian}, das heißt als Ansammlung kleiner, elliptischer
+3D-Verteilungen, deren Form und räumliche Ausrichtung pro Gaussian frei
+gelernt werden. Ein Gaussian $i$ besitzt unter anderem einen
 Mittelpunkt $\boldsymbol{\mu}_i$, eine räumliche Kovarianz
 $\boldsymbol{\Sigma}_i$, Opazität $\alpha_i$ und blickabhängige Farbe. Eine
 übliche Zerlegung der Kovarianz lautet
@@ -76,33 +87,63 @@ Repräsentation ist deshalb zugleich geometrische Hypothese und renderbare
 Radiance-Field-Darstellung.
 
 Segment-then-Splat ergänzt die Gaussians um objektbezogene Zuordnungen
-\parencite{lu2025segment}. In der Projektpipeline ersetzen die extern erzeugten
-SAM-3.1-Masken das ursprünglich vorgesehene Segmentierungsfrontend. STS
-initialisiert die Szene aus dem COLMAP-Modell, ordnet Gaussians den Objekten zu
-und optimiert sie in einer Objekt-/Maskenphase sowie einer anschließenden
-All-Object-Phase. Der Projektstandard umfasst 7000 Gesamtiterationen, davon
-5000 innerhalb des Objektcurriculums.
+\parencite{lu2025segment}. Das offizielle Verfahren gewinnt seine
+Mehrfachansichtsmasken über eine SAM-basierte Tracking-Pipeline
+(AutoSeg-SAM2): Ein SAM-Grid-Prompt segmentiert die erste Ansicht, SAM~2
+verfolgt das Objekt anschließend über die Sequenz. Nach der Rekonstruktion
+wird jedem Objekt ein CLIP-Embedding zugeordnet, über das die Szene offen
+vokabularisch durchsucht werden kann. In der Projektpipeline übernehmen die
+extern erzeugten SAM-3.1-Masken beide Rollen: Die promptbare temporale
+Segmentierung liefert die Objektmasken direkt, und die CLIP-Embedding-
+Zuordnung entfällt, weil für den linearen Einobjektfall ausschließlich die
+gewählte Objektmaske als Suchbegriff benötigt wird. STS initialisiert die
+Szene aus dem COLMAP-Modell und ordnet jeden Gaussian über die vorgegebenen
+Masken einem Objekt zu: Während der Objekt-/Maskenphase wird der Bildverlust
+auf die maskierte Objektregion der zugeordneten Maske begrenzt, eine
+anschließende All-Object-Phase optimiert alle Objekte gemeinsam. In der
+Projektpipeline sind diese Masken die bereits segmentierten Eingabebilder in
+den drei Erosionsstufen (\texttt{default}, \texttt{middle}, \texttt{small}),
+nicht eine vom STS-System erzeugte Nachsegmentierung. Der Projektstandard
+umfasst 7000 Gesamtiterationen, davon 5000 innerhalb des Objektcurriculums;
+bei einem einzigen Objekt trägt die All-Object-Phase keine zusätzliche
+Objektrennung bei, bleibt aber Teil des übernommenen Trainingsschemas.
 
 \subsection{Objektselektion und Meshgewinnung}
 
-Die Ziel-Gaussians werden über die konfigurierte Objekt-ID selektiert. Ein
-Opazitätsfilter kann schwach sichtbare Primitive entfernen. Die in der PLY
-gespeicherte Logit-Opazität $o_i$ wird dafür mit
+Die Ziel-Gaussians werden über die konfigurierte Objekt-ID selektiert; die
+Zuordnung stammt aus den STS-Objektdateien (eigene \texttt{obj\_id}-Eigenschaft
+der PLY beziehungsweise die Objekt-ID-Tensoren der STS-Ausgabe). Bei einem
+Datensatz mit genau einem linearen Objekt ist die Objekt-ID eine
+Formalschnittstelle des übernommenen STS-Schemas; die eigentliche Auswahl
+trifft der nachgelagerte Opazitäts- und Farbfilter. Ein Opazitätsfilter kann
+schwach sichtbare Primitive entfernen. Die in der PLY gespeicherte
+Logit-Opazität $o_i$ ist der rohe, unbeschränkte Voraktivierungswert, den das
+3DGS-Modell lernt; sie wird erst durch die Sigmoid-Funktion
 
 \begin{equation}
 	\alpha_i = \frac{1}{1+\exp(-o_i)}
 	\label{eq:opacity}
 \end{equation}
 
-in den Bereich $[0,1]$ überführt. Nach Objekt-, Opazitäts- und optionaler
-Farbauswahl erzeugt die Pipeline eine getrennte Hochopazitätskopie. Das Setzen
-auf $\alpha=0{,}999999$ ist eine Initialisierungspolitik für die geometrische
-Extraktion, keine physikalische Aussage über Materialtransparenz.
+in die sichtbare Alpha-Opazität im Bereich $[0,1]$ überführt. Das Filtern über
+den Logit erlaubt dabei einen gleichmäßigeren Zugriff auf kleine
+Transparenzwerte, als die bereits gesättigte Alpha-Kurve anbieten würde. Nach
+Objekt-, Opazitäts- und optionaler Farbauswahl erzeugt die Pipeline eine
+getrennte Hochopazitätskopie. Das Setzen auf $\alpha=0{,}999999$ ist eine
+Initialisierungspolitik für die geometrische Extraktion, keine physikalische
+Aussage über Materialtransparenz: Ein endlicher Wert von exakt 1 ist nach der
+Sigmoid-Aktivierung numerisch nicht erreichbar, weil er einen unendlichen
+Logit erfordern würde; der nahezu opake Wert stabilisiert die anschließende
+Dichte- und Normalenberechnung beim Surface-Sampling.
 
 SuGaR richtet in seiner vollständigen Route Gaussians durch
 Oberflächenregularisierung aus und rekonstruiert aus kamerabasierten
-Oberflächenstichproben ein Poisson-Mesh
-\parencite{guedon2024sugar,kazhdan2006poisson}. Der lokale Fork kann den
+Oberflächenstichproben ein Poisson-Mesh\footnote{Die Poisson-
+Oberflächenrekonstruktion legt durch eine Punktwolke mit orientierten
+Normalen eine glatte Oberfläche, indem sie ein Poisson-Gleichungssystem löst,
+dessen Lösungsfeld die gesuchte Indikatorfunktion der Oberfläche beschreibt
+\parencite{kazhdan2006poisson}.}
+\parencite{guedon2024sugar}. Der lokale Fork kann den
 photometrischen Verlust auf die Objektmaske begrenzen. Ein vereinfachter
 maskierter RGB-Verlust lautet
 
@@ -113,7 +154,8 @@ maskierter RGB-Verlust lautet
  \label{eq:masked-rgb-loss}
 \end{equation}
 
-wobei $M$ die ausgewählte Objektmaske bezeichnet. Der Ausdruck
+wobei $M$ die ausgewählte Objektmaske (ein binäres Bild) und $p$ eine einzelne
+Pixelposition innerhalb dieses Bildes bezeichnen. Der Ausdruck
 $\ell_{\mathrm{RGB}}$ kombiniert L1- und DSSIM-Abweichung. Die
 Depth-Normal-Consistency der
 SuGaR-Coarse-Route vergleicht innerhalb der konservativen Maske aus der
@@ -123,18 +165,44 @@ Trainingsplan werden diese späten DN-/SDF-Terme erst oberhalb des Zählerstands
 
 Die Produktionsroute A überspringt die zusätzliche SuGaR-Coarse-Optimierung,
 das Gaussian-bound Refinement und das UV-Baking. Sie verwendet die
-Original-STS-Gaussians, projizierte Diamond-Mesh-Tiefe, Surface-Sampling,
-Poisson-Rekonstruktion, Dichtebereinigung, Decimation und optionale
-Vertexprojektion. Die vollständige SuGaR-Coarse-Route bleibt als
+Original-STS-Gaussians, die projizierte Diamond-Mesh-Tiefe\footnote{Die
+Diamond-Mesh-Tiefe wird aus der Projektion der SuGaR-``Diamond''-Primitive
+gewonnen: Diese flachen, an den Gaussians ausgerichteten Vierecksflächen
+werden in einen Z-Buffer projiziert, aus dem je Pixel eine Tiefe abgelesen
+wird; das Surface-Sampling wandelt diese Tiefe anschließend in 3D-Punkte. Die
+Alternative ist die Tiefe direkt aus dem Gaussian-Rasterizer.}, Surface-
+Sampling, Poisson-Rekonstruktion, Dichtebereinigung, Decimation und optionale
+Vertexprojektion. Die Dichtebereinigung entfernt Cluster mit zu wenigen
+Stützpunkten, die Decimation reduziert die Dreieckszahl auf das Ziel-Vertice-
+Budget, und die optionale Vertexprojektion verschiebt die verbliebenen
+Vertices auf die nächstgelegenen Oberflächenstichproben beziehungsweise deren
+Tiefenpunkte. Die vollständige SuGaR-Coarse-Route bleibt als
 wissenschaftlicher Vergleich erhalten. Damit werden zwei Fragen getrennt:
 Wie wird aus einer Gaussian-Wolke ein Mesh gewonnen, und wie verändert eine
-zusätzliche Coarse-Optimierung zuvor die Gaussian-Geometrie?
+zusätzliche Coarse-Optimierung zuvor die Gaussian-Geometrie? SuGaR ist
+konzeptionell so ausgelegt, dass Meshes über seine volle Route (Coarse-
+Optimierung mit anschließender Oberflächenextraktion) entstehen. Die in der
+Projektarbeit verwendete Route A ist deshalb die Abweichung vom
+Standardweg: Sie extrahiert direkt aus der unveränderten Original-STS-
+Gaussian-Wolke, ohne die Coarse-Optimierung. Diese schlankere Variante wurde
+erst im Projektverlauf ergänzend erprobt und hat anschließend die
+Produktionsrolle übernommen; die SuGaR-Coarse-Route wird als
+Vergleichsarm fortgeführt. Beide Routen bleiben als getrennte und
+kombinierbare Bausteine denkbar: Eine spätere Variante könnte auf denselben
+Eingaben zusätzlich zur segmentierten Objektrekonstruktion auch eine
+vollständige Szene (Gaussians und Mesh) erzeugen, ohne den Objektpfad zu
+verändern.
 
 \subsection{Centerline und B-Spline}
 
-DGtal voxeliert das Mesh und führt eine topologieerhaltende Skelettierung aus
+DGtal voxeliert das Mesh auf ein diskretes Gitter (Voxelgröße 0,1 in den
+lokalen Skaleneinheiten des unskalierten Modells; ohne reale Maßreferenz ist
+dies eine relative, keine metrische Größe) und führt eine
+topologieerhaltende Skelettierung aus
 \parencite{dgtalProject}. Auf verrauschten, dünnwandigen Oberflächen können
-dabei Medialflächen und zahlreiche kurze Äste entstehen. Der produktive
+dabei Medialflächen (flächige Skelettbereiche, für eine Linientrasse nicht
+direkt verwertbar; vgl. die Fußnote in Kapitel~\ref{sec:datengrundlage}) und
+zahlreiche kurze Äste entstehen. Der produktive
 \texttt{single}-Modus verwendet deshalb den Durchmesserpfad der größten
 Skelettkomponente. Dies liefert eine robuste Einzeltrasse, bildet aber keine
 verzweigten Netze ab.
@@ -148,9 +216,11 @@ Grades $p=10$ geglättet. Die Kurve ist
 \end{equation}
 
 mit Kontrollpunkten $\mathbf{P}_i$ und B-Spline-Basisfunktionen $N_{i,p}$.
-Der Grad ist ein algorithmischer Glättungsparameter; er begründet keine
-metrische Genauigkeit. Die Anzahl der ausgegebenen Samples verändert nur die
-Diskretisierung der Kurve.
+Der relativ hohe Grad $p=10$ glättet die diskrete Centerline ausreichend,
+damit einzelne Ausreißer nicht zu zackigen Kurvensprüngen führen; er ist ein
+algorithmischer Glättungsparameter, der im Pipeline-Skript manuell einstellbar
+ist, und begründet keine metrische Genauigkeit. Die Anzahl der ausgegebenen
+Samples verändert nur die Diskretisierung der Kurve.
 
 \subsection{Objektmaskierte Bildmetriken}
 

@@ -30,7 +30,7 @@ fi
 RAW_DIR="data/01_raw"
 DEFAULT_SAM3_FRAME_MAX_SIDE=768
 FRAME_PROFILE_SCOPE="${FRAME_PROFILE_SCOPE:-all}"
-COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-SIMPLE_RADIAL}"
+COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-OPENCV}"
 COLMAP_MAX_FEATURES="${COLMAP_MAX_FEATURES:-4096}"
 COLMAP_SEQUENTIAL_OVERLAP="${COLMAP_SEQUENTIAL_OVERLAP:-15}"
 COLMAP_GUIDED_MATCHING="${COLMAP_GUIDED_MATCHING:-0}"
@@ -43,6 +43,7 @@ BSPLINE_SAMPLES_PER_SEGMENT="${BSPLINE_SAMPLES_PER_SEGMENT:-4}"
 SEGMENT_CORNERS="${SEGMENT_CORNERS:-0}"
 GEOJSON_SRS="${GEOJSON_SRS:-EPSG:25832}"
 FALLBACK_ANCHOR="${FALLBACK_ANCHOR:-567028.563,5516784.082,177}"
+RUN_RESOLUTION="${RUN_RESOLUTION:-720p}"
 STS_IMAGES_DIR="${STS_IMAGES_DIR:-/data/04_sfm/undistorted/images}"
 STS_SFM_DIR="${STS_SFM_DIR:-/data/04_sfm/undistorted}"
 
@@ -59,20 +60,87 @@ explain_frame_profile_scope() {
 
 explain_colmap_values() {
     echo ""
+    echo "  OPENCV: getrennte Brennweiten sowie radiale/tangentiale Parameter;"
+    echo "          aktueller Standard. In der Matrixauswertung erzielte OPENCV bei"
+    echo "          720p und 5 FPS die besten maskierten Objektmetriken."
     echo "  SIMPLE_RADIAL: eine Brennweite plus Hauptpunkt und ein radialer"
-    echo "                  Verzeichnungsparameter; aktueller Datensatz-Kompromiss."
+    echo "                  Verzeichnungsparameter; historischer Datensatz-Kompromiss."
     echo "  SIMPLE_PINHOLE: ideale Kamera ohne Verzeichnung; weniger Parameter,"
     echo "                  setzt bereits entzerrte Eingabebilder voraus."
     echo "                  Fuer PINHOLE/SIMPLE_PINHOLE wird nach COLMAP keine"
     echo "                  image_undistorter-Stufe ausgefuehrt."
-    echo "  OPENCV: getrennte Brennweiten sowie radiale/tangentiale Parameter;"
-    echo "          flexibler, aber bei schwachen Merkmalen ueberanpassungsgefaehrdet."
     echo "  max_features: SIFT-Merkmale pro Bild; 4096 ist der aktuelle Kompromiss."
     echo "  overlap: Anzahl zeitlicher Nachbarbilder beim Sequential Matching."
     echo "  guided_matching: zusaetzliche geometrisch gefuehrte Zuordnung; im"
     echo "                   aktuellen Test langsamer ohne klaren Endvorteil."
     echo "  peak_threshold: SIFT-Empfindlichkeit; kleiner findet schwachere Features."
     echo ""
+}
+
+explain_run_preset() {
+    echo ""
+    echo "  Das Lauf-Preset bestimmt die Aufloesung des Arbeitsvideos und damit"
+    echo "  die Frame-/STS-/SuGaR-Aufloesung (das Rohvideo bleibt unveraendert)."
+    echo "  720p = 1280x720 (Standard), qhd = 960x540, low = 640x360."
+    echo "  Durchschnittliche Laufzeiten (Route A, 5 FPS, OPENCV):"
+    echo "    720p: 2023 s (~34 min)   - Standardaufloesung, alle Eingabefragen"
+    echo "     qhd: 1648 s (~27 min)   - Aufloesungsfragen fest vorbesetzt"
+    echo "     low: 1141 s (~19 min)   - Aufloesungsfragen fest vorbesetzt"
+    echo "  Quellen: gemittelte archivierte Matrixlaeufe (matrix_full_pipe,"
+    echo "  matrix_rest, matrix_repeat_20260812, docs/grafiken/matrix_mean_2026-08-17)."
+    echo "  Die Zeiten umfassen die archivierten Schrittzeiten von STS bis"
+    echo "  Postprocess; SAM3, COLMAP, Rendering und Metrikberechnung sind nicht"
+    echo "  vollstaendig enthalten."
+    echo ""
+}
+
+resolution_dimensions() {
+    case "${1:-720p}" in
+        qhd) echo "960 540" ;;
+        low) echo "640 360" ;;
+        *)   echo "1280 720" ;;
+    esac
+}
+
+configure_run_preset() {
+    if [[ "$AUTOPILOT" == "true" ]]; then
+        RUN_RESOLUTION="720p"
+        echo "Autopilot aktiv: Lauf-Preset 720p (Standardaufloesung mit allen Eingaben)."
+        return
+    fi
+
+    echo ""
+    echo "=== Lauf-Preset (Arbeitsvideo-Aufloesung) ==="
+    echo "Durchschnittliche Laufzeiten (Route A, 5 FPS, OPENCV, gemittelt ueber"
+    echo "die archivierten Matrixlaeufe; ohne SAM3/COLMAP/Rendering/Metrik):"
+    echo "  720p: 2023 s (~34 min)   - Standardaufloesung mit allen Eingabefragen"
+    echo "   qhd: 1648 s (~27 min)   - 960x540, Aufloesungsfragen fest vorbesetzt"
+    echo "   low: 1141 s (~19 min)   - 640x360, Aufloesungsfragen fest vorbesetzt"
+    while true; do
+        read -r -p "Lauf-Preset (720p/qhd/low oder EXPLAIN) [Default: 720p]: " USER_PRESET
+        USER_PRESET=${USER_PRESET:-720p}
+        if [[ "${USER_PRESET,,}" == "explain" ]]; then
+            explain_run_preset
+            continue
+        fi
+        case "${USER_PRESET,,}" in
+            720p|full|standard)
+                RUN_RESOLUTION="720p"
+                ;;
+            qhd)
+                RUN_RESOLUTION="qhd"
+                ;;
+            low|lowres)
+                RUN_RESOLUTION="low"
+                ;;
+            *)
+                echo "Ungueltige Auswahl, verwende 720p."
+                RUN_RESOLUTION="720p"
+                ;;
+        esac
+        break
+    done
+    echo "Lauf-Preset: ${RUN_RESOLUTION}"
 }
 
 configure_frame_profile_scope() {
@@ -222,7 +290,10 @@ configure_video_input() {
     else
         echo "Optional kann vor SAM3 ein komprimiertes Arbeitsvideo erzeugt werden."
         echo "Warum das sinnvoll ist: kleinere Aufloesung/FPS sparen VRAM, I/O und Laufzeit; das Rohvideo bleibt unveraendert erhalten."
-        echo "Empfohlene COLMAP-Defaults: 1280x720, 5 FPS, Plain-SIFT 4096, Guided Matching aus"
+        case "$RUN_RESOLUTION" in
+            qhd|low) echo "Empfohlene COLMAP-Defaults: $RUN_RESOLUTION ($(resolution_dimensions "$RUN_RESOLUTION" | tr ' ' 'x')), 5 FPS, Plain-SIFT 4096, Guided Matching aus";;
+            *)       echo "Empfohlene COLMAP-Defaults: 1280x720, 5 FPS, Plain-SIFT 4096, Guided Matching aus";;
+        esac
         echo "Video-Defaults: transpose=0 (keine Rotation), fps=5, codec=libx264, crf=18, preset=medium"
         echo "Hinweis: Die Skalierung erhaelt das Seitenverhaeltnis und fuellt mit schwarzem Rand auf."
         if [[ "$orientation_hint" == "portrait" ]]; then
@@ -234,6 +305,7 @@ configure_video_input() {
     if [[ -z "$CREATE_COMPRESSED" || "$CREATE_COMPRESSED" =~ ^[Yy]$ ]]; then
         local default_width=1280
         local default_height=720
+        read -r default_width default_height <<< "$(resolution_dimensions "$RUN_RESOLUTION")"
         if [[ "$orientation_hint" == "portrait" ]]; then
             default_width=1080
             default_height=1920
@@ -250,11 +322,15 @@ configure_video_input() {
             read -p "Transpose anwenden? 0 = keine Rotation, 1 = 90 Grad CW, 2 = 90 Grad CCW [Default: 0]: " USER_TRANSPOSE
             transpose_value=${USER_TRANSPOSE:-0}
 
-            read -p "Zielbreite [Default: ${default_width}]: " USER_WIDTH
-            target_width=${USER_WIDTH:-$default_width}
+            if [[ "$RUN_RESOLUTION" == "qhd" || "$RUN_RESOLUTION" == "low" ]]; then
+                echo "Preset ${RUN_RESOLUTION}: Zielaufloesung fest auf ${target_width}x${target_height}."
+            else
+                read -p "Zielbreite [Default: ${default_width}]: " USER_WIDTH
+                target_width=${USER_WIDTH:-$default_width}
 
-            read -p "Zielhoehe [Default: ${default_height}]: " USER_HEIGHT
-            target_height=${USER_HEIGHT:-$default_height}
+                read -p "Zielhoehe [Default: ${default_height}]: " USER_HEIGHT
+                target_height=${USER_HEIGHT:-$default_height}
+            fi
 
             read -p "Ziel-FPS [Default: 5]: " USER_FPS
             target_fps=${USER_FPS:-5}
@@ -695,6 +771,8 @@ if [[ "$USER_AUTOPILOT" =~ ^[Yy]$ ]]; then
 else
     AUTOPILOT="false"
 fi
+
+configure_run_preset
 
 SELECTED_VIDEO=""
 configure_frame_profile_scope

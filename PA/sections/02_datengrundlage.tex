@@ -1,4 +1,5 @@
 \section{Datengrundlage und Anwendungsrahmen}
+\label{sec:datengrundlage}
 
 \subsection{Alurohr als kontrollierter Testdatensatz}
 
@@ -10,38 +11,29 @@ Ersatz für ein im Baugraben liegendes Kabel. Er ermöglicht jedoch, die
 Datenübergaben und Fehlerfälle einer vollständigen Rekonstruktionskette unter
 wiederholbaren Bedingungen zu untersuchen.
 
-Der Segmentierungsprompt lautet \texttt{pipe}. Für die Parameterstudie werden
-zwei zeitliche Abtastungen und drei räumliche Auflösungen verwendet:
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lll}
-\toprule
-Profil & Auflösung & Zeitliche Abtastung\\
-\midrule
-720p & $1280\times720$ Pixel & 2 und 5 FPS\\
-QHD & $960\times540$ Pixel & 2 und 5 FPS\\
-Low & $640\times360$ Pixel & 2 und 5 FPS\\
-\bottomrule
-\end{tabular}
-\caption{Untersuchte räumliche und zeitliche Frameprofile.}
-\label{tab:frameprofile}
-\end{table}
-
-Bei rund 48 Sekunden Aufnahmedauer entstehen bei 5 FPS 240 Frames und bei
-2 FPS 96 Frames. Alle Verarbeitungsstufen eines Matrixlaufs verwenden denselben
-Frame-Satz. Dadurch bleiben Bildnamen, Masken, Kameras und feste
-Evaluationsansichten innerhalb eines Laufs konsistent.
+Der Segmentierungsprompt lautet \texttt{pipe}. Die in der Projektarbeit
+untersuchten Profilvarianten aus zwei zeitlichen Abtastungen (2 und 5 FPS) und
+drei räumlichen Auflösungen ($1280\times720$, $960\times540$ und
+$640\times360$ Pixel) sind in Kapitel~\ref{sec:versuchsaufbau} zusammengefasst;
+für den Datensatz genügt hier der Hinweis, dass ein Lauf bei 5 FPS rund 240
+Frames und bei 2 FPS rund 96 Frames umfasst. Ein Lauf verwendet in allen
+Verarbeitungsstufen denselben Frame-Satz, sodass Bildnamen, Masken, Kameras
+und feste Evaluationsansichten innerhalb eines Laufs konsistent bleiben.
 
 \subsection{Scope des linearen Einobjektfalls}
 
 Die Centerline-Nachverarbeitung ist bewusst auf ein einzelnes lineares Objekt
 begrenzt. Verzweigte Leitungsnetze erfordern eine zusätzliche Trennung echter
 Abzweigungen von Skelettartefakten. Gerade auf dünnwandigen und verrauschten
-Meshes kann die Skelettierung Medialflächen und zahlreiche kurze Stachel-Äste
-erzeugen. Der produktive \texttt{single}-Modus reduziert deshalb die größte
-zusammenhängende Skelettkomponente auf ihren Durchmesserpfad. Der
-Netzwerkmodus bleibt außerhalb des Projektarbeitsumfangs.
+Meshes kann die Skelettierung Medialflächen\footnote{Medialflächen sind
+zweidimensionale, flächige Skelettbereiche: Sie entstehen, wenn von einem
+inneren Punkt mehrere Punkte der Objektoberfläche gleich weit entfernt sind
+(zum Beispiel bei flachen oder dünnwandigen Strukturen). Für eine
+Linientrasse sind sie nicht direkt verwertbar und müssen auf ihren
+Durchmesserpfad reduziert werden.\label{fn:medialflaechen}} und zahlreiche
+kurze Stachel-Äste erzeugen. Der produktive \texttt{single}-Modus reduziert
+deshalb die größte zusammenhängende Skelettkomponente auf ihren
+Durchmesserpfad.
 
 Das primäre analytische Produkt der PA ist die lokale Centerline. Masken,
 COLMAP-Modell, STS-Gaussians und Mesh sind notwendige und diagnostisch wichtige
