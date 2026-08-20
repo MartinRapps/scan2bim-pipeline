@@ -56,6 +56,17 @@ zusätzliche Parameter schlecht konditionieren können. Als Produktionsstandard
 ist \texttt{OPENCV} gewählt; die Begründung aus der Matrixauswertung steht in
 Abschnitt~\ref{sec:produktionskonfiguration}.
 
+Die Modellbezeichnung ist dabei keine hinterlegte Objektivkalibrierung. Das
+Skript \texttt{run\_sfm.sh} übergibt COLMAP lediglich die Modellfamilie und mit
+\texttt{ImageReader.single\_camera=1} die Annahme eines gemeinsamen
+Kameramodells für alle Frames eines Laufs. Eine externe
+\texttt{camera\_params}-Datei oder eine Checkerboard-Kalibrierung wird nicht
+eingelesen. COLMAP initialisiert die Parameter intern und schätzt Brennweiten,
+Hauptpunkt und Verzeichnungskoeffizienten anschließend gemeinsam mit
+Kameraposen und 3D-Punkten aus den Bildkorrespondenzen. Die Werte in
+\texttt{sparse\_txt/cameras.txt} sind daher lauf- und auflösungsabhängige
+Schätzwerte, keine allgemeinen Standarddaten der Kamera.
+
 Bei verzeichnungsbehafteten Modellen bleibt das geschätzte Originalmodell für
 SfM und GCP erhalten. Anschließend erzeugt der COLMAP-
 \texttt{image\_undistorter} eine ideale PINHOLE-Szene für STS und die

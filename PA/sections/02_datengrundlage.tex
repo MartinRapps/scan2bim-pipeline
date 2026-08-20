@@ -11,6 +11,38 @@ Ersatz für ein im Baugraben liegendes Kabel. Er ermöglicht jedoch, die
 Datenübergaben und Fehlerfälle einer vollständigen Rekonstruktionskette unter
 wiederholbaren Bedingungen zu untersuchen.
 
+\subsection{Aufnahmekamera und Videoeinstellungen}
+
+Die Videosequenz wurde durchgehend mit der Hauptkamera (1x-Weitwinkelkamera)
+des Google Pixel 8 Pro aufgenommen. Diese Kamera besitzt laut
+Herstellerangaben einen 50-MP-Sensor mit einer Blende von $f/1{,}68$, einem
+Sichtfeld von etwa $82^\circ$ und einer Sensorgröße von $1/1{,}31$ Zoll;
+Google weist für die Weitwinkelkamera außerdem optische und elektronische
+Bildstabilisierung aus \parencite{googlePixel8ProSpecs}. Die Aufnahme erfolgte
+mit der OpenCamera-App. OpenCamera unterstützt eine Belichtungssperre sowie
+die Auswahl der Videoauflösung; die automatische Bildausrichtung (Auto-Level)
+ist eine separate, optionale Funktion \parencite{openCameraHelp}.
+
+Für den verwendeten Datensatz waren die Belichtung fest eingestellt, die
+Auflösung auf $1920\times1080$ Pixel (Full HD) gesetzt und die automatische
+Bildlagenkorrektur beziehungsweise nachträgliche Bildausrichtung deaktiviert.
+Die Rohdatei \path{data/01_raw/Alurohr_THWS.mp4} bestätigt per
+Containeranalyse H.264, $1920\times1080$ Pixel, nominal 30 FPS, 1441 Bilder und
+eine Dauer von rund 48 Sekunden. Die späteren 5- beziehungsweise 2-FPS-
+Profile sowie die Zielauflösungen 720p, QHD und Low sind daraus abgeleitete
+Pipeline-Arbeitsprofile und keine zusätzlichen Kameraaufnahmen.
+
+Die Bezeichnung ``unverfälschtes Video'' ist dabei auf die fehlende zusätzliche
+App-seitige Bildausrichtung und die festgehaltene Belichtung zu beziehen. Die
+Aufnahme ist kein Rohsensordatensatz: Das Pixel verarbeitet das Signal bereits
+über seine interne Bildverarbeitung und speichert hier ein H.264-Video.
+Insbesondere lässt sich aus der Datei allein nicht sicher nachweisen, ob die
+vom Gerät bereitgestellte optische beziehungsweise elektronische
+Videostabilisierung vollständig deaktiviert war. Die PA behauptet daher keine
+vollständig unverarbeitete Sensoraufnahme, sondern dokumentiert ein unter
+festgelegten Aufnahmeparametern erzeugtes Rohvideo für die nachgelagerte
+Pipeline.
+
 Der Segmentierungsprompt lautet \texttt{pipe}. Die in der Projektarbeit
 untersuchten Profilvarianten aus zwei zeitlichen Abtastungen (2 und 5 FPS) und
 drei räumlichen Auflösungen ($1280\times720$, $960\times540$ und

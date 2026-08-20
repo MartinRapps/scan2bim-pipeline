@@ -71,6 +71,7 @@ esac
 # Maskenstufe: default ist die vollstaendige SAM-Objektmaske; middle und small
 # sind zunehmend konservativere Kerne derselben Segmentierung.
 MASK_LEVEL="${MASK_LEVEL:-default}"
+MASKS_CONTAINER_DIR="${MASKS_CONTAINER_DIR:-/data/03_masks}"
 # 0 = keine Dilatation. Nur Pixel der originalen SAM-Maske sind Objektpixel.
 # Ein positiver Wert erweitert die Maske und kann Hintergrund an der Kontur
 # ungewollt in den Crop uebernehmen.
@@ -132,7 +133,7 @@ docker compose run --rm --no-deps sugar-meshing \
     --input-mesh "$MESH_CONTAINER_PATH" \
     --output-mesh "$OUTPUT_CONTAINER_PATH" \
     --cameras-json /data/05_3dgs/output/cameras.json \
-    --masks-dir /data/03_masks \
+    --masks-dir "$MASKS_CONTAINER_DIR" \
     --mask-level "$MASK_LEVEL" \
     --mask-dilation-px "$MASK_DILATION_PX" \
     --render-scale "$RENDER_SCALE" \

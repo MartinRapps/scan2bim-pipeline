@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Kopiert die 4 verbleibenden A-Routen-Laeufe (matrix_qualitaetsvergleich_20260818)
+# in die kuratierte V-Laufwerk-Struktur (identisch zu 720p/opencv_a, verifiziert).
+# Ausfuehren im Repo-Root:  bash copy_v_drive_a_routen.txt
+set -euo pipefail
+
+SRC="data/10_runs/matrix_qualitaetsvergleich_20260818/5fps"
+DEST="/home/k66700@fhws.de/thinclient_drives/V:/_Stud-VG/_Studierende/BGV6/k66700/PA/Ergebnisse/Rohr_UbuntuVM/PA_Besipiele_Gegenüberstellung"
+
+copy_a_route() { # <resolution> <variant>
+  local res="$1" variant="$2"
+  local src="$SRC/$res/$variant" dst="$DEST/$res/$variant"
+  local mesh="matrix_matrix_qualitaetsvergleich_20260818_5fps_${res}_${variant}"
+  mkdir -p "$dst"/{05_3dgs,iteration_7000,mask_ideal/frame_00000,review_ideal/panels,review_raw/panels,"$mesh"}
+  cp -a "$src"/live/sugar_output/*/coarse_mesh/05_3dgs/*.ply                    "$dst/05_3dgs/"
+  cp -a "$src"/live/centerline/centerline_fallback_georeferenced.csv            "$dst/"
+  cp -a "$src"/live/gis/final_output_fallback_georeferenced.geojson             "$dst/"
+  cp -a "$src"/live/colmap/points3D.ply                                         "$dst/"
+  cp -a "$src"/live/sts/output/point_cloud/iteration_7000/*.ply                 "$dst/iteration_7000/"
+  cp -a "$src"/live/mesh/"$mesh"/*                                              "$dst/$mesh/"
+  cp -a "$src"/masks/ideal/frame_00000/*                                        "$dst/mask_ideal/frame_00000/"
+  cp -a "$src"/masks/review_ideal/panels/*                                      "$dst/review_ideal/panels/"
+  cp -a "$src"/masks/review_raw/panels/*                                        "$dst/review_raw/panels/"
+  echo "OK: $res/$variant"
+}
+
+copy_a_route 720p pinhole_a
+copy_a_route 720p simple_radial_a
+copy_a_route qhd  opencv_a
+copy_a_route low  opencv_a
+
+echo "Fertig. Verifikation (Anzahl Dateien je Ziel):"
+for r in 720p/pinhole_a 720p/simple_radial_a qhd/opencv_a low/opencv_a; do
+  echo "--- $r: $(find "$DEST/$r" -type f | wc -l) Dateien"
+done

@@ -591,6 +591,7 @@ FILTER_BLACK_THRESHOLD="${FILTER_BLACK_THRESHOLD:-0.08}"
 SUGAR_INPUT_ALPHA="${SUGAR_INPUT_ALPHA:-0.999999}"
 CAMERAS_JSON="${CAMERAS_JSON:-data/05_3dgs/output/cameras.json}"
 MASKS_DIR="${MASKS_DIR:-data/03_masks}"
+MASKS_CONTAINER_DIR="${MASKS_CONTAINER_DIR:-/data/03_masks}"
 CHECKPOINT_HOST_DIR="data/05_3dgs/masked_sugar_input/${RUN_TAG}"
 CHECKPOINT_CONTAINER_DIR="/data/05_3dgs/masked_sugar_input/${RUN_TAG}/"
 OUTPUT_HOST_DIR="data/sugar_output/${RUN_TAG}"
@@ -689,7 +690,7 @@ docker compose -f docker-compose.yml -f docker-compose.sugar-dev.yml run --rm --
     python3 /app/src/python/filter_sugar_cameras_by_mask.py \
     --input "$CHECKPOINT_CONTAINER_DIR/cameras.json" \
     --output "$CHECKPOINT_CONTAINER_DIR/cameras.json" \
-    --masks-dir /data/03_masks \
+    --masks-dir "$MASKS_CONTAINER_DIR" \
     --levels "$MASK_LEVEL" "$NORMAL_MASK_LEVEL" "$TEXTURE_MASK_LEVEL"
 
 if [[ "$SUGAR_MESH_MODE" == "original_gs" ]]; then
@@ -716,7 +717,7 @@ else
         "${COARSE_ARGUMENTS[@]}" \
         --refinement_time "$REFINEMENT_TIME" \
         --eval True \
-        --masks-dir /data/03_masks \
+        --masks-dir "$MASKS_CONTAINER_DIR" \
         --mask-level "$MASK_LEVEL" \
         --normal-mask-level "$NORMAL_MASK_LEVEL" \
         --mask-dilation-px "$MASK_DILATION_PX" \
@@ -756,6 +757,7 @@ MIN_VISIBLE_PIXELS="${CROP_MIN_VISIBLE_PIXELS:-2}" \
 MIN_VIEW_MASK_FRACTION="${CROP_MIN_VIEW_MASK_FRACTION:-0.5}" \
 MIN_SUPPORT_RATIO="${CROP_MIN_SUPPORT_RATIO:-0.6}" \
 OVERWRITE="${REPLACE:-0}" \
+MASKS_CONTAINER_DIR="$MASKS_CONTAINER_DIR" \
 ./run_multiview_crop.sh
 
 echo "=== Mesh pipeline completed ==="

@@ -46,6 +46,9 @@ FALLBACK_ANCHOR="${FALLBACK_ANCHOR:-567028.563,5516784.082,177}"
 RUN_RESOLUTION="${RUN_RESOLUTION:-720p}"
 STS_IMAGES_DIR="${STS_IMAGES_DIR:-/data/04_sfm/undistorted/images}"
 STS_SFM_DIR="${STS_SFM_DIR:-/data/04_sfm/undistorted}"
+STS_MASKS_DIR="${STS_MASKS_DIR:-/data/03_masks_ideal}"
+IDEAL_MASKS_HOST_DIR="${IDEAL_MASKS_HOST_DIR:-data/03_masks_ideal}"
+MASK_MAX_EMPTY_FRACTION="${MASK_MAX_EMPTY_FRACTION:-0.30}"
 
 explain_frame_profile_scope() {
     echo ""
@@ -822,6 +825,28 @@ if [[ "$FRAME_PROFILE_SCOPE" == "colmap" ]]; then
     exit 0
 fi
 
+run_step_start "Masken-Warp in die ideale Bilddomaene"
+echo "Warpe Rohmasken aus /data/03_masks in die COLMAP-Idealbilddomaene..."
+rm -rf "$IDEAL_MASKS_HOST_DIR"
+mkdir -p "$IDEAL_MASKS_HOST_DIR"
+docker compose run --rm sam3-preprocess \
+    python3 /app/src/python/warp_masks_to_undistorted.py \
+    --raw-masks-dir /data/03_masks \
+    --output-dir "$STS_MASKS_DIR" \
+    --raw-sfm-txt /data/04_sfm/sparse_txt \
+    --ideal-sfm-txt /data/04_sfm/undistorted/sparse_txt \
+    --raw-images-dir /data/02_frames \
+    --ideal-images-dir /data/04_sfm/undistorted/images \
+    --report "$STS_MASKS_DIR/mask_warp_report.json"
+docker compose run --rm sam3-preprocess \
+    python3 /app/src/python/validate_mask_coverage.py \
+    --frames-dir /data/04_sfm/undistorted/images \
+    --masks-dir "$STS_MASKS_DIR" \
+    --mask-name middle \
+    --max-empty-fraction "$MASK_MAX_EMPTY_FRACTION" \
+    --report "$STS_MASKS_DIR/mask_coverage_report.json"
+run_step_end 0
+
 run_step_start "GCP-Picking / CloudCompare"
 echo "=========================================================="
 echo "BREAKPOINT: Please open the sparse point cloud in CloudCompare"
@@ -852,6 +877,7 @@ echo "[Step 3/5] Setting up Segment-then-Splat (STS) workspace structure..."
     docker compose run --rm \
         -e STS_IMAGES_DIR="$STS_IMAGES_DIR" \
         -e STS_SFM_DIR="$STS_SFM_DIR" \
+        -e STS_MASKS_DIR="$STS_MASKS_DIR" \
         sam3-preprocess python3 /app/src/python/prep_sts_scene.py
 
 echo "[Step 3/5] Running STS object-specific 3D point cloud initialization..."
@@ -944,6 +970,8 @@ RUN_CONSENSUS_CROP="$RUN_CONSENSUS_CROP" \
 SUGAR_RUN_TAG="$SUGAR_RUN_TAG" \
 SUGAR_MESH_EXPORT_NAME="$SUGAR_MESH_EXPORT_NAME" \
 FILTERED_PLY="data/05_3dgs/output/point_cloud/iteration_${ITERATIONS}/point_cloud_filtered_opacity999999.ply" \
+MASKS_DIR="$IDEAL_MASKS_HOST_DIR" \
+MASKS_CONTAINER_DIR="$STS_MASKS_DIR" \
 ./run_masked_sugar.sh
 run_step_end 0
 

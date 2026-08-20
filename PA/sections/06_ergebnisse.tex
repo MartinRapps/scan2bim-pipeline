@@ -168,6 +168,24 @@ unabhängige geometrische Referenz: Bei qhd liegt \texttt{SIMPLE\_RADIAL} mit
 von Auflösung und Kameramodell unterstreicht. Der Standard gilt daher
 ausdrücklich für die Produktionsauflösung 720p bei 5 FPS.
 
+Eine nachträgliche Analyse des archivierten 720p-OPENCV-Sparse-Modells ergab
+240 registrierte Bilder, 133723 3D-Punkte, 890377 Beobachtungen und einen
+mittleren Reprojektionsfehler von 0,706\,Pixel. Die entsprechenden Werte lagen
+bei \texttt{SIMPLE\_RADIAL} bei 0,707\,Pixel und bei \texttt{PINHOLE} bei
+0,705\,Pixel. Damit sind alle drei Modelle intern gut an die beobachteten
+Bildkorrespondenzen angepasst; der geringe Unterschied entscheidet jedoch
+nicht, welches Modell das reale Objektiv physikalisch korrekt beschreibt.
+Die Reprojektionswerte sind eine Konsistenzprüfung des SfM-Modells und keine
+unabhängige Kalibrierung.
+
+Für eine belastbare Aussage über die tatsächliche Verzeichnung wären deshalb
+zusätzliche Referenzdaten erforderlich, etwa eine unabhängige
+Checkerboard- oder ChArUco-Kalibrierung mit denselben Aufnahmeparametern,
+eine Prüfung gerader Kanten vor und nach der Entzerrung oder eine Auswertung
+auf zurückgehaltenen Bildkorrespondenzen. Ohne diese Referenz bleibt
+\texttt{OPENCV} eine begründete, intern konsistente Produktionsentscheidung
+und kein messtechnisch validiertes Kameramodell.
+
 Für diese Produktionskonfiguration ergeben die über die Matrixarchive
 gemittelten Laufzeiten je Auflösung rund 2023 Sekunden (720p), 1648 Sekunden
 (qhd) und 1141 Sekunden (low). Diese Werte fließen in die Lauf-Preset-Abfrage

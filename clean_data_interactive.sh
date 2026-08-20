@@ -66,12 +66,12 @@ if [[ "$MATRIX_RESET_MODE" -eq 1 ]]; then
     fi
   done
   for target in \
-    "$DATA_DIR/02_frames" "$DATA_DIR/03_masks" "$DATA_DIR/04_sfm" \
+    "$DATA_DIR/02_frames" "$DATA_DIR/03_masks" "$DATA_DIR/03_masks_ideal" "$DATA_DIR/04_sfm" \
     "$DATA_DIR/05_3dgs" "$DATA_DIR/06_mesh" "$DATA_DIR/07_centerline" \
     "$DATA_DIR/08_gis" "$DATA_DIR/09_evaluation" "$DATA_DIR/sugar_output"; do
     cleanup_target "$target"
   done
-  mkdir -p "$DATA_DIR/02_frames" "$DATA_DIR/03_masks" "$DATA_DIR/04_sfm" \
+  mkdir -p "$DATA_DIR/02_frames" "$DATA_DIR/03_masks" "$DATA_DIR/03_masks_ideal" "$DATA_DIR/04_sfm" \
     "$DATA_DIR/05_3dgs" "$DATA_DIR/06_mesh" "$DATA_DIR/07_centerline" \
     "$DATA_DIR/08_gis" "$DATA_DIR/09_evaluation" "$DATA_DIR/sugar_output"
   echo "Matrix-Cleanup abgeschlossen."
@@ -172,7 +172,7 @@ ask_delete \
   "Sinnvoll bei neuem Prompt, neuer Maskenlogik oder neuem Video. Betrifft Frames und Masken." \
   "$(default_answer y y)" \
   "DELETE_SAM3"
-add_if_selected "$DELETE_SAM3" "$DATA_DIR/02_frames" "$DATA_DIR/03_masks"
+add_if_selected "$DELETE_SAM3" "$DATA_DIR/02_frames" "$DATA_DIR/03_masks" "$DATA_DIR/03_masks_ideal"
 
 ask_delete \
   "COLMAP-Ergebnisse zuruecksetzen" \

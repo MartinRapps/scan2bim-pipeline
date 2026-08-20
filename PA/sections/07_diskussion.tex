@@ -68,7 +68,13 @@ zusätzliche Verzeichnungsanteile modellieren, besitzt aber mehr
 Freiheitsgrade. Aus den Bildmetriken allein lässt sich daher keine generell
 beste Kamerakonfiguration ableiten; der gewählte Standard ist eine
 datengestützte Projektentscheidung für 720p bei 5 FPS und bleibt für
-veränderte Datensätze neu zu prüfen.
+veränderte Datensätze neu zu prüfen. Die von COLMAP ausgegebenen
+Verzeichnungskoeffizienten sind aus den Bildkorrespondenzen geschätzte
+Parameter, nicht unabhängig gemessene Objektivdaten. Ein niedriger mittlerer
+Reprojektionsfehler belegt daher die interne Geometriekonsistenz, aber nicht
+die physikalische Richtigkeit der Entzerrung. Für einen Vermessungsnachweis
+ist eine externe Kamerakalibrierung mit Referenzmustern oder bekannten
+Kalibrierparametern erforderlich; diese liegt in der Projektarbeit nicht vor.
 
 \subsection{Original-GS und SuGaR-Coarse}
 

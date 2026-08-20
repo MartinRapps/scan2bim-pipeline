@@ -208,14 +208,18 @@ Qualitätsrelevante Implementierungsentscheidungen sind:
 \begin{itemize}
   \item COLMAP verwendet unmaskierte Bilder, damit Hintergrund- und
         Ankermerkmale für SfM und GCP erhalten bleiben.
-  \item Der Matrixrunner prüft die Maskenabdeckung vor STS; sein aktueller
-        Guard bricht bei mindestens 30\,\% leeren oder fehlenden
-        \texttt{middle}-Masken ab. Der Inline-Vollauf besitzt derzeit nicht
-        dieselbe prozentuale Coverage-Prüfung.
-  \item Im Matrix- und restaurierten Replaypfad wird der feste Eval-Split nach
-        dem Mask-Warping aus nichtleeren idealen Masken erzeugt und für STS,
-        SuGaR und Metriken wiederverwendet. Der Inline-Vollauf besitzt diesen
-        separaten Warp-Aufruf derzeit noch nicht.
+  \item Matrixrunner und Inline-Vollauf prüfen die Maskenabdeckung vor STS;
+        der Guard bricht bei mindestens 30\,\% leeren oder fehlenden
+        \texttt{middle}-Masken ab.
+  \item Matrixrunner und Inline-Vollauf warpen die Rohmasken nach COLMAP in
+        dieselbe ideale Bilddomäne wie die STS-Bilder. Die Rohmasken bleiben
+        unter \path{data/03_masks/} erhalten; die gewarpten Masken liegen unter
+        \path{data/03_masks_ideal/} und werden an STS sowie SuGaR übergeben.
+        Der Matrixrunner erzeugt zusätzlich einen festen Eval-Split aus den
+        nichtleeren idealen Masken. Ein Replay ab \texttt{sts} verwendet bereits
+        bereitgestellte ideale Masken; ein Replay ab \texttt{colmap} besitzt
+        diese automatische Warp-Stufe weiterhin nicht und benötigt daher einen
+        passenden idealen Maskensatz.
   \item Die SuGaR-Kameranamen werden als normalisierte Stems verglichen; leere
         Kamera- oder Eval-Listen werden mit klaren Fehlern abgelehnt.
   \item Die Bildauswertung ist ausschließlich objektmaskiert. Full-frame-Werte

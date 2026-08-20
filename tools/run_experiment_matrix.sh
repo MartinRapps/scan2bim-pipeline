@@ -513,7 +513,6 @@ run_one() {
     fi
 
     echo "[10/11] Copy final renders and metrics into archive..."
-    copy_if_exists data/05_3dgs/output/test "$experiment_root/splats/sts_test"
     copy_if_exists data/05_3dgs/eval_frames.txt "$experiment_root/evaluation/eval_frames.txt"
     cp -f "$BATCH_ROOT/matrix.log" "$experiment_root/run.log"
     write_result_manifest "$experiment_root/manifest.json" success "$resolution_id" "$variant" "$camera" "$mesh_mode" "completed"

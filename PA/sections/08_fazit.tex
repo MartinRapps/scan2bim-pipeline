@@ -5,9 +5,9 @@ Machbarkeit einer Docker-basierten Scan-to-BIM-Pipeline. SAM~3.1, unmaskiertes
 COLMAP-SfM, ideale Bilddomäne, objektspezifisches STS, Original-GS-
 Meshgewinnung und DGtal-Centerline können im nachgewiesenen Matrix-/Smoke-/
 Replaypfad als reproduzierbare Kette betrieben und archiviert werden. Der
-historische Inline-Vollauf benötigt vor einer allgemeinen Gleichsetzung noch
-die Integration beziehungsweise Prüfung desselben Maskenwarp- und
-Quality-Gate-Pfads.
+normale Inline-Vollauf führt den Maskenwarp und die zugehörige
+Coverage-Prüfung nun ebenfalls vor STS aus; ein archivierter End-to-End-Lauf
+dieses aktualisierten Pfads bleibt als separater Nachweis sinnvoll.
 
 Der Eigenbeitrag besteht insbesondere in der kameramodellbewussten Trennung von
 Roh- und Idealbilddomäne, der konsistenten Nutzung der SAM-Masken, den
@@ -30,7 +30,10 @@ Vermessungsnachweis. Die Bachelorarbeit muss deshalb reale Aufnahmen,
 geeignete GCP-/GNSS-Messungen, echte 4x4-Georeferenzierung und geometrische
 Fehlermetriken ergänzen. Die in dieser PA aufgebaute Struktur trennt diese
 wissenschaftlichen Fragen von den bereits geprüften technischen
-Zwischenschritten.
+Zwischenschritten. Insbesondere sind die von COLMAP geschätzten
+Kameraverzeichnungsparameter ohne unabhängige Checkerboard- oder
+ChArUco-Kalibrierung nicht als physikalisch validierte Objektivdaten zu
+interpretieren.
 
 Die endgültige Kurzfassung und dieses Fazit werden nach Auswahl eines
 konsistenten Golden Runs nochmals gegen die tatsächlichen Ergebnisartefakte
