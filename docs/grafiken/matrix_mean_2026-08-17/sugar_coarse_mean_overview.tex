@@ -20,11 +20,14 @@
 \definecolor{incompletegray}{HTML}{9CA3AF}
 \definecolor{deltared}{HTML}{B91C1C}
 \definecolor{deltagreen}{HTML}{15803D}
+\newcommand{\legendcircle}[1]{\tikz[baseline=-0.6ex]\node[draw=black,fill=#1,circle,minimum size=4.5pt,inner sep=0pt] {};}
+\newcommand{\legendsquare}[1]{\tikz[baseline=-0.6ex]\node[draw=black,fill=#1,rectangle,minimum size=4.5pt,inner sep=0pt] {};}
+\newcommand{\legendtriangle}[1]{\tikz[baseline=-0.6ex]\draw[draw=black,fill=#1,line width=0.4pt] (0,2.3pt)--(-2.3pt,-1.8pt)--(2.3pt,-1.8pt)--cycle;}
 \begin{document}
 \pagestyle{empty}
 \begin{center}
-{\Large\bfseries SuGaR-Coarse: gemittelte objektmaskierte Bildmetriken}\\[3pt]
-{\small Mittelwerte aus historischer Folgematrix und Repeat-Läufen}\\[8pt]
+{\Large\bfseries SuGaR-Coarse-9000: objektmaskierte Bildmetriken (Mittelwerte)}\\[3pt]
+{\small Mittelwerte aus historischen und Repeat-Läufen}\\[8pt]
 \begin{tikzpicture}
 \begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=20,ymax=31,xtick=data,xticklabels={{\shortstack{SR\\2/720p}},{\shortstack{SR\\2/qhd}},{\shortstack{SR\\2/low}},{\shortstack{SR\\5/720p}},{\shortstack{SR\\5/qhd}},{\shortstack{SR\\5/low}},{\shortstack{OPENCV\\2/720p}},{\shortstack{OPENCV\\2/qhd}},{\shortstack{OPENCV\\2/low}},{\shortstack{OPENCV\\5/720p}},{\shortstack{OPENCV\\5/qhd}},{\shortstack{OPENCV\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={PSNR (dB) $\uparrow$},grid=major,grid style={gray!20},xtick={0,1,2,3,4,5,6,7,8,9,10,11}]
 \addplot+[fill=srblue,draw=srblue,area legend] coordinates {(0,21.62396527) (1,21.79592392) (2,21.95754552) (3,21.18935272) (4,21.47751191) (5,21.80319613)};

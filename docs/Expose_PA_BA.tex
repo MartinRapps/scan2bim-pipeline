@@ -622,6 +622,19 @@ verwechselt werden: \texttt{middle} ist ein Robustheits-/Coverage-Gate,
 Coarse-Training bleibt \texttt{middle} zusätzlich die konservative Maske für
 den Depth-Normal-Pfad.
 
+Die visuellen Review-Panels in \texttt{review\_ideal} und
+\texttt{review\_raw} zeigen bewusst dieselbe \texttt{middle}-Stufe wie das
+Coverage-Gate, nicht die \texttt{default}-Maske. Das Panel-Skript
+\texttt{export\_mask\_review\_samples.py} wird dazu mit
+\texttt{--mask-name middle} aufgerufen. Grund ist die Verwendungsrichtung:
+\texttt{middle} steuert die Maskenabdeckungsprüfung, die Aufnahme in den
+festen Evaluationssplit und die STS-Eingabe. Was die Sichtkontrolle an den
+Panelrändern beurteilt (Kantenqualität, Ausrisse, Verluste), ist damit exakt
+die Maske, die nachgelagert über Abbruch, Split-Auswahl und STS-Eingabe
+entscheidet. Ein Review auf \texttt{default} würde Ränder zeigen, die in der
+Produktionsroute nicht als steuerndes Niveau verwendet werden;
+\texttt{small} würde einen zu aggressiven Ausschnitt zeigen.
+
 Die neuen Boxplots verwenden die Einzelansichten aus dem Feld
 \texttt{per\_frame}. Sie zeigen, ob ein Gesamtmittelwert durch wenige sehr gute
 oder sehr schlechte Ansichten verdeckt wird. Das ist besonders relevant bei
@@ -648,17 +661,18 @@ LPIPS-Rezeptivfelder können am Rand noch lokalen Kontext enthalten. Ein
 Average wird nur gebildet, wenn sowohl der 2-FPS- als auch der
 5-FPS-Lauf derselben Konfiguration vollstaendig erfolgreich war.
 
-Insgesamt wurden 24 archivierte Versuche zusammengefuehrt; 16 davon sind
-vollstaendig erfolgreich, waehrend 8 als unvollstaendig markiert bleiben.
-Die sechs historischen \texttt{simple\_radial\_a}-Laeufe werden mit einem
-Stern als bereits ausgefuehrte Referenz gekennzeichnet. Die sechs
-\texttt{simple\_radial\_sugar}-Laeufe besitzen zwar STS-Baselinewerte, aber
-keine abgeschlossene SuGaR-Auswertung und werden deshalb nicht als erfolgreiche
-SuGaR-Messungen interpretiert.
+Die aktuelle Grafikserie basiert auf dem vollständigen Repeat-Batch
+\texttt{matrix\_repeat\_20260812} mit 30 erfolgreichen Läufen. Davon entfallen
+18 STS-Route-A-Läufe auf die drei Kameramodelle SIMPLE-RADIAL, OPENCV und
+PINHOLE (je sechs Kombinationen aus FPS und Auflösung); weitere zwölf Läufe
+betreffen SuGaR-Coarse mit SIMPLE-RADIAL und OPENCV. Ein Pinhole-
+SuGaR-Coarse-Lauf ist in der Datengrundlage nicht vorhanden und wird daher
+nicht vorgetäuscht. Ältere unvollständige Matrixläufe bleiben separat als
+Entwicklungs- und Fehlernachweis archiviert.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sts_masked_overview.pdf}
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_repeat_2026-08-17/sts_masked_overview.pdf}
     \caption{Getrennte quantitative STS-7000-Auswertung der vollständigen
     Original-GS-Route A aus den \texttt{sts\_masked.json}-Dateien.}
     \label{fig:matrix-overview}
@@ -666,14 +680,15 @@ SuGaR-Messungen interpretiert.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sts_masked_per_frame_boxplots.pdf}
-    \caption{Streuung der Einzelansichten in den vollständigen STS-Route-A-Läufen.}
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_repeat_2026-08-17/sts_masked_per_frame_boxplots.pdf}
+    \caption{Streuung der Einzelansichten in den vollständigen STS-Route-A-Läufen.
+    SR ist blau, OPENCV orange und PINHOLE grau dargestellt.}
     \label{fig:matrix-sts-boxplots}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_masked_overview.pdf}
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_repeat_2026-08-17/sugar_coarse_masked_overview.pdf}
     \caption{Getrennte quantitative SuGaR-Coarse-9000-Auswertung. Verwendet
     werden ausschließlich die zwölf Dateien
     \texttt{sugar\_coarse\_masked.json}; STS-Baselines werden nicht als
@@ -689,7 +704,9 @@ Bilddomäne erfolgt. Fuer die abschliessende Bachelorbewertung sind deshalb
 zusammen mit dieser Grafik die Rohmetriken, die Maskenabdeckung sowie
 Centerline-/GNSS-Geometriemetriken zu berichten.
 
-Die getrennte SuGaR-Coarse-Folgematrix ist inzwischen ebenfalls abgeschlossen.
+Die historische, separat dokumentierte SuGaR-Coarse-Folgematrix ist ebenfalls
+abgeschlossen; sie ist von der oben verwendeten vollständigen Repeat-Serie zu
+unterscheiden.
 Die separate Konfiguration
 \texttt{tools/experiment\_matrix\_sugar.tsv} enthält
 \texttt{SIMPLE\_RADIAL/sugar\_coarse} und
@@ -708,7 +725,7 @@ SuGaR-Refined-Vergleich.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_masked_per_frame_boxplots.pdf}
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_repeat_2026-08-17/sugar_coarse_masked_per_frame_boxplots.pdf}
     \caption{Streuung der Einzelansichten in den zwölf SuGaR-Coarse-Läufen.
     Die Punkte stammen aus den archivierten \texttt{per\_frame}-Einträgen;
     Boxen zeigen Quartile und Whisker.}
@@ -717,7 +734,7 @@ SuGaR-Refined-Vergleich.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_vs_sts_delta.pdf}
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_repeat_2026-08-17/sugar_coarse_vs_sts_delta.pdf}
     \caption{Gepaarte Differenz SuGaR-Coarse minus STS bei identischer
     Follow-up-Konfiguration. Die Darstellung ist ein Rendervergleich und kein
     Mesh- oder Geometrienachweis.}
@@ -726,18 +743,18 @@ SuGaR-Refined-Vergleich.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{docs/grafiken/neu_metriken_2026-08-12/metric_vs_runtime.pdf}
+    \includegraphics[width=\textwidth]{docs/grafiken/matrix_repeat_2026-08-17/metric_vs_runtime.pdf}
     \caption{Explorative Beziehung zwischen Bildmetriken und der archivierten
     Gesamtlaufzeit des archivierten Pipeline-Laufs. SAM3- und COLMAP-Zeit sind
     nur enthalten, wenn sie innerhalb dieses archivierten Laufs lagen.}
     \label{fig:matrix-metric-runtime}
 \end{figure}
 
-Die SuGaR-Coarse-Mittelwerte aus 2 und 5 FPS betragen für SIMPLE-RADIAL in
-720p 21,380 dB PSNR, 0,764 SSIM und 0,1534 LPIPS, in QHD 21,687 dB, 0,761 und
-0,1407 sowie in Low 21,887 dB, 0,752 und 0,1261. Für OPENCV ergeben sich in
-720p 21,453 dB, 0,764 und 0,1531, in QHD 21,624 dB, 0,764 und 0,1367 sowie in
-Low 21,808 dB, 0,749 und 0,1255. Diese Werte sind objektmaskierte
+Die SuGaR-Coarse-Mittelwerte des Repeat-Batches aus 2 und 5 FPS betragen für
+SIMPLE-RADIAL in 720p 21,434 dB PSNR, 0,766 SSIM und 0,1529 LPIPS, in QHD
+21,586 dB, 0,757 und 0,1404 sowie in Low 21,874 dB, 0,752 und 0,1253. Für
+OPENCV ergeben sich in 720p 21,383 dB, 0,761 und 0,1542, in QHD 21,596 dB,
+0,754 und 0,1438 sowie in Low 21,836 dB, 0,747 und 0,1264. Diese Werte sind objektmaskierte
 Ansichtsmetriken; sie belegen keine geometrische oder geodätische Genauigkeit.
 
 \begin{figure}[H]

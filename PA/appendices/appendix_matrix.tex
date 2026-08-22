@@ -30,26 +30,26 @@ wegen des damaligen technischen Importfehlers im SuGaR-Render-Helfer nicht als
 erfolgreiche SuGaR-Ergebnisse zu werten. Die Statusauswertung trennt daher
 technische Vollständigkeit und vorhandene Zwischenmetriken. Die vollständige
 STS-Übersicht liegt in
-\path{docs/grafiken/neu_metriken_2026-08-12/sts_masked_overview.pdf};
+\path{docs/grafiken/matrix_repeat_2026-08-17/sts_masked_overview.pdf};
 die getrennte SuGaR-Coarse-Übersicht liegt in
-\path{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_masked_overview.pdf}.
+\path{docs/grafiken/matrix_repeat_2026-08-17/sugar_coarse_masked_overview.pdf}.
 Die gemeinsame historische CSV-Quelle liegt in
 \path{docs/grafiken/verwendet_verbessert/matrix_thesis_data.csv}; die neue
 stufenspezifische Auswertung schreibt zusätzlich
-\path{docs/grafiken/neu_metriken_2026-08-12/sts_masked_summary.csv} und
-\path{docs/grafiken/neu_metriken_2026-08-12/sugar_coarse_masked_summary.csv}.
+\path{docs/grafiken/matrix_repeat_2026-08-17/sts_masked_summary.csv} und
+\path{docs/grafiken/matrix_repeat_2026-08-17/sugar_coarse_masked_summary.csv}.
 
 \subsection*{Abgeschlossene SuGaR-Coarse-Folgematrix}
 
-Die Konfiguration \path{tools/experiment_matrix_sugar.tsv} plant zwölf
-neue Läufe: \path{SIMPLE_RADIAL/sugar_coarse} und
+Die Repeat-Konfiguration \path{tools/experiment_matrix_repeat.tsv} enthält für
+SuGaR-Coarse zwölf Läufe: \path{SIMPLE_RADIAL/sugar_coarse} und
 \path{OPENCV/sugar_coarse} bei drei Auflösungen und zwei FPS-Profilen. Der
 Render-Helfer wurde vor dieser Prüfung durch einen expliziten
 \texttt{/opt/sugar}-Importpfad und eine HWC-zu-CHW-Konvertierung korrigiert.
 Ein archivierter 5-FPS-720p-Checkpoint ließ sich damit bereits auf 30
 Testansichten rendern und objektmaskiert auswerten.
 
-Die zwölf Läufe unter \path{data/10_runs/matrix_sugar_followup_12/}
+Die zwölf SuGaR-Coarse-Läufe unter \path{data/10_runs/matrix_repeat_20260812/}
 sind abgeschlossen. Alle zwölf Manifeste tragen den Status \texttt{success}.
 Die Coarse-Meshgewinnung, das SuGaR-Coarse-Rendering, die objektmaskierte
 Metrikberechnung und das Postprocessing wurden für beide Kameramodelle sowie
@@ -65,23 +65,23 @@ SuGaR-Coarse-Nachweis und kein vollständiger SuGaR-Refinement-Vergleich.
 \toprule
 Kameramodell & Auflösung & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$\\
 \midrule
-SIMPLE\_RADIAL & 720p & 21,380 & 0,764 & 0,1534\\
-SIMPLE\_RADIAL & QHD  & 21,687 & 0,761 & 0,1407\\
-SIMPLE\_RADIAL & Low  & 21,887 & 0,752 & 0,1261\\
-OPENCV         & 720p & 21,453 & 0,764 & 0,1531\\
-OPENCV         & QHD  & 21,624 & 0,764 & 0,1367\\
-OPENCV         & Low  & 21,808 & 0,749 & 0,1255\\
+SIMPLE\_RADIAL & 720p & 21,434 & 0,766 & 0,1529\\
+SIMPLE\_RADIAL & QHD  & 21,586 & 0,757 & 0,1404\\
+SIMPLE\_RADIAL & Low  & 21,874 & 0,752 & 0,1253\\
+OPENCV         & 720p & 21,383 & 0,761 & 0,1542\\
+OPENCV         & QHD  & 21,596 & 0,754 & 0,1438\\
+OPENCV         & Low  & 21,836 & 0,747 & 0,1264\\
 \bottomrule
 \end{tabularx}
-\caption{SuGaR-Coarse-Mittelwerte aus 2 und 5 FPS der abgeschlossenen
-Folgematrix. Die Werte sind objektmaskierte Ansichtsmetriken und kein
+\caption{SuGaR-Coarse-Mittelwerte aus 2 und 5 FPS des Repeat-Batches. Die
+Werte sind objektmaskierte Ansichtsmetriken und kein
 Geometrienachweis.}
 \label{tab:sugar-followup-average}
 \end{table}
 
 Die vollständigen Einzelwerte und die getrennten Darstellungen für Status,
 PSNR, SSIM, LPIPS und Zeit/Qualität liegen in den digitalen Anlagen unter
-\path{docs/grafiken/neu_metriken_2026-08-12/}. Alle zwölf Läufe verwendeten den
+\path{docs/grafiken/matrix_repeat_2026-08-17/}. Alle zwölf Läufe verwendeten den
 festen Eval-Split; bei 2 FPS wurden zwölf und bei 5 FPS dreißig gültige
 Evaluationsansichten ausgewertet. Die Laufzeit-/Qualitätsgrafik nutzt die
 archivierte vollständige Pipelinezeit und ist wie bei der STS-Matrix nur ein

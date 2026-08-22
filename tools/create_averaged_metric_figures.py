@@ -114,8 +114,8 @@ def main() -> int:
         overview_tex(complete_sugar, "SuGaR-Coarse: gemittelte objektmaskierte Bildmetriken", "Mittelwerte aus historischer Folgematrix und Repeat-Läufen", ranges, "sugar_coarse"),
         encoding="utf-8",
     )
-    (args.output_dir / "sts_mean_per_frame_boxplots.tex").write_text(boxplots_tex(complete_sts, "STS: Mittelwerte und gepoolte Einzelansichten", "Mittel über historische und Repeat-Läufe; Boxen und Punkte ohne zusätzliche Kamerafarbcodierung", FIXED_BOXPLOT_RANGES), encoding="utf-8")
-    (args.output_dir / "sugar_coarse_mean_per_frame_boxplots.tex").write_text(boxplots_tex(complete_sugar, "SuGaR-Coarse: Mittelwerte und gepoolte Einzelansichten", "Mittel über historische und Repeat-Läufe; Boxen und Punkte ohne zusätzliche Kamerafarbcodierung", FIXED_BOXPLOT_RANGES), encoding="utf-8")
+    (args.output_dir / "sts_mean_per_frame_boxplots.tex").write_text(boxplots_tex(complete_sts, "STS: Mittelwerte und gepoolte Einzelansichten", "Mittel über historische und Repeat-Läufe; Farben der Boxen kodieren das Kameramodell", FIXED_BOXPLOT_RANGES), encoding="utf-8")
+    (args.output_dir / "sugar_coarse_mean_per_frame_boxplots.tex").write_text(boxplots_tex(complete_sugar, "SuGaR-Coarse: Mittelwerte und gepoolte Einzelansichten", "Mittel über historische und Repeat-Läufe; Farben der Boxen kodieren das Kameramodell", FIXED_BOXPLOT_RANGES), encoding="utf-8")
 
     delta = []
     sts_index = {key(row): row for row in sts_rows}

@@ -58,6 +58,21 @@ Kameramodell- und FPS-Konfiguration. Die neue Boxplot-Auswertung ergänzt die
 Mittelwerte um die Streuung der einzelnen Testansichten; sie ersetzt aber
 nicht die geometrische Referenzmessung.
 
+Die Bildtafeln des Pipeline-Durchlaufs präzisieren diese Einschränkung. Trotz
+des gleichen SIFT-Merkmalslimits sind in der Punktwolken-Übersicht kaum
+Auflösungsunterschiede sichtbar; lokal weist die \texttt{720p}-Punktwolke in
+der linken unteren Wandecke jedoch mehr sichtbare Punkte auf. Eine räumlich
+breitere Verteilung der bei begrenztem Merkmalsbudget gefundenen homologen
+Punkte könnte die Track- und SfM-Stabilität verbessern. Dies bleibt eine
+plausible Hypothese zur internen Geometriekonsistenz und ist keine Aussage
+über die absolute Richtigkeit der Rekonstruktion. Ebenso widerspricht ein
+solcher möglicher SfM-Vorteil höheren SSIM-Werten einer niedrigeren Auflösung
+nicht: SSIM bewertet die Ähnlichkeit der gerenderten Bildansicht im jeweiligen
+Pixelraum, nicht die räumliche Verteilung der SfM-Tracks oder die geometrische
+Richtigkeit des späteren Meshes. Die sichtbaren Floater-, Rand- und
+Centerline-Unterschiede zeigen deshalb, warum Bildmetrik und Geometrie getrennt
+bewertet werden müssen.
+
 Der direkte PINHOLE-Lauf darf nicht als Nachweis einer Entzerrung interpretiert
 werden. Er erzwingt auf den Rohbildern die Annahme einer idealen Kamera. Der
 Produktionsweg mit \texttt{OPENCV} (Standard seit der Matrixauswertung,

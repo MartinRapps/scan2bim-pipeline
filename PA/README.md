@@ -43,8 +43,11 @@ Genauigkeitsnachweis bleibt davon getrennt.
   großen 10-Runs-Daten.
 - `docs/grafiken/verwendet_verbessert/`: weiterhin verwendete Statusgrafiken
   und historische gemeinsame Matrixquellen.
-- `docs/grafiken/neu_metriken_2026-08-12/`: korrigierte STS-/SuGaR-Coarse-
-  Übersichten, Einzelansichtsboxplots, gepaarte Delta- und Laufzeitgrafik.
+- `docs/grafiken/matrix_repeat_2026-08-17/`: aktuelle vollständige Repeat-
+  Serie mit STS-/SuGaR-Coarse-Übersichten, Einzelansichtsboxplots, gepaarter
+  Delta- und Laufzeitgrafik.
+- `docs/grafiken/neu_metriken_2026-08-12/`: historischer Grafikstand; nicht
+  mehr die primäre PA-Datenquelle.
 - `docs/grafiken/archiv_alt_2026-08-12/`: ältere, nicht mehr eingebundene
   Tabellen- und Grafikstände.
 - `build/`: lokales LaTeX-Buildverzeichnis, nicht für Ergebnisse verwenden.

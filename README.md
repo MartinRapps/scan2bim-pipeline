@@ -317,9 +317,12 @@ Die Grafiken sind jetzt nach Herkunft und Verwendungsstatus geordnet:
 
 - [verwendet_verbessert](docs/grafiken/verwendet_verbessert): weiterhin
   aussagekräftige Statusgrafiken und die historische gemeinsame Matrixquelle;
-- [neu_metriken_2026-08-12](docs/grafiken/neu_metriken_2026-08-12): korrigierte,
-  stufentrennte STS-/SuGaR-Coarse-Übersichten, Boxplots der Einzelansichten,
-  gepaarte Delta-Grafik und explorative Metrik-/Laufzeitgrafik;
+- [matrix_repeat_2026-08-17](docs/grafiken/matrix_repeat_2026-08-17): aktuelle
+  vollständige Repeat-Serie mit stufentrennten STS-/SuGaR-Coarse-Übersichten,
+  Boxplots der Einzelansichten, gepaarter Delta-Grafik und explorativer
+  Metrik-/Laufzeitgrafik;
+- [neu_metriken_2026-08-12](docs/grafiken/neu_metriken_2026-08-12): historischer,
+  bereinigter Grafikstand;
 - [archiv_alt_2026-08-12](docs/grafiken/archiv_alt_2026-08-12): ältere Tabellen,
   kombinierte oder nicht mehr verwendete Grafikstände.
 

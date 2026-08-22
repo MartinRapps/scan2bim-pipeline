@@ -3,7 +3,8 @@
 Dieser Ordner enthält weiterhin verwendete Statusgrafiken sowie die historische
 zusammengeführte CSV-/Methodikquelle. Die missverständlichen gemeinsamen
 Bildmetrik-Übersichten wurden nicht weiter eingebunden; die korrigierten
-stufenspezifischen Grafiken liegen unter `../neu_metriken_2026-08-12/`.
+aktuellen stufenspezifischen Repeat-Grafiken liegen unter
+`../matrix_repeat_2026-08-17/`.
 
 - `matrix_status_table.pdf`: Status der historischen 24 Matrixversuche;
 - `matrix_sugar_status_table.pdf`: Status der zwölf SuGaR-Coarse-Läufe;

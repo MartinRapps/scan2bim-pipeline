@@ -103,7 +103,7 @@ In die PA-Anlage beziehungsweise digitale Grafikablage gehören vollständig:
 - `sugar_coarse_masked_per_frame_boxplots.pdf`;
 - `sugar_coarse_vs_sts_delta.pdf`;
 - `metric_vs_runtime.pdf`;
-- CSV-/JSON-Datengrundlage unter `neu_metriken_2026-08-12/Datengrundlage/`;
+- CSV-/JSON-Datengrundlage unter `matrix_repeat_2026-08-17/Datengrundlage/`;
 - vollständige Matrix- und Einzelansichtsdateien.
 
 Die STS-Grafiken dürfen nur vollständige Original-GS-Route-A-Läufe enthalten.

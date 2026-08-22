@@ -37,8 +37,10 @@ Diese Dateien sind klein und sollten für jeden Lauf erhalten bleiben:
 - die kleine gemeinsame Grafikquelle
   `docs/grafiken/verwendet_verbessert/matrix_thesis_data.csv` und deren
   Methodikbericht;
-- die neue stufenspezifische Grafik- und Einzelansichtsquelle unter
-  `docs/grafiken/neu_metriken_2026-08-12/`.
+- die aktuelle stufenspezifische Grafik- und Einzelansichtsquelle unter
+  `docs/grafiken/matrix_repeat_2026-08-17/`; der ältere Stand unter
+  `docs/grafiken/neu_metriken_2026-08-12/` bleibt als historische Provenienz
+  erhalten.
 
 Für diese Dateien reichen normalerweise wenige Kilobyte pro Lauf. Sie erlauben
 Status-, Parameter- und Metrikvergleiche, ohne die gesamten Trainingsdaten zu

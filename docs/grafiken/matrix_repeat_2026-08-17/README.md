@@ -9,6 +9,8 @@
 - Boxplots verwenden die `per_frame`-Werte; y-Ranges umfassen alle Einzelwerte.
 - Die Laufzeitgrafik verwendet die vollständige archivierte Laufdauer aus `run.md`.
 - Grün/Lila kodieren STS/SuGaR-Coarse; kräftig/blass kodiert 5/2 FPS; Kreis/Quadrat/Dreieck kodiert 720p/QHD/Low.
+- In den STS-Übersichten und -Boxplots kodieren Blau/Orange/Grau die
+  Kameramodelle SR/OPENCV/PINHOLE.
 - Die sechs Grafiken sind Rendering-/Ansichtsmetriken und kein Geometrienachweis.
 
 ## Files

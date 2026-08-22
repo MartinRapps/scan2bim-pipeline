@@ -13,6 +13,7 @@
   "plot_rules": {
     "sts_overview": "complete original_gs runs only",
     "sts_boxplots": "complete original_gs runs only, per_frame values",
+    "sts_resolution_groups": "only camera-model/FPS groups containing 720p, qhd, and low",
     "sugar_coarse_overview": "complete sugar_coarse runs only",
     "runtime": "Start Lauf to Ende Lauf from pipeline_run/run.md, fallback to recorded step sum"
   },

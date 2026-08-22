@@ -8,7 +8,10 @@ Diese Serie mittelt die historischen Matrixdaten (`matrix_full_pipe`,
 - SuGaR-Coarse-Übersicht und Boxplots: ausschließlich `sugar_coarse_masked.json`.
 - Die Übersichten verwenden arithmetische Mittelwerte je Konfiguration.
 - Die Boxplots poolen die `per_frame`-Werte aller zugehörigen historischen und Repeat-Läufe.
-- Die Boxplots verwenden keine Kamerafarbcodierung. Kameramodell, FPS und Auflösung stehen eindeutig in den x-Achsenbeschriftungen; dadurch bleibt die Farbcodierung frei von Mehrdeutigkeiten.
+- Die Kameramodellinformation steht eindeutig in den x-Achsenbeschriftungen;
+  die Farbcodierung der STS-Boxen ergänzt diese Information direkt.
+- Die STS-Übersichten und -Boxplots verwenden zusätzlich SR-blau,
+  OPENCV-orange und PINHOLE-grau zur direkten Kameramodellkennzeichnung.
 - Beide Boxplotserien verwenden dieselben festen y-Achsen: PSNR 10–40 dB, SSIM 0,1–1,0 und LPIPS 0–0,4.
 - Delta: gemittelte SuGaR-Coarse-minus-STS-Renderingdifferenz.
 - Laufzeit: Mittelwert der archivierten Laufzeiten.

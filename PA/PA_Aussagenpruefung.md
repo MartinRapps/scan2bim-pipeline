@@ -245,8 +245,9 @@ Die Grafikquellen wurden deshalb getrennt und neu erzeugt:
 | Einzelansichten | `per_frame` in den jeweiligen JSONs | Streuung, Quartile und Ausreißer |
 | Gepaarter Delta-Vergleich | gleiche Follow-up-Konfiguration, SuGaR minus STS | Rendervergleich, kein Meshnachweis |
 
-Die neue Grafikserie liegt unter
-`docs/grafiken/neu_metriken_2026-08-12/`. Alte nicht mehr eingebundene
+Die aktuelle Grafikserie liegt unter
+`docs/grafiken/matrix_repeat_2026-08-17/`. Der ältere, nicht mehr eingebundene
+Stand liegt unter `docs/grafiken/neu_metriken_2026-08-12/`; weitere alte
 Grafiken liegen unter `docs/grafiken/archiv_alt_2026-08-12/`; weiterhin
 verwendete Status- und Quellenartefakte unter
 `docs/grafiken/verwendet_verbessert/`.

@@ -1,8 +1,12 @@
 # Neue metrische Grafiken (2026-08-12)
 
-- STS summary rows: 22; complete Original-GS rows used for boxplots: 16
+- STS summary rows: 22; complete Original-GS source rows: 16; balanced groups plotted: 15
 - SuGaR-Coarse summary rows: 12; complete rows used for boxplots: 12
-- STS overview includes grey intermediate `sts_masked.json` values from incomplete SuGaR-route experiments; they are not ranked as complete runs.
+- Für den Auflösungsvergleich werden bei STS nur vollständige Gruppen mit
+  720p, QHD und Low dargestellt. Der isolierte historische
+  `SR/A, 2 FPS, 720p`-Datensatz bleibt in der Rohprovenienz, wird aber nicht
+  geplottet, weil die QHD-/Low-Partner fehlen.
+- Incomplete SuGaR-route `sts_masked.json` values remain in the source summary but are not plotted.
 - SuGaR-Coarse overview uses only `sugar_coarse_masked.json` and never substitutes `sts_masked.json`.
 - Boxplots use the `per_frame` values from the corresponding JSON files.
 - Boxplot points are placed on their category and receive only a small horizontal spread; y-ranges include all per-frame values.

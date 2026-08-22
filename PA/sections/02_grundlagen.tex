@@ -119,6 +119,45 @@ umfasst 7000 Gesamtiterationen, davon 5000 innerhalb des Objektcurriculums;
 bei einem einzigen Objekt trägt die All-Object-Phase keine zusätzliche
 Objektrennung bei, bleibt aber Teil des übernommenen Trainingsschemas.
 
+Die beiden maskennutzenden Verlustpfade des Coarse-Trainings verwenden
+unterschiedliche Maskenstufen. Die RGB-Supervision vergleicht das
+Splat-Rendering jeder Trainingskamera pixelweise mit dem aufgenommenen Bild,
+begrenzt auf die Maskenpixel (maskierter L1-Anteil plus maskierter
+DSSIM-Anteil mit einem $11\times11$-Fenster; das lokale Fenster zieht am
+Maskenrand begrenzt Kontext von außen ein). Sie verwendet die unveränderte
+\texttt{default}-Maske, damit die Bildsupervision möglichst die volle
+Objektprojektion abdeckt und Positionen, Opazitäten und Farben der
+Objekt-Gaussians vollständig spezifiziert werden. Eine Farbprojektion auf
+eine Oberfläche findet dabei nicht statt; die Farbübertragung aus den
+Ansichten erfolgt erst in der nachgelagerten UV-Texturphase.
+
+Die Depth-Normal-Consistency (DN) vergleicht dagegen die aus der gerenderten
+Gaussian-Tiefe abgeleiteten Normalen mit den gerenderten Normalen und
+supervidiert bewusst auf der erodierten \texttt{middle}-Stufe ohne Dilatation.
+Der Grund ist die Silhouettenstabilität: Tiefe und daraus abgeleitete
+Normalen sind direkt an Objektkanten unzuverlässig, und genau dort kann eine
+\texttt{default}-Maske über die Objektsilhouette hinausragen. Ein solcher
+Maskenüberhang würde die Objektnormalen am Silhouettenrand in Richtung der
+Hintergrundtiefe ziehen und dadurch eine ausgestülpte oder abgeflachte
+Oberfläche erzeugen. \texttt{middle} entfernt diese unsichere Randzone von
+rund zwei Pixeln, sodass nur Pixel supervisiert werden, die sicher auf dem
+Objekt liegen.
+
+Diese Zuordnung von \texttt{middle} zur DN-Stufe ist historisch bedingt.
+Der DN-Term wird im projektinternen SuGaR-Fork erst oberhalb des
+Zählerstands 9000 aktiviert; der aktuelle Coarse-Standard beträgt
+\texttt{COARSE\_ITERATIONS=9000}, die aktuelle Matrix verwendet
+ausschließlich die \texttt{original\_gs}-Route ohne Coarse-Training, und die
+SuGaR-Folgeprüfung lief ebenfalls mit Zielzähler 9000
+(vgl. Abschnitt~\ref{sec:versuchsaufbau}). In keinem der ausgewerteten Läufe
+wurde der DN-Term daher tatsächlich ausgeführt — auch nicht im
+\texttt{sugar\_coarse}-Modus. Die DN-Rolle von \texttt{middle} ist damit ein
+historischer Entwicklungsstand ohne aktuell wirksamen Effekt auf die
+Geometrie; aktuell wirksam bleibt \texttt{middle} allein in der
+Coverage-Prüfung und der Kamera- beziehungsweise Eval-Split-Auswahl:
+Ansichten mit leerer \texttt{middle}-Maske werden vom STS-Training
+beziehungsweise von der Evaluation ausgeschlossen.
+
 \subsection{Objektselektion und Meshgewinnung}
 
 Die Ziel-Gaussians werden über die konfigurierte Objekt-ID selektiert; die

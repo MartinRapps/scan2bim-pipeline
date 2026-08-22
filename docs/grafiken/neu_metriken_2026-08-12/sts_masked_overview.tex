@@ -20,35 +20,35 @@
 \definecolor{incompletegray}{HTML}{9CA3AF}
 \definecolor{deltared}{HTML}{B91C1C}
 \definecolor{deltagreen}{HTML}{15803D}
+\newcommand{\legendcircle}[1]{\tikz[baseline=-0.6ex]\node[draw=black,fill=#1,circle,minimum size=4.5pt,inner sep=0pt] {};}
+\newcommand{\legendsquare}[1]{\tikz[baseline=-0.6ex]\node[draw=black,fill=#1,rectangle,minimum size=4.5pt,inner sep=0pt] {};}
+\newcommand{\legendtriangle}[1]{\tikz[baseline=-0.6ex]\draw[draw=black,fill=#1,line width=0.4pt] (0,2.3pt)--(-2.3pt,-1.8pt)--(2.3pt,-1.8pt)--cycle;}
 \begin{document}
 \pagestyle{empty}
 \begin{center}
 {\Large\bfseries STS-7000: objektmaskierte Bildmetriken}\\[3pt]
-{\small Vollständige Original-GS-Route A aus sts\_masked.json}\\[8pt]
+{\small Explorative Darstellung; Laufzeit = vollständiger archivierter Pipeline-Lauf}\\[8pt]
 \begin{tikzpicture}
-\begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=20,ymax=31,xtick=data,xticklabels={{\shortstack{SR/A\\2/720p}},{\shortstack{SR/A\\5/720p}},{\shortstack{SR/A\\5/qhd}},{\shortstack{SR/A\\5/low}},{\shortstack{OPENCV/A\\2/720p}},{\shortstack{OPENCV/A\\2/qhd}},{\shortstack{OPENCV/A\\2/low}},{\shortstack{OPENCV/A\\5/720p}},{\shortstack{OPENCV/A\\5/qhd}},{\shortstack{OPENCV/A\\5/low}},{\shortstack{PH/A\\2/720p}},{\shortstack{PH/A\\2/qhd}},{\shortstack{PH/A\\2/low}},{\shortstack{PH/A\\5/720p}},{\shortstack{PH/A\\5/qhd}},{\shortstack{PH/A\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={PSNR (dB) $\uparrow$},grid=major,grid style={gray!20},legend style={font=\scriptsize,at={(1.0,1.15)},anchor=south east,draw=none,fill=white,fill opacity=0.9,text opacity=1},xtick={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}]
-\addplot+[fill=srblue,draw=srblue,area legend] coordinates {(0,26.33820363) (1,29.41639448) (2,28.29924453) (3,29.78896627) (4,26.09251831) (5,27.36821420) (6,27.51974000) (7,29.75600052) (8,27.68839292) (9,29.99353907) (10,26.54214463) (11,25.91712114) (12,26.21822335) (13,26.57282792) (14,28.71943249) (15,26.59301839)};
-\addlegendentry{vollständige Route}
-\addplot+[fill=incompletegray,draw=incompletegray,area legend] coordinates {};
-\addlegendentry{STS-Zwischenmetrik unvollständiger Route}
+\begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=20,ymax=31,xtick=data,xticklabels={{\shortstack{SR/A\\5/720p}},{\shortstack{SR/A\\5/qhd}},{\shortstack{SR/A\\5/low}},{\shortstack{OPENCV/A\\2/720p}},{\shortstack{OPENCV/A\\2/qhd}},{\shortstack{OPENCV/A\\2/low}},{\shortstack{OPENCV/A\\5/720p}},{\shortstack{OPENCV/A\\5/qhd}},{\shortstack{OPENCV/A\\5/low}},{\shortstack{PH/A\\2/720p}},{\shortstack{PH/A\\2/qhd}},{\shortstack{PH/A\\2/low}},{\shortstack{PH/A\\5/720p}},{\shortstack{PH/A\\5/qhd}},{\shortstack{PH/A\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={PSNR (dB) $\uparrow$},grid=major,grid style={gray!20},xtick={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}]
+\addplot+[fill=srblue,draw=srblue] coordinates {(0,29.41639448) (1,28.29924453) (2,29.78896627)};
+\addplot+[fill=opencvorange,draw=opencvorange] coordinates {(3,26.09251831) (4,27.36821420) (5,27.51974000) (6,29.75600052) (7,27.68839292) (8,29.99353907)};
+\addplot+[fill=incompletegray,draw=incompletegray] coordinates {(9,26.54214463) (10,25.91712114) (11,26.21822335) (12,26.57282792) (13,28.71943249) (14,26.59301839)};
 \end{axis}
 \end{tikzpicture}
 \par\vspace{2pt}
 \begin{tikzpicture}
-\begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=0.68,ymax=1.0,xtick=data,xticklabels={{\shortstack{SR/A\\2/720p}},{\shortstack{SR/A\\5/720p}},{\shortstack{SR/A\\5/qhd}},{\shortstack{SR/A\\5/low}},{\shortstack{OPENCV/A\\2/720p}},{\shortstack{OPENCV/A\\2/qhd}},{\shortstack{OPENCV/A\\2/low}},{\shortstack{OPENCV/A\\5/720p}},{\shortstack{OPENCV/A\\5/qhd}},{\shortstack{OPENCV/A\\5/low}},{\shortstack{PH/A\\2/720p}},{\shortstack{PH/A\\2/qhd}},{\shortstack{PH/A\\2/low}},{\shortstack{PH/A\\5/720p}},{\shortstack{PH/A\\5/qhd}},{\shortstack{PH/A\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={SSIM $\uparrow$},grid=major,grid style={gray!20},legend style={font=\scriptsize,at={(1.0,1.15)},anchor=south east,draw=none,fill=white,fill opacity=0.9,text opacity=1},xtick={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}]
-\addplot+[fill=srblue,draw=srblue,area legend] coordinates {(0,0.83195574) (1,0.89474248) (2,0.88487382) (3,0.92957129) (4,0.83093130) (5,0.84708937) (6,0.86803825) (7,0.90132959) (8,0.86479931) (9,0.93359960) (10,0.82856342) (11,0.79535064) (12,0.81985135) (13,0.82038200) (14,0.88779274) (15,0.85198560)};
-\addlegendentry{vollständige Route}
-\addplot+[fill=incompletegray,draw=incompletegray,area legend] coordinates {};
-\addlegendentry{STS-Zwischenmetrik unvollständiger Route}
+\begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=0.68,ymax=1.0,xtick=data,xticklabels={{\shortstack{SR/A\\5/720p}},{\shortstack{SR/A\\5/qhd}},{\shortstack{SR/A\\5/low}},{\shortstack{OPENCV/A\\2/720p}},{\shortstack{OPENCV/A\\2/qhd}},{\shortstack{OPENCV/A\\2/low}},{\shortstack{OPENCV/A\\5/720p}},{\shortstack{OPENCV/A\\5/qhd}},{\shortstack{OPENCV/A\\5/low}},{\shortstack{PH/A\\2/720p}},{\shortstack{PH/A\\2/qhd}},{\shortstack{PH/A\\2/low}},{\shortstack{PH/A\\5/720p}},{\shortstack{PH/A\\5/qhd}},{\shortstack{PH/A\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={SSIM $\uparrow$},grid=major,grid style={gray!20},xtick={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}]
+\addplot+[fill=srblue,draw=srblue] coordinates {(0,0.89474248) (1,0.88487382) (2,0.92957129)};
+\addplot+[fill=opencvorange,draw=opencvorange] coordinates {(3,0.83093130) (4,0.84708937) (5,0.86803825) (6,0.90132959) (7,0.86479931) (8,0.93359960)};
+\addplot+[fill=incompletegray,draw=incompletegray] coordinates {(9,0.82856342) (10,0.79535064) (11,0.81985135) (12,0.82038200) (13,0.88779274) (14,0.85198560)};
 \end{axis}
 \end{tikzpicture}
 \par\vspace{2pt}
 \begin{tikzpicture}
-\begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=0.05,ymax=0.2,xtick=data,xticklabels={{\shortstack{SR/A\\2/720p}},{\shortstack{SR/A\\5/720p}},{\shortstack{SR/A\\5/qhd}},{\shortstack{SR/A\\5/low}},{\shortstack{OPENCV/A\\2/720p}},{\shortstack{OPENCV/A\\2/qhd}},{\shortstack{OPENCV/A\\2/low}},{\shortstack{OPENCV/A\\5/720p}},{\shortstack{OPENCV/A\\5/qhd}},{\shortstack{OPENCV/A\\5/low}},{\shortstack{PH/A\\2/720p}},{\shortstack{PH/A\\2/qhd}},{\shortstack{PH/A\\2/low}},{\shortstack{PH/A\\5/720p}},{\shortstack{PH/A\\5/qhd}},{\shortstack{PH/A\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={LPIPS $\downarrow$},grid=major,grid style={gray!20},scaled y ticks=false,ytick={0.05,0.10,0.15,0.20},yticklabels={{0,05},{0,10},{0,15},{0,20}},legend style={font=\scriptsize,at={(1.0,1.15)},anchor=south east,draw=none,fill=white,fill opacity=0.9,text opacity=1},xtick={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}]
-\addplot+[fill=srblue,draw=srblue,area legend] coordinates {(0,0.12186836) (1,0.12371773) (2,0.11927220) (3,0.08216407) (4,0.12672276) (5,0.10358845) (6,0.09497066) (7,0.11802495) (8,0.12551100) (9,0.08218506) (10,0.12690219) (11,0.11930196) (12,0.11265756) (13,0.15761947) (14,0.11964402) (15,0.12276925)};
-\addlegendentry{vollständige Route}
-\addplot+[fill=incompletegray,draw=incompletegray,area legend] coordinates {};
-\addlegendentry{STS-Zwischenmetrik unvollständiger Route}
+\begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=0.05,ymax=0.2,xtick=data,xticklabels={{\shortstack{SR/A\\5/720p}},{\shortstack{SR/A\\5/qhd}},{\shortstack{SR/A\\5/low}},{\shortstack{OPENCV/A\\2/720p}},{\shortstack{OPENCV/A\\2/qhd}},{\shortstack{OPENCV/A\\2/low}},{\shortstack{OPENCV/A\\5/720p}},{\shortstack{OPENCV/A\\5/qhd}},{\shortstack{OPENCV/A\\5/low}},{\shortstack{PH/A\\2/720p}},{\shortstack{PH/A\\2/qhd}},{\shortstack{PH/A\\2/low}},{\shortstack{PH/A\\5/720p}},{\shortstack{PH/A\\5/qhd}},{\shortstack{PH/A\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={LPIPS $\downarrow$},grid=major,grid style={gray!20},scaled y ticks=false,ytick={0.05,0.10,0.15,0.20},yticklabels={{0,05},{0,10},{0,15},{0,20}},xtick={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}]
+\addplot+[fill=srblue,draw=srblue] coordinates {(0,0.12371773) (1,0.11927220) (2,0.08216407)};
+\addplot+[fill=opencvorange,draw=opencvorange] coordinates {(3,0.12672276) (4,0.10358845) (5,0.09497066) (6,0.11802495) (7,0.12551100) (8,0.08218506)};
+\addplot+[fill=incompletegray,draw=incompletegray] coordinates {(9,0.12690219) (10,0.11930196) (11,0.11265756) (12,0.15761947) (13,0.11964402) (14,0.12276925)};
 \end{axis}
 \end{tikzpicture}
 \par\vspace{2pt}

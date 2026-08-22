@@ -36,6 +36,11 @@ STAGE_FPS_COLORS = {
     ("sugar_coarse", "2"): "sugarlightpurple",
     ("sugar_coarse", "5"): "sugarstrongpurple",
 }
+CAMERA_COLORS = {
+    "SIMPLE_RADIAL": "srblue",
+    "OPENCV": "opencvorange",
+    "PINHOLE": "incompletegray",
+}
 RESOLUTION_MARKS = {"720p": "*", "qhd": "square*", "low": "triangle*"}
 
 
@@ -85,6 +90,20 @@ def sort_key(row: dict) -> tuple:
         FPS_ORDER.get(str(row.get("fps", "")), 99),
         RESOLUTION_ORDER.get(row.get("resolution", ""), 99),
     )
+
+
+def keep_balanced_resolution_groups(rows: list[dict]) -> list[dict]:
+    """Keep only complete 720p/QHD/Low groups in a resolution comparison."""
+    required = {"720p", "qhd", "low"}
+    groups: dict[tuple[str, str], set[str]] = {}
+    for row in rows:
+        key = (str(row.get("camera_model", "")), str(row.get("fps", "")))
+        groups.setdefault(key, set()).add(str(row.get("resolution", "")))
+    valid_groups = {key for key, resolutions in groups.items() if required <= resolutions}
+    return [
+        row for row in rows
+        if (str(row.get("camera_model", "")), str(row.get("fps", ""))) in valid_groups
+    ]
 
 
 def experiment_rows(batch: Path, metric_name: str, stage: str) -> list[dict]:
@@ -224,7 +243,8 @@ def write_graphics_data_bundle(
         "# Datengrundlage der metrischen Grafiken\n\n"
         "Diese Dateien sind die verdichteten, außerhalb der historischen Run-Archive "
         "ausreichenden Eingaben für die sechs metrischen Grafiken. Die STS-Übersicht "
-        "und STS-Boxplots enthalten nur vollständige Original-GS-Route-A-Läufe. "
+        "und STS-Boxplots enthalten nur vollständige Original-GS-Route-A-Läufe aus "
+        "vollständigen 720p/QHD/Low-Gruppen. "
         "SuGaR-Coarse verwendet ausschließlich `sugar_coarse_masked.json`; "
         "historische STS-Zwischenmetriken aus fehlgeschlagenen SuGaR-Routen werden "
         "nicht geplottet.\n\n"
@@ -326,6 +346,10 @@ def tex_preamble(title: str, subtitle: str, landscape: bool = True) -> list[str]
         r"\definecolor{incompletegray}{HTML}{9CA3AF}",
         r"\definecolor{deltared}{HTML}{B91C1C}",
         r"\definecolor{deltagreen}{HTML}{15803D}",
+        r"\newcommand{\legendcircle}[1]{\tikz[baseline=-0.6ex]\node[draw=black,fill=#1,circle,minimum size=4.5pt,inner sep=0pt] {};}",
+        r"\newcommand{\legendsquare}[1]{\tikz[baseline=-0.6ex]\node[draw=black,fill=#1,rectangle,minimum size=4.5pt,inner sep=0pt] {};}",
+        r"\newcommand{\legendtriangle}[1]{\tikz[baseline=-0.6ex]\draw[draw=black,fill=#1,line width=0.4pt] (0,2.3pt)--(-2.3pt,-1.8pt)--(2.3pt,-1.8pt)--cycle;}",
+        r"\newcommand{\legendbordercircle}[1]{\tikz[baseline=-0.6ex]\node[draw=#1,fill=white,circle,minimum size=4.5pt,inner sep=0pt,line width=0.8pt] {};}",
         r"\begin{document}",
         r"\pagestyle{empty}",
         r"\begin{center}",
@@ -399,14 +423,16 @@ def overview_tex(rows: list[dict], title: str, subtitle: str, ranges: dict[str, 
     for metric in METRICS:
         lines.append(rf"\begin{{tikzpicture}}")
         positions = ",".join(str(index) for index in range(len(rows)))
-        options = ",".join(axis_options(metric, ranges, labels, height="5.6cm", legend=stage == "sts"))
+        options = ",".join(axis_options(metric, ranges, labels, height="5.6cm", legend=False))
         options += rf",xtick={{{positions}}}"
         lines.append(rf"\begin{{axis}}[{options}]")
         if stage == "sts":
-            for color, entries, legend in (("srblue", complete, "vollständige Route"), ("incompletegray", intermediate, "STS-Zwischenmetrik unvollständiger Route")):
+            for camera, color in CAMERA_COLORS.items():
+                entries = [(index, row) for index, row in complete if row.get("camera_model") == camera]
+                if not entries:
+                    continue
                 coords = " ".join(f"({index},{row[metric]:.8f})" for index, row in entries)
-                lines.append(rf"\addplot+[fill={color},draw={color},area legend] coordinates {{{coords}}};")
-                lines.append(rf"\addlegendentry{{{legend}}}")
+                lines.append(rf"\addplot+[fill={color},draw={color}] coordinates {{{coords}}};")
         else:
             for camera, color in (("SIMPLE_RADIAL", "srblue"), ("OPENCV", "opencvorange")):
                 entries = [(index, row) for index, row in enumerate(rows) if row.get("camera_model") == camera and row.get(metric) is not None]
@@ -468,7 +494,7 @@ def boxplot_axis(lines: list[str], metric: str, rows: list[dict], ranges: dict[s
         if not values:
             continue
         stats = box_stats(values)
-        color = "black"
+        color = CAMERA_COLORS.get(row.get("camera_model"), "black")
         lower = stats["lower_whisker"]
         q1 = stats["q1"]
         median = stats["median"]
@@ -497,7 +523,7 @@ def boxplots_tex(rows: list[dict], title: str, subtitle: str, ranges: dict[str, 
     for metric in METRICS:
         boxplot_axis(lines, metric, rows, ranges, METRICS.index(metric))
         lines.append(r"\par\vspace{3pt}")
-    legend = (r"Jeder Punkt ist eine einzelne Evaluationsansicht aus \texttt{per\_frame} und liegt bewusst auf der zentralen x-Kategorie der zugehörigen Box; die Box zeigt Quartile und robuste 1,5-IQR-Whisker. Die STS-Boxplots enthalten nur vollständige Original-GS-A-Routen; die SuGaR-Boxplots enthalten alle zwölf vollständigen Coarse-Läufe. Die x-Beschriftung kodiert Kamera, FPS und Auflösung; es gibt deshalb keine separate Kamera-Legende. Unterschiedliche Auflösungen bleiben als separate Konfigurationen gekennzeichnet und werden nicht zu einer globalen Rangliste zusammengefasst.")
+    legend = (r"Jeder Punkt ist eine einzelne Evaluationsansicht aus \texttt{per\_frame} und liegt bewusst auf der zentralen x-Kategorie der zugehörigen Box; die Box zeigt Quartile und robuste 1,5-IQR-Whisker. Die STS-Boxplots enthalten nur vollständige Original-GS-A-Routen; die SuGaR-Boxplots enthalten alle zwölf vollständigen Coarse-Läufe. Die x-Beschriftung kodiert Kamera, FPS und Auflösung; zusätzlich kennzeichnen Blau, Orange und Grau die Kameramodelle SR, OPENCV und PINHOLE. Unterschiedliche Auflösungen bleiben als separate Konfigurationen gekennzeichnet und werden nicht zu einer globalen Rangliste zusammengefasst.")
     lines.extend(tex_footer(legend))
     return "\n".join(lines)
 
@@ -546,24 +572,26 @@ def runtime_scatter_tex(sts_rows: list[dict], sugar_rows: list[dict], title: str
     rows = [row for row in [*sts_rows, *sugar_rows] if row.get("complete") and row.get("runtime_s") is not None]
     max_runtime = max((row["runtime_s"] / 60 for row in rows), default=40.0)
     lines = tex_preamble(title, subtitle)
+    lines.extend([
+        r"\begin{tabular}{@{}ll@{\hspace{0.8cm}}ll@{\hspace{0.8cm}}ll@{}}",
+        r"\legendcircle{stsstronggreen} & Farbe: STS (grün) & \legendcircle{sugarstrongpurple} & Farbe: SuGaR-Coarse (lila) & & \\",
+        r"\legendcircle{stslightgreen} & Intensität: 2 FPS (blass) & \legendcircle{stsstronggreen} & Intensität: 5 FPS (kräftig) & & \\",
+        r"\legendcircle{white} & 720p / Kreis & \legendsquare{white} & QHD / Quadrat & \legendtriangle{white} & Low / Dreieck\\",
+        r"\legendbordercircle{srblue} & Rand: SR (blau) & \legendbordercircle{opencvorange} & Rand: OPENCV (orange) & \legendbordercircle{incompletegray} & Rand: PINHOLE (grau)\\",
+        r"\end{tabular}\par\vspace{8pt}",
+    ])
     for metric in METRICS:
         low, high = ranges[metric]
         lines.append(r"\begin{tikzpicture}")
-        lines.append(rf"\begin{{axis}}[width=0.98\linewidth,height=5.7cm,xlabel={{Gesamtlaufzeit des archivierten Pipeline-Laufs (min)}},ylabel={{{METRIC_LABELS[metric]}}},xmin=15,xmax=40,xtick={{15,20,25,30,35,40}},ymin={low},ymax={high},grid=major,legend style={{font=\scriptsize,at={{(1.0,1.15)}},anchor=south east,draw=none,fill=white,fill opacity=0.9,text opacity=1}},legend columns=2]")
+        lines.append(rf"\begin{{axis}}[width=0.98\linewidth,height=5.7cm,xlabel={{Gesamtlaufzeit des archivierten Pipeline-Laufs (min)}},ylabel={{{METRIC_LABELS[metric]}}},xmin=15,xmax=40,xtick={{15,20,25,30,35,40}},ymin={low},ymax={high},grid=major]")
         for row in rows:
             if row.get(metric) is None:
                 continue
             x = row["runtime_s"] / 60
             mark = RESOLUTION_MARKS.get(row.get("resolution"), "*")
             fill = STAGE_FPS_COLORS.get((row.get("stage"), str(row.get("fps"))), "black")
-            lines.append(rf"\addplot[only marks,mark={mark},mark size=2.2pt,mark options={{fill={fill},draw=black,line width=0.6pt}}] coordinates {{({x:.6f},{row[metric]:.8f})}};")
-        lines.append(r"\addlegendimage{only marks,mark=*,mark size=2.2pt,mark options={fill=stsstronggreen,draw=black}}\addlegendentry{Farbe: STS (grün)}")
-        lines.append(r"\addlegendimage{only marks,mark=*,mark size=2.2pt,mark options={fill=sugarstrongpurple,draw=black}}\addlegendentry{Farbe: SuGaR-Coarse (lila)}")
-        lines.append(r"\addlegendimage{only marks,mark=*,mark size=2.2pt,mark options={fill=stslightgreen,draw=black}}\addlegendentry{Intensität: 2 FPS (blass)}")
-        lines.append(r"\addlegendimage{only marks,mark=*,mark size=2.2pt,mark options={fill=stsstronggreen,draw=black}}\addlegendentry{Intensität: 5 FPS (kräftig)}")
-        lines.append(r"\addlegendimage{only marks,mark=*,mark size=2.2pt,mark options={fill=white,draw=black}}\addlegendentry{720p / Kreis}")
-        lines.append(r"\addlegendimage{only marks,mark=square*,mark size=2.2pt,mark options={fill=white,draw=black}}\addlegendentry{QHD / Quadrat}")
-        lines.append(r"\addlegendimage{only marks,mark=triangle*,mark size=2.2pt,mark options={fill=white,draw=black}}\addlegendentry{Low / Dreieck}")
+            edge = CAMERA_COLORS.get(row.get("camera_model"), "black")
+            lines.append(rf"\addplot[only marks,mark={mark},mark size=2.2pt,mark options={{fill={fill},draw={edge},line width=0.6pt}}] coordinates {{({x:.6f},{row[metric]:.8f})}};")
         lines.append(r"\end{axis}\end{tikzpicture}\par\vspace{2pt}")
     lines.extend(tex_footer(r"Die x-Achse zeigt die vollständige Dauer des archivierten Pipeline-Laufs zwischen Start und Ende in \texttt{run.md}; ältere Berichte ohne Start/Ende verwenden ersatzweise die Summe ihrer aufgezeichneten Schritte. SAM3/COLMAP sind nur enthalten, sofern sie innerhalb dieses archivierten Laufs lagen. Die Darstellung ist explorativ und kein Geometrie-Qualitätsranking."))
     return "\n".join(lines)
@@ -583,6 +611,7 @@ def main() -> int:
     sugar_rows = experiment_rows(args.sugar_followup, "sugar_coarse_masked.json", "sugar_coarse")
     sugar_rows = sorted(sugar_rows, key=sort_key)
     complete_sts = [row for row in sts_rows if row.get("complete") and row.get("mesh_mode") == "original_gs" and all(row.get(metric) is not None for metric in METRICS)]
+    complete_sts = keep_balanced_resolution_groups(complete_sts)
     complete_sugar = [row for row in sugar_rows if row.get("complete") and all(row.get(metric) is not None for metric in METRICS)]
     ranges = all_metric_ranges(sts_rows, sugar_rows)
 
@@ -631,7 +660,7 @@ def main() -> int:
         "",
         f"- STS summary rows: {len(sts_rows)}; complete Original-GS rows used for boxplots: {len(complete_sts)}",
         f"- SuGaR-Coarse summary rows: {len(sugar_rows)}; complete rows used for boxplots: {len(complete_sugar)}",
-        "- STS overview includes grey intermediate `sts_masked.json` values from incomplete SuGaR-route experiments; they are not ranked as complete runs.",
+         "- Incomplete SuGaR-route `sts_masked.json` values remain in the source summary but are not plotted.",
         "- SuGaR-Coarse overview uses only `sugar_coarse_masked.json` and never substitutes `sts_masked.json`.",
         "- Boxplots use the `per_frame` values from the corresponding JSON files.",
         "- Boxplot points are placed on their category and receive only a small horizontal spread; y-ranges include all per-frame values.",

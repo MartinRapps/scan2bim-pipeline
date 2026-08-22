@@ -33,6 +33,57 @@ Kapitel~\ref{sec:implementierung} (Abschnitt
 ``Historische Zwischenstände der STS- und Objektfilterungsroute'') sowie in
 Abschnitt~\ref{sec:sugar-folgepruefung} dokumentiert.
 
+\subsection{Visueller Vergleich der Auflösungsvarianten}
+\label{sec:visueller-aufloesungsvergleich}
+
+Die visuelle Gegenüberstellung der drei Auflösungen ist in
+Anhang~\ref{app:durchlauf} entlang derselben Verarbeitungskette dokumentiert.
+Bei
+den Masken ist in den höher aufgelösten Varianten eine feinere Kontur- und
+Randlokalisierung erkennbar. In keiner der drei Varianten treten jedoch
+offensichtliche gravierende Fehler wie eine vollständig leere Maske, ein
+Verlust des Zielobjekts oder große Ausrisse auf. In der \texttt{low}-Variante
+wird zusätzlich das Verbindungskabel zwischen den Rohren in die Objektmaske
+aufgenommen. Streng semantisch ist dies eine Übersegmentierung; da das Kabel
+direkt zum dargestellten Objektverbund gehört, wird dieser Anteil für die
+qualitative Pipelinebewertung als vertretbar behandelt.
+
+In den Übersichten der COLMAP-Punktwolken sind zwischen den Auflösungen keine
+direkten, großräumigen Unterschiede zu erkennen. Dies ist mit dem festgelegten
+SIFT-Limit von 4096 Merkmalen pro Bild vereinbar: Eine höhere Pixelauflösung
+führt nicht automatisch zu einer proportional größeren Punktwolke. In der
+vergrößerten Darstellung fällt jedoch auf, dass in der linken unteren
+Wandecke der \texttt{720p}-Variante mehr Punkte sichtbar sind. Dies kann darauf
+hindeuten, dass das begrenzte Merkmalsbudget dort anders und räumlich breiter
+über die ansonsten gleichförmige Fläche verteilt wird. Eine breitere Verteilung
+homologer Bildpunkte könnte die Track-Stabilität und damit die interne
+Geometriekonsistenz des SfM-Modells begünstigen. Aus den Screenshots allein
+folgt daraus jedoch kein Nachweis einer höheren absoluten geometrischen
+Korrektheit; dafür wären insbesondere Trackstatistiken, räumliche
+Korrespondenzverteilungen und eine unabhängige Referenz erforderlich.
+
+Bei den Splats ist der auffälligste Unterschied in der \texttt{low}-Variante
+die bereits genannte Aufnahme des Verbindungskabels. Außerdem unterscheiden
+sich die oberen Objektkanten: In den höher aufgelösten Varianten wirkt die
+Objektgeometrie über die Blickwinkel hinweg konsistenter aufgenommen, während
+die \texttt{low}-Variante am unteren rechten Bildrand einen zusätzlichen
+Floater zeigt. Die höher aufgelösten Splats wirken dadurch in dieser
+Gegenüberstellung geometrisch sauberer. Auch diese Aussage ist als visueller
+Befund und nicht als unabhängige Genauigkeitsmessung zu verstehen.
+
+Die Meshbilder zeigen eine entsprechende Übertragung der Unterschiede, weil
+die hier dargestellte Route~A das Mesh unmittelbar aus den STS-Splats ableitet.
+In den Detailansichten weist die niedrigste Auflösung die ungenaueste und
+zackigste Oberfläche mit mehreren Spitzen auf. Die \texttt{QHD}-Variante wirkt
+in der betrachteten Ansicht überraschend glatt und insgesamt visuell am
+geschlossensten. Die \texttt{720p}-Variante erscheint dagegen besonders klar
+durch die Maskengrenze begrenzt: Aufgenommene Bereiche besitzen deutliche
+Kanten, ohne dass ein starkes Glätten oder Ausfransen entsteht. Dieses
+Ausfransen ist bei der \texttt{low}-Centerline am deutlichsten; sie enthält
+mehr Richtungswechsel und Ecken. Die Centerlines von \texttt{720p} und
+\texttt{QHD} unterscheiden sich visuell dagegen nur gering. Die Befunde sind
+qualitativ und ersetzen keine Vermessung gegen eine unabhängige Centerline.
+
 \subsection{COLMAP-Voruntersuchung}
 
 Ebenso wurde vor den Matrixläufen eine Versuchsreihe mit COLMAP gestartet;
@@ -110,7 +161,8 @@ verschiedene Auflösungen wird nicht vorgenommen.
   \includegraphics[width=\textwidth]{sts_masked_per_frame_boxplots.pdf}
   \caption[STS-Einzelansichten]{Verteilung der Einzelansichten in den
   vollständigen Original-GS-Route-A-Läufen. Punkte entsprechen den in
-  \texttt{per\_frame} archivierten Ansichtsmetriken.}
+  \texttt{per\_frame} archivierten Ansichtsmetriken. SR ist blau, OPENCV
+  orange und PINHOLE grau dargestellt.}
   \label{fig:pa-sts-boxplots}
 \end{figure}
 
@@ -122,20 +174,16 @@ verschiedene Auflösungen wird nicht vorgenommen.
   \label{fig:pa-sugar-overview}
 \end{figure}
 
-Die deutlich niedrigeren SuGaR-Werte gegenüber einigen alten
-\texttt{simple\_radial\_sugar}-Zeilen sind kein direkter Widerspruch. Die
-alten Zeilen der ursprünglichen Overview bezogen sich trotz ihrer
-SuGaR-Variantenbezeichnung auf \texttt{sts\_masked.json}: Der STS-Splat wurde
-vor dem fehlgeschlagenen SuGaR-Renderhelfer ausgewertet. Beispielsweise wurden
-für den alten 5-FPS-720p-Lauf 29,337 dB PSNR, 0,896 SSIM und 0,122 LPIPS als
-STS-Baseline protokolliert. Der entsprechende aktuelle Wert von
-\texttt{sugar\_coarse\_masked.json} beträgt 21,156 dB, 0,776 SSIM und 0,152
-LPIPS. Dieser Vergleich stellt somit zwei verschiedene Modellstufen
-gegenüber: STS-7000 vor SuGaR-Optimierung versus SuGaR-Coarse nach der
-zusätzlichen Gaussian-Optimierung und dem SuGaR-Rendering. Die neuen Werte sind
-deshalb die fachlich richtigen SuGaR-Coarse-Werte; die alten Werte bleiben als
-STS-Baselines historisch nachvollziehbar, dürfen aber nicht als SuGaR-
-Ergebnisse bezeichnet werden.
+Die deutlich niedrigeren SuGaR-Werte gegenüber den STS-Werten sind kein
+direkter Widerspruch. Die beiden Dateien beschreiben unterschiedliche
+Modellstufen: Der STS-Splat wird vor der zusätzlichen SuGaR-Optimierung und dem
+SuGaR-Rendering ausgewertet. Im vollständigen Repeat-Lauf beträgt der
+beispielhafte 5-FPS-720p-Wert für SIMPLE-RADIAL 29,431 dB PSNR, 0,897 SSIM und
+0,122 LPIPS im STS-Splat; der zugehörige SuGaR-Coarse-Wert beträgt 21,223 dB,
+0,778 SSIM und 0,151 LPIPS. Die Repeat-Grafiken verwenden diese getrennten
+Metrikdateien fachlich korrekt. Ältere STS-Baselines aus fehlgeschlagenen
+SuGaR-Routen bleiben historisch nachvollziehbar, werden aber nicht als
+SuGaR-Ergebnisse bezeichnet.
 
 In der jeweiligen Runauflösung zeigt OPENCV-A-Low bei 5 FPS besonders hohe
 Bildmetriken. Bei SIMPLE-RADIAL und OPENCV bezieht sich die Auswertung dabei
@@ -157,14 +205,14 @@ isolierter Kausalnachweis für einen einzelnen Faktor liegt nicht vor.
 \label{sec:produktionskonfiguration}
 
 Auf Grundlage der Matrixauswertung wurde die Produktionskonfiguration auf
-\texttt{OPENCV}, 5 FPS und Route A festgelegt. Bei 720p und 5 FPS erzielen die
-\texttt{OPENCV}-A-Läufe die höchsten objektmaskierten STS-Metriken der
-untersuchten Kameramodelle (29,61\,dB PSNR, 0,901 SSIM und 0,117 LPIPS
-gegenüber 29,37\,dB, 0,896 und 0,123 bei \texttt{SIMPLE\_RADIAL}); die
+\texttt{OPENCV}, 5 FPS und Route A festgelegt. Im Repeat-Lauf erzielen die
+\texttt{OPENCV}-A-Läufe bei 720p die höchsten objektmaskierten STS-Metriken
+der untersuchten Kameramodelle (29,62\,dB PSNR, 0,902 SSIM und 0,117 LPIPS;
+\texttt{SIMPLE\_RADIAL}: 29,43\,dB, 0,897 und 0,122); die
 Konfiguration ist über die archivierten Läufe reproduzierbar belegt. Die
 Umstellung bleibt dennoch eine datengestützte Projektentscheidung ohne
 unabhängige geometrische Referenz: Bei qhd liegt \texttt{SIMPLE\_RADIAL} mit
-28,21\,dB vor \texttt{OPENCV} (27,67\,dB), was die nichtmonotone Interaktion
+28,32\,dB vor \texttt{OPENCV} (27,63\,dB), was die nichtmonotone Interaktion
 von Auflösung und Kameramodell unterstreicht. Der Standard gilt daher
 ausdrücklich für die Produktionsauflösung 720p bei 5 FPS.
 
@@ -186,9 +234,9 @@ auf zurückgehaltenen Bildkorrespondenzen. Ohne diese Referenz bleibt
 \texttt{OPENCV} eine begründete, intern konsistente Produktionsentscheidung
 und kein messtechnisch validiertes Kameramodell.
 
-Für diese Produktionskonfiguration ergeben die über die Matrixarchive
-gemittelten Laufzeiten je Auflösung rund 2023 Sekunden (720p), 1648 Sekunden
-(qhd) und 1141 Sekunden (low). Diese Werte fließen in die Lauf-Preset-Abfrage
+Für die drei Kameramodelle des Repeat-Laufs ergeben sich gemittelte Laufzeiten
+von rund 2011 Sekunden (720p), 1650 Sekunden (qhd) und 1199 Sekunden (low).
+Diese Werte fließen in die Lauf-Preset-Abfrage
 des CLI ein (Kapitel~\ref{sec:implementierung}), mit der zwischen
 Bildauflösung und Rechenaufwand gewählt werden kann. Als reine Schrittzeiten
 von STS bis Postprocessing ersetzen sie keine vollständige End-to-End-
