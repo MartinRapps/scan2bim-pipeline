@@ -1,5 +1,6 @@
 build/*
 !build/.gitkeep
+pa_arbeitsfassung/build/*
 *.aux
 *.bcf
 *.blg
@@ -9,3 +10,5 @@ build/*
 *.toc
 *.fls
 *.fdb_latexmk
+*.lof
+*.lot
