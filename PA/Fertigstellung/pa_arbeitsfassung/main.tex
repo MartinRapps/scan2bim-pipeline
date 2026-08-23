@@ -142,6 +142,9 @@ Kabeltrassen ist nicht Gegenstand.
 \input{sections/07_diskussion}
 \input{sections/08_fazit}
 
+% Literatur vor dem Anhangsteil (Zielrahmen §3); LoF/LoT bleiben vorne (D4 offen).
+\printbibliography[heading=bibintoc,title={Literatur und Referenzen}]
+
 \ifincludeappendices
 \appendix
 \input{appendices/appendix_colmap}
@@ -152,8 +155,5 @@ Kabeltrassen ist nicht Gegenstand.
 \input{appendices/appendix_anlagenindex}
 \input{appendices/appendix_ki}
 \fi
-
-\nocite{metaSam3,colmapProject,dgtalProject,scan2bimImplementation,matrixRestResults}
-\printbibliography[heading=bibintoc,title={Literatur und Referenzen}]
 
 \end{document}
