@@ -4,9 +4,11 @@ Die Ausführung erfolgt mit Docker Compose. Der nachgewiesene Matrix- und
 Replaypfad verwendet unmaskierte Bilder für COLMAP, hält das originale Modell
 für GCP/SfM vor und führt STS sowie SuGaR in der idealen PINHOLE-Bilddomäne
 aus. Bei Verzeichnungsmodellen werden die SAM-Masken dort mit derselben
-Kameramodellabbildung in die ideale Domäne gewarpt. Der historische Inline-
-Vollauf erzeugt die ideale Bildszene, besitzt aber noch keinen eigenen Aufruf
-des Maskenwarp-Skripts.
+Kameramodellabbildung in die ideale Domäne gewarpt. Der normale Inline-Vollauf
+ruft denselben Maskenwarp inzwischen ebenfalls vor STS auf; eine eigene
+Warp-Stufe besitzt weiterhin nur der Replay über den allgemeinen
+\texttt{--from}-Dispatcher nicht, der daher einen bereits passenden idealen
+Maskensatz erwartet.
 
 Die wichtigsten konstanten Parameter der PA-Versuche sind:
 

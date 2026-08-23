@@ -17,6 +17,11 @@ Priorität:
    aber im normalen Inline-Vollauf und im `--from`-Replaypfad nicht als eigener
    Verarbeitungsschritt verdrahtet. Aussagen wie „die Pipeline verwendet stets
    denselben Warp für Bilder und Masken“ sind deshalb derzeit zu allgemein.
+   → **Aktualisiert 23.08.2026 (T3):** Der Inline-Vollauf (`run_pipeline.sh`)
+   ruft den Maskenwarp samt Coverage-Gate inzwischen selbst auf
+   (`run_pipeline.sh:828-848`); ohne eigene Warp-Stufe bleibt nur der
+   `--from`-Replaypfad (`pipeline_lib.sh`, `run_step_sts_prep`), der einen
+   passenden idealen Maskensatz voraussetzt.
 2. Der tatsächlich ausgecheckte SuGaR-Fork ist `eca4ea1` mit lokalen Änderungen;
    der Parent-Gitlink zeigt auf `ecda7ef`, während das Dockerfile `SUGAR_REF` auf
    `e254000...` setzt. Das Exposé und die Memories nennen teilweise einen bereits
@@ -183,6 +188,10 @@ Referenzmetriken ergänzen. Die Sätze „kann als reproduzierbare Kette betrieb
 werden“ und „technische Machbarkeit ist gezeigt“ müssen jedoch auf den
 belegten Matrix-/Smoke-/Replaypfad bezogen werden, solange der allgemeine
 Inline-Vollauf nicht dieselben Maskenwarp- und Quality-Gate-Schritte nutzt.
+→ **Aktualisiert 23.08.2026 (T3):** Der Inline-Vollauf nutzt dieselben Maskenwarp-
+und Quality-Gate-Schritte (`run_pipeline.sh:828-848`); die Einschränkung gilt nur
+noch für den `--from`-Replay ab `colmap`. Konzept, Diskussion und Repro-Anhang
+wurden in der Arbeitsfassung auf diesen Stand gebracht.
 
 ### 2.9 GCP/UI-Implementierung und aktueller Nachweis
 
