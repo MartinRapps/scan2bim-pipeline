@@ -1,0 +1,152 @@
+% =====================================================================
+% ARBEITSFASSUNG (Kopie) – Fertigstellung der PA auf Branch pa-fertigstellung
+% Diese Kopie wird von den To-dos (Umsetzungsplan_ToDos.md) geändert.
+% Das Original unter PA/main.tex bleibt bis zum Abschluss unverändert.
+% Pfade sind hier eine Ebene tiefer angepasst (../../ etc.).
+% =====================================================================
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{lmodern}
+\usepackage[a4paper,left=2.8cm,right=2.3cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{fancyhdr}
+\usepackage{xurl}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,shapes.geometric}
+% TikZ defines \path as a drawing command. Outside diagrams the report uses
+% the same notation for breakable file paths; map it to url-style rendering.
+\let\tikzpathcommand\path
+\renewcommand{\path}[1]{\nolinkurl{#1}}
+\usepackage[breaklinks=true]{hyperref}
+\usepackage{csquotes}
+\usepackage[backend=biber,style=authoryear,sorting=nyt]{biblatex}
+
+% Vor Abgabe mit den offiziellen Angaben ersetzen.
+\newcommand{\thwsAuthor}{[Martin Rapps]}
+\newcommand{\thwsMatriculation}{[6323014]}
+\newcommand{\thwsDegree}{[B. Eng. Geovisualisierung]}
+\newcommand{\thwsFirstExaminer}{[Dr. Markus Müller]}
+\newcommand{\thwsSecondExaminer}{[Andreas Rupp]}
+\newcommand{\thwsSubmissionDate}{[08.09.2026]}
+
+\addbibresource{references.bib}
+% URLs in the bibliography are allowed to use a little extra stretch locally;
+% this avoids suppressing useful line-break diagnostics in the main text.
+\AtBeginBibliography{\sloppy}
+\graphicspath{{../../}{../../figures/}{../../../docs/grafiken/verwendet_verbessert/}{../../../docs/grafiken/matrix_repeat_2026-08-17/}}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\setlist{itemsep=2pt,topsep=4pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Projektarbeit -- Scan-to-BIM-Pipeline}
+\fancyhead[R]{Studienbereich Geo}
+\fancyfoot[C]{\thepage}
+\setlength{\headheight}{15pt}
+
+% Fuer eine kompakte PA koennen die optionalen Anhaenge hier deaktiviert werden.
+\newif\ifincludeappendices
+\includeappendicestrue
+
+\begin{document}
+\pagenumbering{Roman}
+\thispagestyle{empty}
+\begin{center}
+	{\large Technische Hochschule Würzburg-Schweinfurt\\
+	Fakultät Kunststofftechnik und Vermessung\par}
+	\vfill
+	{\LARGE\bfseries Projektarbeit\par}
+	\vspace{1.2cm}
+	{\Large\bfseries KI-gestützte 3D-Rekonstruktion eines linearen Objekts\par}
+	\vspace{0.4cm}
+	{\large Konzeption, Robustheitsprüfung und geometrieerhaltende
+	Meshgewinnung in einer Docker-basierten Scan-to-BIM-Pipeline\par}
+	\vfill
+	\begin{tabular}{@{}ll@{}}
+		Vorgelegt von: & \thwsAuthor\\
+		Matrikelnummer: & \thwsMatriculation\\
+		Studiengang: & \thwsDegree\\
+		Erstprüfer/in: & \thwsFirstExaminer\\
+		Zweitprüfer/in: & \thwsSecondExaminer\\
+		Abgabetermin: & \thwsSubmissionDate
+	\end{tabular}
+	\vfill
+	Würzburg, den \today
+\end{center}
+\clearpage
+
+\section*{Erklärung zur Projektarbeit}
+Hiermit versichere ich, dass ich die vorliegende Arbeit eigenständig verfasst
+und keine anderen als die angegebenen Quellen und Hilfsmittel verwendet habe.
+
+Alle übernommenen Inhalte sowie mit Unterstützung von KI generierten Inhalte
+wurden entsprechend den anerkannten wissenschaftlichen Grundsätzen oder den
+Regelungen zur Kennzeichnung von KI-Inhalten kenntlich gemacht. Ausgenommen
+sind orthografische oder grammatikalische Korrekturen, Übersetzungen sowie
+nicht sinnverändernde Verbesserungen von Formulierungen. Die verwendeten
+KI-Werkzeuge sind im Anhang dokumentiert. Sämtliche Inhalte wurden fachlich
+geprüft, vollständig verstanden und können selbstständig vertreten werden.
+
+\vfill
+\noindent Würzburg, den \rule{4cm}{0.4pt}\hfill
+\rule{6cm}{0.4pt}\\
+\hfill Unterschrift des/der Studierenden
+\clearpage
+
+\section*{Kurzfassung}
+\begin{abstract}
+Diese Projektarbeit untersucht die Machbarkeit einer Docker-basierten Pipeline zur
+objektbezogenen Rekonstruktion eines linearen Testobjekts. Der Workflow verbindet
+SAM~3.1 für die temporale 2D-Segmentierung, COLMAP für die Kamerageometrie,
+Segment-then-Splat für objektspezifische 3D-Gaussians, SuGaR beziehungsweise eine
+geometrieerhaltende Original-GS-Meshroute und DGtal für die Centerline-Extraktion.
+Der Schwerpunkt liegt auf der technischen Funktionsfähigkeit, der sauberen
+Trennung von Bilddomänen und der reproduzierbaren Auswertung. Die Arbeit ist ein
+Machbarkeitsnachweis für die spätere Bachelorarbeit; ein geodätischer
+Genauigkeitsnachweis für reale Rohr- oder Kabeltrassen ist nicht Gegenstand.
+\end{abstract}
+\clearpage
+
+\tableofcontents
+\listoffigures
+\listoftables
+\clearpage
+\pagenumbering{arabic}
+
+\input{sections/01_einleitung}
+\input{sections/02_datengrundlage}
+\input{sections/02_grundlagen}
+\input{sections/03_konzept}
+\input{sections/04_implementierung}
+\input{sections/05_versuchsaufbau}
+\input{sections/06_ergebnisse}
+\input{sections/07_diskussion}
+\input{sections/08_fazit}
+
+\ifincludeappendices
+\appendix
+\input{appendices/appendix_colmap}
+\input{appendices/appendix_matrix}
+\input{appendices/appendix_durchlauf}
+\input{appendices/appendix_robustheit}
+\input{appendices/appendix_repro}
+\input{appendices/appendix_anlagenindex}
+\input{appendices/appendix_ki}
+\fi
+
+\nocite{metaSam3,colmapProject,dgtalProject,scan2bimImplementation,matrixRestResults}
+\printbibliography[heading=bibintoc,title={Literatur und Referenzen}]
+
+\end{document}

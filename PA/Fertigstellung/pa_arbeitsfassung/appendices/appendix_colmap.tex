@@ -1,0 +1,33 @@
+\section{Optionaler Anhang: COLMAP-Vorstudie}
+
+Die COLMAP-Voruntersuchung wurde als separater Benchmark durchgeführt und ist
+nicht mit der späteren GPU-Gesamtpipeline gleichzusetzen. Sie bewertet nur die
+Sparse-SfM-Stufe auf dem Alurohr-Testdatensatz. Alle fünf dokumentierten Läufe
+registrierten 240 von 240 Bildern. Die Auswertung ist in
+\texttt{docs/COLMAP\_Tests/} archiviert.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{Xrrrrr}
+\toprule
+Konfiguration & Punkte & Punkte/Bild & Tracks & Reprojektion & Zeit (s)\\
+\midrule
+Plain-SIFT 4096 & 139449 & 581 & 6.69 & 0.693 px & 876\\
+Plain-SIFT 4096 + Guided & 142208 & 593 & 7.44 & 0.790 px & 1678\\
+Plain-SIFT 8192 & 140594 & 586 & 6.71 & 0.698 px & 925\\
+CRF 18 & 94616 & 394 & 6.64 & 0.728 px & 677\\
+CRF 28 & 93703 & 390 & 6.43 & 0.761 px & 725\\
+\bottomrule
+\end{tabularx}
+\caption{Optionale COLMAP-SfM-Voruntersuchung. Die Läufe sind ein separater
+Benchmark und kein vollständiger STS-/SuGaR-Vergleich.}
+\label{tab:colmap-vorstudie}
+\end{table}
+
+Die Ergebnisse begründen den Projektarbeitsstandard Plain-SIFT mit 4096
+Merkmalen, Sequential-Overlap 15 und deaktiviertem Guided Matching. Guided
+Matching brachte nur einen kleinen Punktezuwachs, erhöhte jedoch die Laufzeit
+stark und verschlechterte den mittleren Reprojektionsfehler. Die vollständigen
+Rohberichte liegen in den Dateien unter
+\texttt{docs/COLMAP\_Tests/}.

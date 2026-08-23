@@ -1,0 +1,58 @@
+\section{Digitaler Anlagenindex}
+
+Die folgende Übersicht macht die für Nachvollziehbarkeit und Wiederholung
+relevanten Artefakte konkret auffindbar. Vor der Abgabe sind Commitstände,
+Dateigrößen und gegebenenfalls Prüfsummen zu ergänzen.
+
+\begin{longtable}{p{3.0cm}p{5.2cm}p{6.2cm}}
+\toprule
+Bereich & Pfad & Inhalt und Zweck\\
+\midrule
+\endfirsthead
+\toprule
+Bereich & Pfad & Inhalt und Zweck\\
+\midrule
+\endhead
+Rohdaten & \texttt{data/01\_raw/} & Eingangsvideo, GCP-Testdateien und Anchor;
+keine metrisch validierte GNSS-Referenzkurve.\\
+Frames & \texttt{data/02\_frames/} & Aktueller Live-Frame-Satz; vollständige
+Matrixläufe sind in den Run-Archiven gesichert.\\
+Masken & \texttt{data/03\_masks/} & Kanonische hierarchische SAM-Masken,
+Warp-Ausgaben und Review-Samples.\\
+COLMAP & \texttt{data/04\_sfm/} & Originales Sparse-Modell, TXT/PLY-Exporte und
+ideale STS-Szene.\\
+3DGS & \texttt{data/05\_3dgs/} & STS-Szene, Checkpoints, Kameradaten,
+Eval-Liste und Objekt-Gaussians.\\
+Mesh & \texttt{data/06\_mesh/} & Coarse-PLY und kompatibles OBJ der Route A
+beziehungsweise getrennte SuGaR-Exporte.\\
+Centerline & \texttt{data/07\_centerline/} & Lokale Roh-Centerline und
+Grad-10-B-Spline.\\
+GIS & \texttt{data/08\_gis/} & Lokale oder explizit als Fallback markierte
+GeoJSON-/CSV-Ausgaben.\\
+Laufarchive & \texttt{data/10\_runs/} & Manifeste, Parameter, Logs, Metriken und
+Artefakte der Einzel- und Matrixläufe; insbesondere der vollständige
+Repeat-Batch \path{matrix_repeat_20260812}.\\
+Matrixgrafiken & \texttt{docs/grafiken/} & Repeat-basierte CSV mit getrennter
+Modellstufe sowie separate STS- und SuGaR-Coarse-Grafiken.\\
+COLMAP-Berichte & \texttt{docs/COLMAP\_Tests/} & Separate Sparse-SfM-
+Voruntersuchungen und Rohberichte.\\
+Matrix-TSV & \path{tools/experiment_matrix.tsv} & Ausgeführte
+Ablationen der Hauptmatrix.\\
+Repeat-Matrix-TSV & \path{tools/experiment_matrix_repeat.tsv} & Konfiguration
+der vollständigen 30 Wiederholungsläufe.\\
+Pipelinecode & \texttt{run\_pipeline.sh}, \texttt{src/}, \texttt{tools/} &
+Orchestrierung, Adapter, Auswertung und Tests.\\
+Screenshots & \texttt{PA/Screenshots/} & Historische Entwicklungs- und
+Robustheitsnachweise (STS-Renderings, Meshzwischenstände, SuGaR-Coarse-Stände,
+Alurohr-Endprodukt); zusammengefasst in den Panels \texttt{PA/figures/}. Die
+Zielzählerangaben in den Dateinamen sind teilweise nicht durch Manifeste
+bestätigt und entsprechend gekennzeichnet.\\
+Container & \texttt{docker-compose.yml}, \texttt{docker/} & Reproduzierbare
+Laufzeitumgebungen der fünf Pipelinekomponenten.\\
+SuGaR-Fork & \texttt{third\_party/SuGaR/} & Lokaler Fork mit maskenbewusster
+Vergleichsroute und Extraktionskorrekturen; Parent-Gitlink, Checkout und
+Arbeitsbaumstand werden im Reproduzierbarkeitsmanifest festgehalten.\\
+\bottomrule
+\caption{Index der digitalen Anlagen und Ergebnisquellen.}
+\label{tab:anlagenindex}
+\end{longtable}
