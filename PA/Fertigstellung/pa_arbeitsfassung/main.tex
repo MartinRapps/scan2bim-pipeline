@@ -112,10 +112,17 @@ objektbezogenen Rekonstruktion eines linearen Testobjekts. Der Workflow verbinde
 SAM~3.1 für die temporale 2D-Segmentierung, COLMAP für die Kamerageometrie,
 Segment-then-Splat für objektspezifische 3D-Gaussians, SuGaR beziehungsweise eine
 geometrieerhaltende Original-GS-Meshroute und DGtal für die Centerline-Extraktion.
-Der Schwerpunkt liegt auf der technischen Funktionsfähigkeit, der sauberen
-Trennung von Bilddomänen und der reproduzierbaren Auswertung. Die Arbeit ist ein
-Machbarkeitsnachweis für die spätere Bachelorarbeit; ein geodätischer
-Genauigkeitsnachweis für reale Rohr- oder Kabeltrassen ist nicht Gegenstand.
+Für den Testdatensatz ist die Kette vollständig nachgewiesen: 240 von 240 Bildern
+wurden registriert; alle zwölf SuGaR-Coarse-Folgeläufe, die sechs Autopilot-Volläufe
+und der Qualitätsvergleichsbatch ohne Fehlerfall sind mit Manifeststatus
+\texttt{success} archiviert. Für die
+Produktionskonfiguration (OPENCV, 5~FPS, 720p, Route A) werden 29,62\,dB
+objektmaskierte PSNR erreicht; die Nachweise stammen aus archivierten Matrix-,
+Replay- und Autopilotläufen. Der Schwerpunkt liegt auf der technischen
+Funktionsfähigkeit, der sauberen Trennung von Bilddomänen und der reproduzierbaren
+Auswertung. Die Arbeit ist ein Machbarkeitsnachweis für die spätere
+Bachelorarbeit; ein geodätischer Genauigkeitsnachweis für reale Rohr- oder
+Kabeltrassen ist nicht Gegenstand.
 \end{abstract}
 \clearpage
 
