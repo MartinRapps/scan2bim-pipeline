@@ -3,6 +3,10 @@
 > Ergänzung zu `PA/Bewertung_Zielrahmen_und_Todos.md` (Befunde G/A/U und To-dos 1–16).
 > Dieses Dokument ist zugleich **Fahrplan, Arbeitsjournal und Drift-Schutz**: Es wird nach jedem
 > Schritt aktualisiert und bei jedem Sitzungsstart zuerst gelesen.
+>
+> **Stand 23.08.2026:** Entscheidungspunkte D1–D4 sind entschieden bzw. festgelegt (§7).
+> Konsequenz: **Der Haupttext wird NICHT gekürzt** (D3); Kürzungskandidaten werden nur
+> markiert. Arbeitsdokumentation läuft in `PA/Fertigstellung/Arbeitsdatei_Fertigstellung.md`.
 
 ---
 
@@ -47,6 +51,9 @@ Ein Eintrag pro To-do, zwingend mit folgenden Feldern:
 
 ### 1.2 Git-Konventionen
 
+- **Arbeitsbranch `pa-fertigstellung`**: Alle To-do-Commits landen auf diesem Branch,
+  **nicht** auf `master`. Merge nach master erst, wenn die Phase F abgeschlossen ist
+  (Entscheidung zu D1: Commits ja, aber getrennt vom jetzigen Stand).
 - **Ein Commit pro erledigtem To-do**, Message-Format: `T<n>: <kurzer Imperativ> (Phase <X>)`
   – Beispiel: `T5: SuGaR-Fork-Stand konsolidieren, SUGAR_REF setzen (Phase A)`
 - Der Submodul-Commit (`third_party/SuGaR`) und der Parent-Commit (Gitlink-Update) sind **zwei** Commits;
@@ -55,6 +62,8 @@ Ein Eintrag pro To-do, zwingend mit folgenden Feldern:
   gewinnt die To-do-Reihenfolge aus §4; der zweite Commit enthält dann den Rest-Diff.
 - Vor jedem Commit: `git diff --stat` gegen die Dateiliste im Protokolleintrag prüfen
   (Schutz vor versehentlich mitgerutschten Dateien).
+- **Niemand berührt Code unter `src/`, `tools/`, `run_pipeline.sh` etc. über die To-dos hinaus** –
+  Änderungen gelten nur für PA-Texte/Anhänge/Dokumentation (Nutzer-Vorgabe).
 
 ### 1.3 Pflege bestehender Dokumente (nicht nur neue anlegen)
 
@@ -92,7 +101,7 @@ Phase 0  Baseline & Gerüst            (Protokoll anlegen, §2 messen)          
 Phase A  Code-/Versionsklärung        T3 Inline-Warp · T5 SuGaR-Dreieck       ~1–2 h
 Phase B  Belage & Golden Run          T1 Panels · T4 Autopilot · T11 Teil     ~2–4 h (Rechenzeit!)
 Phase C  Anlagenabgleich              T2 Index ↔ Realität                     ~1–2 h
-Phase D  Textarbeit                   T7 Kürzen · T8 Abstract · T9 Einheiten
+Phase D  Textarbeit                   T7 Kürzung nur markieren · T8 Abstract · T9 Einheiten
                                       T10 Lit-Ordnung · T11 Rest              ~3–4 h
 Phase E  Build & Hygiene              T12 Overfull · T15 build/ aufräumen     ~0,5 h
 Phase F  Absschluss                   T6 Deckblatt · T16 Vollabgleich
@@ -190,11 +199,19 @@ vorbereiten – Volltextintegration passiert in Phase D nach T7 (Seitenbudget!).
 
 ### Phase D – Textarbeit
 
-#### T7 · Kürzung Haupttext ≈ −10 Seiten (A1/A5) 🟡
+#### T7 · Kürzung NUR MARKIEREN, nicht durchführen (A1/A5) 🟡 – **ENTSCHIEDUNG D3: nicht kürzen**
 
-Vorgehen in dieser Reihenfolge (besteter Aufwand/Nutzen zuerst, **jeder Schnitt einzeln committet**):
+Der Nutzer hat entschieden (D3, 23.08.2026): Der Haupttext bleibt **vollständig erhalten**;
+weder konservative noch vollständige Kürzung wird angewendet. Stattdessen:
 
-| Schritt | Maßnahme | Erwartete Ersparnis |
+1. Die acht Kürzungskandidaten (Schritte a–h) werden **nur dokumentiert** – mit konkreter
+   Stelle (`datei:zeile`), Inhalt, erwarteter Ersparnis und Begründung, warum sie entbehrlich wäre.
+2. Ablageort der Markierungen: `PA/Fertigstellung/Arbeitsdatei_Fertigstellung.md` (§ Kürzungsmarkierungen).
+3. Kein einziger dieser Schnitte wird in `sections/*.tex` oder `appendices/*.tex` ausgeführt.
+4. Falls der Prüfer später doch eine Kürzung verlangt (T13-Ergebnis), kann die Liste dort
+   direkt abgearbeitet werden; bis dahin bleibt sie unverbindliche Vorbereitung.
+
+| Schritt | Kandidat (nur markiert, NICHT ausgeführt) | Erwartete Ersparnis |
 |---|---|---|
 | a | Preset-Laufzeiten nur 1× (in 7.5); 4.5 + 5.4 auf Querverweis | ~0,5 S. |
 | b | Maskenhierarchie-Detail nur in Grundlagen 3.1; 5.1 auf 3 Sätze | ~0,5 S. |
@@ -205,11 +222,11 @@ Vorgehen in dieser Reihenfolge (besteter Aufwand/Nutzen zuerst, **jeder Schnitt 
 | g | Redundanzen Diskussion 8.1–8.3 vs. Ergebnisse streichen | ~1–2 S. |
 | h | Duplikate Konzept 4.2 ↔ Implementierung 5.5 (Domänenkette) | ~1 S. |
 
-**Exposé-Gate:** Vor jedem Schnitt gegen `docs/Expose_PA_BA.pdf` prüfen, dass keine zugesagte
-Inhalte/Methodik verloren geht. Zweifel → nicht kürzen, stattdessen in Backlog.
+**Exposé-Gate:** entfällt im Markier-Modus (es wird nichts entfernt); bei späterer
+Aktivierung der Liste gilt es weiterhin vor jedem Schnitt.
 
-**DoD:** Haupttext ≤ ~30 Seiten; kein Zielrahmen-Inhalt (§2.1-Punkte) entfernt;
-Aussagenprüfung weiterhin deckungsgleich (Stichprobe: 10 zufällige Claims).
+**DoD:** Alle acht Kandidaten sind mit Stelle + Begründung markiert; `git diff` zeigt
+**keine** Änderung an `sections/`/`appendices/` durch T7; Seitenzahl unverändert.
 
 #### T8 · Kurzfassung (A2) 🟡 – 3 Ergebnissätze einfügen (Text wie in Bewertung To-do 8).
 #### T9 · Terminologie & Zahlen (A3/A4) 🟡
@@ -282,12 +299,19 @@ Wird laufend ergänzt; Aufnahme in die To-dos nur mit neuer Nummer + Priorität 
 
 ## 7. Entscheidungspunkte (brauchen deine Zustimmung, bevor Phase startet)
 
-| Nr | Frage | Empfehlung |
-|----|-------|------------|
-| D1 | Darf ich selbst git-committen (ein Commit pro To-do)? | Ja – sonst kann die Dokumentationskette (Commit↔Protokoll) nicht funktionieren |
-| D2 | Golden Run: `matrix_qualitaetsvergleich_20260818 / 5fps / 720p / opencv_a`? | Ja – entspricht Produktionskonfiguration, failed=0, 19 GB vollständig lokal |
-| D3 | Kürzungstiefe: konservativ (Schritte a–d, ~−2,5 S.) oder voll (a–h, ~−7 bis −10 S.)? | Voll – Richtwert 25 S. sonst unerreichbar; Exposé-Gate schützt vor Zuviel |
-| D4 | LoF/LoT vorn lassen (wie jetzt) oder hinter Literatur (THWS-Muster)? | Mit Prüfer klären (Teil von T13); bis dahin: unverändert |
+**Status: D1–D3 entschieden (23.08.2026), D4 bleibt offen bis Prüferklärung (T13).**
+
+| Nr | Frage | Empfehlung | Entscheidung |
+|----|-------|------------|--------------|
+| D1 | Darf ich selbst git-committen (ein Commit pro To-do)? | Ja – sonst kann die Dokumentationskette (Commit↔Protokoll) nicht funktionieren | ✅ **Ja, aber auf Branch `pa-fertigstellung`**, getrennt vom jetzigen Stand; Merge erst nach Phase F |
+| D2 | Golden Run: `matrix_qualitaetsvergleich_20260818 / 5fps / 720p / opencv_a`? | Ja – entspricht Produktionskonfiguration, failed=0, 19 GB vollständig lokal | ✅ **Ja** – genau dieser Arm wird Golden Run (T1) |
+| D3 | Kürzungstiefe: konservativ (Schritte a–d, ~−2,5 S.) oder voll (a–h, ~−7 bis −10 S.)? | Voll – Richtwert 25 S. sonst unerreichbar; Exposé-Gate schützt vor Zuviel | ❌ **Nein, weder noch: NICHT kürzen.** Text bleibt vollständig; die acht Kandidaten werden nur in der Arbeitsdatei markiert |
+| D4 | LoF/LoT vorn lassen (wie jetzt) oder hinter Literatur (THWS-Muster)? | Mit Prüfer klären (Teil von T13); bis dahin: unverändert | ⏳ **Offen** – unverändert bis Prüferantwort. Hinweis: D4 betrifft AUSSCHLIESSLICH die Position von Abbildungs-/Tabellenverzeichnis vs. Literatur; am Verhältnis Golden-Run-/Pipeline-Konfiguration (Auflösungsvarianten, Anhang-Vergleich) ändert sich nichts – das ist wie gewollt korrekt umgesetzt |
+
+**Klarstellung zum Missverständnis rund um D4:** Die Frage D4 hat nichts mit dem Golden Run
+oder den Auflösungseinstellungen zu tun. Der Sachverhalt „Golden-Run-Arm == Produktions-/Autopilot-
+Konfiguration, nur Auflösungen variieren, Vergleich im Anhang (`appendix_durchlauf.tex`)" ist
+so gewollt und wird nicht angetastet (bestätigt gegen Quelle am 23.08.2026).
 
 ---
 
@@ -301,7 +325,7 @@ Wird laufend ergänzt; Aufnahme in die To-dos nur mit neuer Nummer + Priorität 
 | T4 | Autopilot-Nachweis | 🔴 | B | 🔲 offen | – | – |
 | T5 | SuGaR-Versionen konsolidieren | 🔴 | A | 🔲 offen | – | – |
 | T6 | Deckblatt | 🔴 | F | 🔲 offen | – | – |
-| T7 | Kürzung | 🟡 | D | 🔲 offen | – | – |
+| T7 | Kürzung nur markieren (D3) | 🟡 | D | 🔲 offen | – | – |
 | T8 | Kurzfassung | 🟡 | D | 🔲 offen | – | – |
 | T9 | Terminologie/Zahlen | 🟡 | D | 🔲 offen | – | – |
 | T10 | Literatur/\nocite | 🟡 | D | 🔲 offen | – | – |
