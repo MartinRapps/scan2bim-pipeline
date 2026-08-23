@@ -127,6 +127,21 @@ unzitierte Quellen 3 statt 2. Baseline gilt ab jetzt als Referenz.
 - **Commit:** `T10: …`
 - **Rückwirkung:** Aussagenprüfung A6/A7 erledigt (bis auf LoF/LoT = D4 offen).
 
+## Nachtrag zu T9 – qHD-Korrektur (23.08.2026, Nutzerrückmeldung)
+- **Was & Warum:** Die Auflösungsbezeichnung „QHD“ war fachlich **falsch**: 960×540 ist
+  **qHD** (quarter HD, ein Viertel von 1920×1080), während QHD (Quad HD) 2560×1440
+  bezeichnet. In der Arbeitsfassung wurden daher **alle 26 Vorkommen** von `QHD`
+  (Fließtext, Tabellenköpfe, `\texttt{}`-Labels in 6 Dateien: `02_datengrundlage`,
+  `03_konzept`, `04_implementierung`, `06_ergebnisse`, `appendix_durchlauf`,
+  `appendix_matrix`) auf **qHD** umgestellt.
+- **Bewusst NICHT geändert:** Kleingeschriebene Pfade/Dateinamen (`qhd_panels`,
+  `Punktwolke_OpenCV_qhd.png` etc.) – sie referenzieren reale Dateien im Repository;
+  eine Umbenennung würde Abbildungspfade brechen.
+- **Verifikation:** `grep QHD` über sections+appendices+main.tex → 0 Treffer;
+  kleines `qhd` nur noch in Pfadbezügen; Build grün (Overfull=0, undefined=0).
+- **Planpflege:** Regel im Umsetzungsplan T9 und Baseline-Tabelle entsprechend
+  berücksichtigt; F8 in der Arbeitsdatei ergänzt.
+
 ## T12 – Overfull-Boxen
 - **Datum / Phase:** 23.08.2026 / Phase E
 - **Anker-Bezug:** Zielrahmen §7 (Abgabequalität); Bewertung To-do 12

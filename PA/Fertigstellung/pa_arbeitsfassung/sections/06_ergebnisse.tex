@@ -74,14 +74,14 @@ Befund und nicht als unabhängige Genauigkeitsmessung zu verstehen.
 Die Meshbilder zeigen eine entsprechende Übertragung der Unterschiede, weil
 die hier dargestellte Route~A das Mesh unmittelbar aus den STS-Splats ableitet.
 In den Detailansichten weist die niedrigste Auflösung die ungenaueste und
-zackigste Oberfläche mit mehreren Spitzen auf. Die \texttt{QHD}-Variante wirkt
+zackigste Oberfläche mit mehreren Spitzen auf. Die \texttt{qHD}-Variante wirkt
 in der betrachteten Ansicht überraschend glatt und insgesamt visuell am
 geschlossensten. Die \texttt{720p}-Variante erscheint dagegen besonders klar
 durch die Maskengrenze begrenzt: Aufgenommene Bereiche besitzen deutliche
 Kanten, ohne dass ein starkes Glätten oder Ausfransen entsteht. Dieses
 Ausfransen ist bei der \texttt{low}-Centerline am deutlichsten; sie enthält
 mehr Richtungswechsel und Ecken. Die Centerlines von \texttt{720p} und
-\texttt{QHD} unterscheiden sich visuell dagegen nur gering. Die Befunde sind
+\texttt{qHD} unterscheiden sich visuell dagegen nur gering. Die Befunde sind
 qualitativ und ersetzen keine Vermessung gegen eine unabhängige Centerline.
 
 \subsection{COLMAP-Voruntersuchung}
@@ -196,7 +196,7 @@ Produktionsentscheidung verwendet.
 
 Die Ergebnisse sind nicht monoton. 5 FPS liefern nicht in jeder Kombination
 den numerisch besten Wert, und Low-Auflösung ist nicht in jedem Modell besser
-als QHD. Die beobachteten Unterschiede entstehen daher wahrscheinlich aus
+als qHD. Die beobachteten Unterschiede entstehen daher wahrscheinlich aus
 einer Interaktion von Bildauflösung, zeitlicher Überdeckung, konkreter
 Kamerabewegung, Maskenstabilität, Kameramodell und STS-Optimierung. Ein
 isolierter Kausalnachweis für einen einzelnen Faktor liegt nicht vor.
@@ -211,7 +211,7 @@ der untersuchten Kameramodelle (29,62\,dB PSNR, 0,902 SSIM und 0,117 LPIPS;
 \texttt{SIMPLE\_RADIAL}: 29,43\,dB, 0,897 und 0,122); die
 Konfiguration ist über die archivierten Läufe reproduzierbar belegt. Die
 Umstellung bleibt dennoch eine datengestützte Projektentscheidung ohne
-unabhängige geometrische Referenz: Bei QHD liegt \texttt{SIMPLE\_RADIAL} mit
+unabhängige geometrische Referenz: Bei qHD liegt \texttt{SIMPLE\_RADIAL} mit
 28,32\,dB vor \texttt{OPENCV} (27,63\,dB), was die nichtmonotone Interaktion
 von Auflösung und Kameramodell unterstreicht. Der Standard gilt daher
 ausdrücklich für die Produktionsauflösung 720p bei 5 FPS.
@@ -235,7 +235,7 @@ auf zurückgehaltenen Bildkorrespondenzen. Ohne diese Referenz bleibt
 und kein messtechnisch validiertes Kameramodell.
 
 Für die drei Kameramodelle des Repeat-Laufs ergeben sich gemittelte Laufzeiten
-von rund 2011 Sekunden (720p), 1650 Sekunden (QHD) und 1199 Sekunden (low).
+von rund 2011 Sekunden (720p), 1650 Sekunden (qHD) und 1199 Sekunden (low).
 Diese Werte fließen in die Lauf-Preset-Abfrage
 des CLI ein (Kapitel~\ref{sec:implementierung}), mit der zwischen
 Bildauflösung und Rechenaufwand gewählt werden kann. Als reine Schrittzeiten
@@ -291,7 +291,7 @@ ohne Coarse-Optimierung erst im Projektverlauf ergänzend erprobt wurde
 Die zwölf Läufe der separaten Matrix
 \texttt{matrix\_sugar\_followup\_12} wurden vollständig ausgeführt. Je sechs
 Läufe entfielen auf \texttt{SIMPLE\_RADIAL} und \texttt{OPENCV}; beide
-Kameramodelle wurden bei 2 und 5 FPS sowie in 720p, QHD und Low getestet. Alle
+Kameramodelle wurden bei 2 und 5 FPS sowie in 720p, qHD und Low getestet. Alle
 zwölf Manifeste tragen den Status \texttt{success}. Damit sind Masken- und
 Domänenprüfung, STS-Training, SuGaR-Coarse-Mesh, SuGaR-Coarse-Rendering,
 objektmaskierte Metriken und Postprocessing für diese zwölf Konfigurationen
@@ -332,7 +332,7 @@ Einzelwerte einschließlich Ausreißern. In der Laufzeitgrafik ist die x-Achse
 auf 15--40 Minuten begrenzt und zeigt die Gesamtlaufzeit des archivierten
 Pipeline-Laufs. Grün und Lila kodieren STS und SuGaR-Coarse; kräftige und
 blasse Farbtöne kodieren 5 beziehungsweise 2 FPS. Kreis, Quadrat und Dreieck
-stehen für 720p, QHD und Low. Die Kamera wird über die Achsenbeschriftung
+stehen für 720p, qHD und Low. Die Kamera wird über die Achsenbeschriftung
 angegeben, nicht über eine zusätzliche SR-/OPENCV-Legende. Die separate Matrixstatusgrafik gehört
 nicht mehr zum PA-Anhang; der Status bleibt als Tabelle und Manifestinformation
 erhalten.
@@ -367,9 +367,9 @@ erhalten.
 
 Die Mittelwerte der beiden FPS-Profile liegen für
 \texttt{SIMPLE\_RADIAL/SuGaR-Coarse} bei 21,38 dB PSNR, 0,764 SSIM und 0,153
-LPIPS in 720p; bei QHD bei 21,69 dB, 0,761 und 0,141; bei Low bei 21,89 dB,
+LPIPS in 720p; bei qHD bei 21,69 dB, 0,761 und 0,141; bei Low bei 21,89 dB,
 0,752 und 0,126. Für \texttt{OPENCV/SuGaR-Coarse} ergeben sich 21,45 dB,
-0,764 und 0,153 in 720p; 21,62 dB, 0,764 und 0,137 in QHD sowie 21,81 dB,
+0,764 und 0,153 in 720p; 21,62 dB, 0,764 und 0,137 in qHD sowie 21,81 dB,
 0,749 und 0,126 in Low. Die Werte sind reine Ansichtsmetriken und werden
 nicht als Beleg einer besseren 3D-Geometrie interpretiert.
 

@@ -5,7 +5,7 @@
 Dieser Anhang zeigt die Zwischenstände eines vollständigen Pipeline-Durchlaufs
 für drei Auflösungen desselben Testdatensatzes (5~FPS, OPENCV-Kameramodell).
 Jede Zeile entspricht einer Zwischenstufe der Verarbeitung, jede Spalte einer
-Auflösung: links \texttt{720p}, in der Mitte \texttt{QHD} und rechts
+Auflösung: links \texttt{720p}, in der Mitte \texttt{qHD} und rechts
 \texttt{low}. Die Reihenfolge folgt dem Datenfluss der Pipeline. Als Eingabe
 dient das Videomaterial des Alurohr-Referenzdatensatzes; über den Prompt
 \texttt{pipe} wird das Zielobjekt promptbasiert segmentiert. Ab diesem
@@ -43,7 +43,7 @@ Schritt verzweigt der Pfad in die drei Spalten der Auflösungsvarianten.
 \noindent
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.4cm}>{\centering\arraybackslash}X>{\centering\arraybackslash}X>{\centering\arraybackslash}X@{}}
 \toprule
-Zwischenstufe & \textbf{\texttt{720p}} & \textbf{\texttt{QHD}} & \textbf{\texttt{low}}\\
+Zwischenstufe & \textbf{\texttt{720p}} & \textbf{\texttt{qHD}} & \textbf{\texttt{low}}\\
 \midrule
 Masken (Prüfpanels) &
 \durchlaufmasken{720p_Panels} &
@@ -53,7 +53,7 @@ Masken (Prüfpanels) &
 \end{tabularx}
 \par\vspace{3pt}
 \noindent\parbox{\linewidth}{\footnotesize\textit{Maskenprüfung bei
-\texttt{720p}, \texttt{QHD} und \texttt{low}. Je Auflösung sind die vier
+\texttt{720p}, \texttt{qHD} und \texttt{low}. Je Auflösung sind die vier
 Prüfzeitpunkte 00000, 00080, 00160 und 00239 untereinander dargestellt; jedes
 Panel zeigt das Originalbild, die überlagerte \texttt{middle}-Maske und den
 Objektausschnitt.}}
@@ -68,7 +68,7 @@ Objektausschnitt.}}
 \noindent
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.4cm}>{\centering\arraybackslash}X>{\centering\arraybackslash}X>{\centering\arraybackslash}X@{}}
 \toprule
-Zwischenstufe & \textbf{\texttt{720p}} & \textbf{\texttt{QHD}} & \textbf{\texttt{low}}\\
+Zwischenstufe & \textbf{\texttt{720p}} & \textbf{\texttt{qHD}} & \textbf{\texttt{low}}\\
 \midrule
 Punktwolken &
 \durchlaufbild{Screenshots/Pipline_Durchlauf/Punktwolke_OpenCV_720p.png} &
@@ -82,7 +82,7 @@ Punktwolken (Zoom) &
 \end{tabularx}
 \par\vspace{3pt}
 \noindent\parbox{\linewidth}{\footnotesize\textit{COLMAP-Punktwolken und vergrößerte Detailansichten
-bei \texttt{720p}, \texttt{QHD} und \texttt{low}.}}
+bei \texttt{720p}, \texttt{qHD} und \texttt{low}.}}
 \durchlauffooter
 \newpage
 
@@ -94,7 +94,7 @@ bei \texttt{720p}, \texttt{QHD} und \texttt{low}.}}
 \noindent
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.4cm}>{\centering\arraybackslash}X>{\centering\arraybackslash}X>{\centering\arraybackslash}X@{}}
 \toprule
-Zwischenstufe & \textbf{\texttt{720p}} & \textbf{\texttt{QHD}} & \textbf{\texttt{low}}\\
+Zwischenstufe & \textbf{\texttt{720p}} & \textbf{\texttt{qHD}} & \textbf{\texttt{low}}\\
 \midrule
 Splat (Opazität 9999) &
 \durchlaufbild{Screenshots/Pipline_Durchlauf/Splat_OpenCV_720p_9999opac.png} &
@@ -108,7 +108,7 @@ Mesh &
 \end{tabularx}
 \par\vspace{3pt}
 \noindent\parbox{\linewidth}{\footnotesize\textit{Splat- und Mesh-Zwischenstände bei
-\texttt{720p}, \texttt{QHD} und \texttt{low}.}}
+\texttt{720p}, \texttt{qHD} und \texttt{low}.}}
 \durchlauffooter
 \newpage
 
@@ -120,7 +120,7 @@ Mesh &
 \noindent
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.4cm}>{\centering\arraybackslash}X>{\centering\arraybackslash}X>{\centering\arraybackslash}X@{}}
 \toprule
-Zwischenstufe & \textbf{\texttt{720p}} & \textbf{\texttt{QHD}} & \textbf{\texttt{low}}\\
+Zwischenstufe & \textbf{\texttt{720p}} & \textbf{\texttt{qHD}} & \textbf{\texttt{low}}\\
 \midrule
 Mesh (ohne Nachbearbeitung) &
 \durchlaufbild{Screenshots/Pipline_Durchlauf/Splats_to_Mesh_720p_ugly.png} &
@@ -135,6 +135,6 @@ Centerline &
 \par\vspace{3pt}
 \noindent\parbox{\linewidth}{\footnotesize\textit{Unbearbeiteter Mesh-Rohstand und extrahiertes
 Linienelement (Centerline) als Endstufen der Pipeline bei \texttt{720p},
-\texttt{QHD} und \texttt{low}.}}
+\texttt{qHD} und \texttt{low}.}}
 \durchlauffooter
 \end{landscape}

@@ -86,7 +86,7 @@ Zweck: Jede spätere Behauptung „besser/gefixt" wird gegen Zahlen belegt, nich
 | Haupttext-Seitenzahl | letzte arabische Seite vor Anhang A in `pa.toc` | 39–40 |
 | Overfull-Boxen | `grep -c Overfull build/pa.log` | 4 |
 | Undefined Ref/Cites | `grep -iE 'undefined' build/pa.log \| wc -l` | 0 (muss 0 bleiben) |
-| Terminologie-Drift | `grep -rc 'SAM3' sections/` etc. (SAM3, qhd/QHD, SIMPLE-RADIAL-Varianten) | dokumentierte Ist-Zahlen |
+| Terminologie-Drift | `grep -rc 'SAM3' sections/` etc. (SAM3, qhd/QHD→qHD, SIMPLE-RADIAL-Varianten) | dokumentierte Ist-Zahlen |
 | Dezimalpunkte im Anhang A | `grep -c '\.' appendix_colmap.tex` | dokumentieren |
 | `\nocite`-Quellen ohne Zitat | manuelle Liste | scan2bimImplementation, matrixRestResults |
 | Widerspruchsstellen Maskenwarp | `grep -n 'Maskenwarp\|Warp' sections/*.tex appendices/*.tex` | 5 Fundstellen (U2) |
@@ -232,8 +232,10 @@ Aktivierung der Liste gilt es weiterhin vor jedem Schnitt.
 #### T8 · Kurzfassung (A2) 🟡 – 3 Ergebnissätze einfügen (Text wie in Bewertung To-do 8).
 #### T9 · Terminologie & Zahlen (A3/A4) 🟡
 
-- Globale Ersetzung mit `sed` über `sections/ appendices/`: SAM3→SAM~3.1, qhd→QHD,
-  `SIMPLE-RADIAL`→`SIMPLE\_RADIAL` (nur im Fließtext, nicht in Codebezügen!).
+- Globale Ersetzung mit `sed` über `sections/ appendices/`: SAM3→SAM~3.1,
+  QHD/qhd→**qHD** (quarter HD, 960×540 – NICHT „QHD“=Quad HD!; Korrektur 23.08.2026
+  auf Nutzerangabe), `SIMPLE-RADIAL`→`SIMPLE\_RADIAL` (nur im Fließtext, nicht in
+  Code-/Pfadbezügen wie `_qhd.png`, `qhd_panels` – dort bleibt Kleinschreibung!).
 - Anhang A: Punkte→Komma, `px`→`Pixel`, Tausenderpunkte.
 - PSNR-Format global festlegen (Empfehlung: 2 Nachkommastellen), SSIM/LPIPS 3.
 
@@ -241,7 +243,7 @@ Aktivierung der Liste gilt es weiterhin vor jedem Schnitt.
 
 ```bash
 grep -rn 'SAM3' PA/sections PA/appendices          # 0
-grep -rn 'qhd' PA/sections PA/appendices           # 0 (QHD erlaubt)
+grep -rn 'qhd' PA/sections PA/appendices           # 0 (qHD erlaubt; _qhd.png-Pfade ausgenommen)
 grep -rnE '[0-9]{6,}' PA/sections PA/appendices    # 0 (Tausendertrennung überall)
 grep -n '[0-9]\.[0-9][0-9] px' PA/appendices/appendix_colmap.tex  # 0
 ```
