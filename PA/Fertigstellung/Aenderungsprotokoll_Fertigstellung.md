@@ -111,3 +111,33 @@ unzitierte Quellen 3 statt 2. Baseline gilt ab jetzt als Referenz.
   Frame-Dateinamen (00000 etc.) bleiben unformatiert.
 - **Commit:** `T9: …`
 - **Rückwirkung:** Aussagenprüfung-Zeilen zu Terminologie damit abgehakt (A3/A4-Teil).
+
+## T10 – Literaturordnung + \nocite (A6/A7)
+- **Datum / Phase:** 23.08.2026 / Phase D
+- **Anker-Bezug:** Zielrahmen §3 (Reihenfolge), §5.4 (nur verwendete Quellen); Bewertung A6/A7
+- **Geänderte Dateien:** `pa_arbeitsfassung/main.tex`, `appendices/appendix_anlagenindex.tex`,
+  `appendices/appendix_matrix.tex`, `appendices/appendix_colmap.tex`
+- **Was & Warum:** `\printbibliography` vor `\appendix` gezogen (jetzt S. 41 vor Anhang A);
+  `\nocite` entfernt; stattdessen inhaltliche Zitate: `scan2bimImplementation` im
+  Anlagenindex-Absatz, `matrixRestResults` in Anhang B, `colmapProject` im COLMAP-Anhang.
+  **Befund abweichend zur Bewertung:** nicht 2, sondern **3** Quellen waren unzitiert
+  (`colmapProject` zusätzlich). LoF/LoT bleiben vorn – D4 offen (Prüferklärung steht aus).
+- **Verifikation:** Build grün; `grep nocite main.tex` = 0 Treffer; biber ohne undefined
+  citations; Literatur auf S. 41 vor Anhang A (S. 42) laut `pa_arbeit.toc`.
+- **Commit:** `T10: …`
+- **Rückwirkung:** Aussagenprüfung A6/A7 erledigt (bis auf LoF/LoT = D4 offen).
+
+## T12 – Overfull-Boxen
+- **Datum / Phase:** 23.08.2026 / Phase E
+- **Anker-Bezug:** Zielrahmen §7 (Abgabequalität); Bewertung To-do 12
+- **Geänderte Dateien:** `sections/02_grundlagen.tex` (2 Stellen),
+  `sections/06_ergebnisse.tex` (Kurzform für Bildunterschrift Abbildung 7)
+- **Was & Warum:** Größte Box (51 pt) durch umbruchunfähiges
+  `\texttt{ImageReader.single\_camera=1}` → auf brechbares `\path{}` umgestellt;
+  „Normalen/Rotationsquaternionen“ → „Normalen und Rotationsquaternionen“;
+  Langcaption der SuGaR-Panels bekam Kurzform für das Abbildungsverzeichnis;
+  Route-A-Satz leicht umformuliert. Ergebnis: **alle 5 Overfull-Boxen behoben**
+  (Baseline 5 → 0; DoD verlangte nur ≤ 2).
+- **Verifikation:** Neubuild; `grep -ac Overfull build/pa_arbeit.log` = 0; undefined = 0.
+- **Commit:** `T12: …`
+- **Rückwirkung:** keine Aussagenänderung, nur Satzumstellung/Grammatik.

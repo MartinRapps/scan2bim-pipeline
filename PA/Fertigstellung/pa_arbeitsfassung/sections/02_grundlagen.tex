@@ -58,7 +58,7 @@ Abschnitt~\ref{sec:produktionskonfiguration}.
 
 Die Modellbezeichnung ist dabei keine hinterlegte Objektivkalibrierung. Das
 Skript \texttt{run\_sfm.sh} übergibt COLMAP lediglich die Modellfamilie und mit
-\texttt{ImageReader.single\_camera=1} die Annahme eines gemeinsamen
+\path{ImageReader.single_camera=1} die Annahme eines gemeinsamen
 Kameramodells für alle Frames eines Laufs. Eine externe
 \texttt{camera\_params}-Datei oder eine Checkerboard-Kalibrierung wird nicht
 eingelesen. COLMAP initialisiert die Parameter intern und schätzt Brennweiten,
@@ -214,8 +214,8 @@ Trainingsplan werden diese späten DN-/SDF-Terme erst oberhalb des Zählerstands
 9000 aktiviert.
 
 Die Produktionsroute A überspringt die zusätzliche SuGaR-Coarse-Optimierung,
-das Gaussian-bound Refinement und das UV-Baking. Sie verwendet die
-Original-STS-Gaussians, die projizierte Diamond-Mesh-Tiefe\footnote{Die
+das Gaussian-bound Refinement und das UV-Baking. Sie verwendet
+Original-STS-Gaussians mit projizierter Diamond-Mesh-Tiefe\footnote{Die
 Diamond-Mesh-Tiefe wird aus der Projektion der SuGaR-``Diamond''-Primitive
 gewonnen: Diese flachen, an den Gaussians ausgerichteten Vierecksflächen
 werden in einen Z-Buffer projiziert, aus dem je Pixel eine Tiefe abgelesen
@@ -288,7 +288,7 @@ auf:
   \item \textbf{PLY-Dateien (\path{.ply}):} Das standardisierte Polygon File
         Format wird von Vanilla 3DGS und STS (\path{point_cloud.ply}) verwendet. Es
         speichert die Gaussian-Eigenschaften als Punktattribute (Positionen $x,y,z$,
-        Normalen/Rotationsquaternionen, Skalierungsfaktoren, Logit-Opazität und
+        Normalen und Rotationsquaternionen, Skalierungsfaktoren, Logit-Opazität und
         Spherical-Harmonics-Koeffizienten) und ist in externen Visualisierern (z.\,B.
         CloudCompare oder SuperSplat) direkt darstellbar.
   \item \textbf{PyTorch-Checkpoints (\path{.pt}):} SuGaR speichert
