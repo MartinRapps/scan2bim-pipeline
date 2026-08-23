@@ -141,3 +141,17 @@ unzitierte Quellen 3 statt 2. Baseline gilt ab jetzt als Referenz.
 - **Verifikation:** Neubuild; `grep -ac Overfull build/pa_arbeit.log` = 0; undefined = 0.
 - **Commit:** `T12: …`
 - **Rückwirkung:** keine Aussagenänderung, nur Satzumstellung/Grammatik.
+
+## T15 – Build-Hygiene
+- **Datum / Phase:** 23.08.2026 / Phase E
+- **Anker-Bezug:** Zielrahmen §7; Bewertung To-do 15
+- **Geänderte Dateien:** keine getrackten Dateien – Löschung von 11 ungetrackten
+  LaTeX-Leichen im PA-Root (`PA/main.{aux,bbl,bcf,blg,fdb_latexmk,fls,log,out,
+  run.xml,synctex.gz,toc}`); `build/` enthielt bereits nur noch `pa.*`-Artefakte.
+  Die im Bewertungsdokument genannten `*-SAVE-ERROR`/`pa_editetd*`-Dateien existieren
+  nicht mehr (vermutlich zwischenzeitlich entfernt).
+- **Was & Warum:** Nur ein Jobname (`pa`) im Original bzw. `pa_arbeit` in der
+  Arbeitsfassung; keine veralteten Neben-Jobs mehr.
+- **Verifikation:** `ls PA/main.*` zeigt nur `main.tex`; `git status` ohne Leichen.
+- **Commit:** `T15: …`
+- **Rückwirkung:** keine.
