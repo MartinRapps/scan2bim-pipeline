@@ -272,9 +272,44 @@ algorithmischer Glättungsparameter, der im Pipeline-Skript manuell einstellbar
 ist, und begründet keine metrische Genauigkeit. Die Anzahl der ausgegebenen
 Samples verändert nur die Diskretisierung der Kurve.
 
-\subsection{Objektmaskierte Bildmetriken}
+\subsection{Objektmaskierte Bildmetriken und Splat-Checkpoints}
 
-Die Bildmetriken werden objektmaskiert aggregiert. Für $N_M$ gültige
+Die Bildmetriken werden nicht auf dem Dreiecksnetz (Mesh), sondern auf den
+renderbaren 3D-Gaussian-Splatting-Repräsentationen ausgewertet. Dafür werden
+synthetische Ansichten für einen festen, beim Training ungesehenen Test-Kamerasplit
+(\path{eval_frames.txt}) gerendert und pixelweise mit den echten Referenzbildern
+verglichen.
+
+\subsubsection*{Splat-Serialisierung: PLY- versus PT-Dateien}
+
+In der Pipeline treten zwei verschiedene Speicherformate für Gaussian-Checkpoints
+auf:
+\begin{itemize}
+  \item \textbf{PLY-Dateien (\path{.ply}):} Das standardisierte Polygon File
+        Format wird von Vanilla 3DGS und STS (\path{point_cloud.ply}) verwendet. Es
+        speichert die Gaussian-Eigenschaften als Punktattribute (Positionen $x,y,z$,
+        Normalen/Rotationsquaternionen, Skalierungsfaktoren, Logit-Opazität und
+        Spherical-Harmonics-Koeffizienten) und ist in externen Visualisierern (z.\,B.
+        CloudCompare oder SuperSplat) direkt darstellbar.
+  \item \textbf{PyTorch-Checkpoints (\path{.pt}):} SuGaR speichert
+        Trainingszwischenstände der Coarse-Stufe standardmäßig als serialisiertes
+        PyTorch-\texttt{state\_dict} (z.\,B. \path{9000.pt}), da SuGaR als
+        \texttt{torch.nn.Module} implementiert ist.
+\end{itemize}
+
+Mathematisch und rendertechnisch sind beide Formate bei identischem Trainingsstand
+vollständig äquivalent: Beide kapseln dieselben 3D-Gaussian-Parameter
+($\boldsymbol{\mu}_i, \mathbf{S}_i, \mathbf{R}_i, \alpha_i$ und SH-Farbwerte) mit
+voller 32-Bit-Gleitkommapräzision. Ein Laden der Tensoren aus einer \path{.pt}-Datei
+in ein \path{SuGaR}-Modell liefert für dieselbe Kamera exakt dasselbe Pixelbild wie
+eine hypothetisch daraus exportierte, standardkonforme \path{.ply}-Datei. Unterschiede
+in den resultierenden Bildmetriken entstehen daher ausschließlich aus dem
+unterschiedlichen Trainingszustand der Gaussians (z.\,B. 7000 Iterationen STS
+gegenüber 9000 Iterationen SuGaR-Coarse-Optimierung), nicht aus dem Dateiformat.
+
+\subsubsection*{Berechnung der Metriken}
+
+Die Bildmetriken werden ausschließlich objektmaskiert aggregiert. Für $N_M$ gültige
 Maskenpixel und normierte RGB-Werte wird der kanalweise gemittelte maskierte
 mittlere quadratische Fehler als
 

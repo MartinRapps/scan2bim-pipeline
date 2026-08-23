@@ -277,8 +277,46 @@ bewusst nicht als quantitative Ergebnisreihe zu lesen.
 Die Panels zeigen insbesondere, dass ein funktionierendes STS-Rendering nicht
 selbstverständlich ist: Invertierte Splats, Floaters und maskeninkonsistente
 Zwischenstände traten auf, bevor die in Abschnitt~\ref{sec:implementierung}
-beschriebenen Quality-Gates (Masken-Coverage, fester Eval-Split,
-Renderkorrekturen) wirksam wurden.
+\subsection{Splat-Rendering und Generierung der Bildmetriken}
+
+Die Bildmetriken entstehen nicht im Nachgang aus dem extrahierten Dreiecksnetz,
+sondern werden über automatisierte Rendering-Skripte direkt aus den
+3D-Gaussian-Checkpoints auf dem festen Test-Split (\path{eval_frames.txt})
+erzeugt. Die Pipeline unterscheidet dabei drei getrennte Metrik-Dateien:
+
+\begin{enumerate}
+  \item \textbf{\path{metrics/sts_masked.json} (Original-STS / Route A):}\\
+        Nach Abschluss des STS-Curriculums (7000 Iterationen) wird der Standard-3DGS-
+        Checkpoint \path{point_cloud/iteration_7000/point_cloud.ply} geladen. Das
+        Skript \path{render_standard_splat} rendert die ungesehenen Test-Kameras;
+        anschließend berechnet \path{evaluate_masked_splat_metrics.py} die
+        objektmaskierten Werte für PSNR, SSIM und LPIPS gegen die Ground-Truth-Bilder.
+        Da Route~A das Mesh direkt aus diesem STS-Splat ohne weiteres Training
+        extrahiert, bildet diese Datei die photometrische Qualitätsmetrik für Route~A.
+  \item \textbf{\path{metrics/sugar_coarse_masked.json} (SuGaR-Coarse-Vergleich):}\\
+        In der SuGaR-Vergleichsroute optimiert das Coarse-Training ($c=9000$) die
+        Gaussians mit maskiertem RGB-Loss und Normalenkonsistenz und speichert das
+        Ergebnis als PyTorch-Checkpoint unter
+        \path{data/sugar_output/<run_tag>/coarse/9000.pt}. Das Skript
+        \path{src/python/render_sugar_checkpoint.py} lädt dieses \texttt{state\_dict}
+        in das \texttt{SuGaR}-Modell in Container~D und rendert denselben
+        Test-Kamerasplit. Die anschließende maskierte Auswertung schreibt
+        \path{sugar_coarse_masked.json}. Sie misst die Ansichtsqualität der durch
+        SuGaR veränderten Gaussian-Geometrie.
+  \item \textbf{\path{metrics/sugar_refined_masked.json} (SuGaR-Refined):}\\
+        Diese Datei ist für das Rendering eines verfeinerten, mesh-gebundenen Splats
+        (\path{refined.ply}) vorgesehen. Wurde im jeweiligen Lauf kein
+        \path{refined.ply} exportiert, schreibt der Matrixrunner ein explizites
+        \texttt{\{"status":"skipped","reason":"no refined.ply exported"\}}.
+\end{enumerate}
+
+Für das korrekte SuGaR-Rendering waren zwei technische Korrekturen in
+\path{render_sugar_checkpoint.py} notwendig: Erstens muss der SuGaR-Quellordner
+\path{/opt/sugar} vor dem Import von \texttt{sugar\_scene} explizit in den
+Python-Suchpfad (\texttt{sys.path}) eingefügt werden. Zweitens liefert der
+SuGaR-Rasterizer ein HWC-Tensorlayout, während \texttt{torchvision.utils.save\_image}
+ein CHW-Layout erwartet; die Hilfsfunktion \texttt{as\_chw()} normalisiert die
+Kanaldimension, um Tensorformfehler zu verhindern.
 
 \subsection{Meshrouten und kompatibler Export}
 

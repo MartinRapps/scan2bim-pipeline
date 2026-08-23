@@ -181,7 +181,8 @@ Vergleichbarkeit gelten die in dieser Arbeit ausgewerteten Läufe
 \subsection{Evaluationsprotokoll}
 
 Für jeden Lauf werden Masken- und Warp-Coverage sowie die COLMAP-Ausgaben
-archiviert. Hinzu kommen STS-Checkpoint, Mesh-/Postprocess-Ausgaben, feste
+archiviert. Hinzu kommen STS-Checkpoint (\path{point_cloud.ply}), gegebenenfalls
+SuGaR-Coarse-Checkpoint (\path{9000.pt}), Mesh-/Postprocess-Ausgaben, feste
 Eval-Frames und objektmaskierte PSNR-, SSIM- und LPIPS-Werte. Die Daten werden über
 \texttt{manifest.json}, \texttt{parameters.json}, \texttt{run.log} und
 \texttt{run.md} nachvollziehbar gehalten.
@@ -190,11 +191,15 @@ Die Matrixgrafiken verwenden den arithmetischen Mittelwert aus 2 und 5 FPS nur,
 wenn beide Läufe derselben Konfiguration vollständig erfolgreich waren. Ein
 technischer Fehler wird nicht als schlechter Qualitätswert in einen Mittelwert
 umgewandelt. Die neue Auswertung trennt zusätzlich die Modellstufen: Eine
-STS-Grafik liest ausschließlich die jeweiligen \texttt{sts\_masked.json}-Dateien,
-eine SuGaR-Grafik ausschließlich \texttt{sugar\_coarse\_masked.json}. Die
-\texttt{per\_frame}-Werte werden ergänzend als Boxplots mit Einzelpunkten
-dargestellt, damit Streuung und Ausreißer nicht durch den Mittelwert verborgen
-werden.
+STS-Grafik liest ausschließlich die aus \path{point_cloud.ply} gerenderten
+\texttt{sts\_masked.json}-Dateien (Route~A), eine SuGaR-Grafik ausschließlich die
+aus \path{9000.pt} gerenderten \texttt{sugar\_coarse\_masked.json}-Dateien. Da
+beide Formate dieselben 3D-Gaussian-Parameter speichern, beruht der Unterschied
+in den Messwerten (rund $29{,}5\,\mathrm{dB}$ gegenüber $21{,}5\,\mathrm{dB}$)
+rein auf den veränderten Gaussian-Parametern nach der SuGaR-Coarse-Optimierung und
+nicht auf dem Dateiformat. Die \texttt{per\_frame}-Werte werden ergänzend als
+Boxplots mit Einzelpunkten dargestellt, damit Streuung und Ausreißer nicht durch
+den Mittelwert verborgen werden.
 
 Ein Lauf erhält nur dann den Status vollständig erfolgreich, wenn alle für
 seine Route vorgesehenen Stufen gültig sind: Masken und Coverage,
