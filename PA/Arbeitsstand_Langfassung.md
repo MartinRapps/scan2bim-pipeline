@@ -90,3 +90,23 @@
 5. Kurzfassung zuletzt neu formulieren.
 6. Quellen- und Anlagenindex auditieren.
 7. Layout und Seitenumfang überprüfen.
+
+## Update Fertigstellung (23.08.2026, Branch `pa-fertigstellung`)
+
+Alle To-do-Änderungen erfolgen in der Arbeitskopie
+`PA/Fertigstellung/pa_arbeitsfassung/` (Original bleibt bis zum Abschluss
+unverändert); Protokollierung in `PA/Fertigstellung/Aenderungsprotokoll_Fertigstellung.md`.
+
+- Erledigt: T3 (Warp-Widerspruch auf Code-Wahrheit gebracht), T7 im Markier-Modus
+  (Kürzungskandidaten nur dokumentiert, D3), T8 (Kurzfassung mit Ergebnissen),
+  T9 (Terminologie/Zahlen; Pfadbezüge ausgenommen), T10 (Literatur vor Anhang,
+  `\nocite` durch echte Zitate ersetzt; LoF/LoT bleiben vorn wegen D4 offen),
+  T12 (alle Overfull-Boxen behoben, 5 → 0), T15 (Build-Leichen entfernt),
+  T13/T14 als Vorlagen in `PA/Fertigstellung/`.
+- Blockiert: T1/T4/T11 (Laufarchive extern, `data/10_runs/` nicht lokal),
+  T5 (SuGaR-Versionsdreieck: Submodul nicht initialisiert + Codeänderungen tabu),
+  T6 (Deckblattdaten warten auf Bestätigung, siehe T13-Checkliste Punkt 7).
+- Neuer Baselinestand Kopie-Build (`pa_arbeit`): Haupttext endet S. 40,
+  Literatur S. 41, 0 Overfull, 0 undefined.
+- Offene Diskrepanz für T16 markiert: QHD-SuGaR-Coarse-Mittelwert 21,69 dB im Text
+  vs. 21,59 dB in Anhang B – Klärung gegen Quelldaten erforderlich.

@@ -98,10 +98,26 @@ Umfang zustimmt).
 
 ## §4 Offene Punkte
 
-1. **D4** (LoF/LoT-Position): mit Prüfer klären, Teil der T13-Checkliste. Bis dahin unverändert.
+1. **D4** (LoF/LoT-Position): Frage ist in `T13_Pruefer_Checkliste.md` (Punkt 1) enthalten;
+   bis zur Antwort unverändert.
 2. **Archivzugriff** (F9): Wo liegen die `data/10_runs`-Archive aktuell physisch?
-   Für T1 (Panels) und T2 (Anlagenabgleich) notwendig.
-3. **T13/T14-Vorlagen**: erst nach Prüfer-Rückmeldung finalisieren (keine Eigenentscheidung).
+   Für T1 (Panels) und T4 (Run-IDs) notwendig.
+3. **T5-Versionsdreieck:** Submodul initialisieren + Fork committen + `SUGAR_REF` anpassen
+   – erfordert ausdrückliche Freigabe, Code zu berühren; danach Tex-Zeile 04_impl:97 ff.
+4. **Deckblatt (T6):** Bestätigung der offiziellen Angaben (T13-Checkliste Punkt 7) steht aus;
+   Platzhalter bleiben bewusst in Klammern, bis Daten verifiziert sind.
+5. **Zahlendiskrepanz für T16:** Text (`06_ergebnisse.tex:370`) nennt QHD-SuGaR-Coarse-
+   Mittelwert 21,69 dB; Anhang B sagt 21,59 dB (ursprünglich 21,586). Vor T9 bereits
+   vorhanden; Klärung gegen Quelldaten offen.
+
+### Umsetzungsstand nach To-do-Runde 1 (23.08.2026)
+
+Erledigt in der Arbeitsfassung: **T3, T7 (Markierliste §3), T8, T9, T10, T12 (5 → 0
+Overfull), T15, T13-/T14-Vorlagen.** Interim: T2. Blockiert: T1/T4/T11 (Archive extern),
+T5 (Code tabu + Submodul nicht initialisiert), T6 (Datenbestätigung), T16 (nach Golden Run).
+Details je To-do: `Aenderungsprotokoll_Fertigstellung.md`; Commitliste im Statusboard des
+`Umsetzungsplan_ToDos.md`. Kopie-Build `pa_arbeit`: Haupttext S. 40, Literatur S. 41,
+0 Overfull, 0 undefined.
 
 ---
 
@@ -110,3 +126,4 @@ Umfang zustimmt).
 | Datum | Änderung |
 |-------|----------|
 | 23.08.2026 | Erstellt: Entscheidungen D1–D4 festgehalten, Faktenstand gegen Quellen geprüft (F1–F10), Kürzungskandidaten gemäß D3 nur markiert |
+| 23.08.2026 | §4 erweitert: Umsetzungsstand nach To-do-Runde 1, neue offene Punkte (T5-Freigabe, Deckblattdaten, Zahlendiskrepanz) |

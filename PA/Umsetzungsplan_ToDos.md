@@ -35,7 +35,8 @@ Alles, was sich **nicht** auf einen Anker oder ein nummeriertes To-do zurückfü
 
 ### 1.1 Zentrales Änderungsprotokoll
 
-Neu angelegt: `PA/Aenderungsprotokoll_Fertigstellung.md`.
+Neu angelegt: `PA/Fertigstellung/Aenderungsprotokoll_Fertigstellung.md`
+(abweichend zur ursprünglichen Pfadangabe bewusst im Fertigstellungsordner).
 Ein Eintrag pro To-do, zwingend mit folgenden Feldern:
 
 ```
@@ -319,19 +320,19 @@ so gewollt und wird nicht angetastet (bestätigt gegen Quelle am 23.08.2026).
 
 | To-do | Titel | Kat | Phase | Status | Commit | Verifikation |
 |-------|-------|-----|-------|--------|--------|--------------|
-| T1 | Golden-Run-Panels | 🔴 | B | 🔲 offen | – | – |
-| T2 | Anlagenabgleich | 🔴 | C | 🔲 offen | – | – |
-| T3 | Warp-Widerspruch lösen | 🔴 | A | 🔲 offen | – | – |
-| T4 | Autopilot-Nachweis | 🔴 | B | 🔲 offen | – | – |
-| T5 | SuGaR-Versionen konsolidieren | 🔴 | A | 🔲 offen | – | – |
-| T6 | Deckblatt | 🔴 | F | 🔲 offen | – | – |
-| T7 | Kürzung nur markieren (D3) | 🟡 | D | 🔲 offen | – | – |
-| T8 | Kurzfassung | 🟡 | D | 🔲 offen | – | – |
-| T9 | Terminologie/Zahlen | 🟡 | D | 🔲 offen | – | – |
-| T10 | Literatur/\nocite | 🟡 | D | 🔲 offen | – | – |
-| T11 | Qualitätsvergleich integrieren | 🟡 | B/D | 🔲 offen | – | – |
-| T12 | Overfull | 🟡 | E | 🔲 offen | – | – |
-| T13 | Prüfer-Checkliste | 🟡 | F | 🔲 offen | – | – |
-| T14 | Vortragsgliederung | 🟡 | F | 🔲 offen | – | – |
-| T15 | Build-Hygiene | 🟡 | E | 🔲 offen | – | – |
-| T16 | Vollabgleich | 🟡 | F | 🔲 offen | – | – |
+| T1 | Golden-Run-Panels | 🔴 | B | 🔶 blockiert (Archive extern) | – | – |
+| T2 | Anlagenabgleich | 🔴 | C | 🔄 interim erledigt; Prüfsummen/extern offen | fd6c741 | Index ↔ lokale Realität abgeglichen |
+| T3 | Warp-Widerspruch lösen | 🔴 | A | ✅ erledigt (Arbeitsfassung) | 32415bb | Warp-Greps konsistent, Build grün |
+| T4 | Autopilot-Nachweis | 🔴 | B | 🔶 blockiert (Run-IDs extern) | – | – |
+| T5 | SuGaR-Versionen konsolidieren | 🔴 | A | 🔶 blockiert (Submodul nicht initialisiert; Code tabu) | – | – |
+| T6 | Deckblatt | 🔴 | F | 🔲 offen (wartet auf Datenbestätigung, T13 Pkt. 7) | – | – |
+| T7 | Kürzung nur markieren (D3) | 🟡 | D | ✅ erledigt (Liste in Arbeitsdatei §3, kein Textschnitt) | – | `git diff sections/` leer |
+| T8 | Kurzfassung | 🟡 | D | ✅ erledigt (Arbeitsfassung) | 9a1e6f6 | Zahlen belegt |
+| T9 | Terminologie/Zahlen | 🟡 | D | ✅ erledigt (Arbeitsfassung) | 8513d11 | DoD-Greps = 0 (Pfade ausgenommen) |
+| T10 | Literatur/\nocite | 🟡 | D | ✅ erledigt; D4 (LoF/LoT) weiter offen | 2c9a1e8 | Literatur S. 41 vor Anhang |
+| T11 | Qualitätsvergleich integrieren | 🟡 | B/D | 🔶 blockiert (Metrikdaten extern) | – | – |
+| T12 | Overfull | 🟡 | E | ✅ erledigt (5 → 0) | 157f7ad | Log-Grep = 0 |
+| T13 | Prüfer-Checkliste | 🟡 | F | ✅ Vorlage erstellt (inkl. D4-Frage) | c45d279 | Versand aussteht |
+| T14 | Vortragsgliederung | 🟡 | F | ✅ Vorlage erstellt | c45d279 | Panel folgt mit T1 |
+| T15 | Build-Hygiene | 🟡 | E | ✅ erledigt | c45d279 | PA/main.* entfernt |
+| T16 | Vollabgleich | 🟡 | F | 🔄 teilweise (Diskrepanz 21,69 vs. 21,59 dB markiert) | – | nach Golden Run final |
