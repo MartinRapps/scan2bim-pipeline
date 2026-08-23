@@ -178,15 +178,15 @@ Die deutlich niedrigeren SuGaR-Werte gegenüber den STS-Werten sind kein
 direkter Widerspruch. Die beiden Dateien beschreiben unterschiedliche
 Modellstufen: Der STS-Splat wird vor der zusätzlichen SuGaR-Optimierung und dem
 SuGaR-Rendering ausgewertet. Im vollständigen Repeat-Lauf beträgt der
-beispielhafte 5-FPS-720p-Wert für SIMPLE-RADIAL 29,431 dB PSNR, 0,897 SSIM und
-0,122 LPIPS im STS-Splat; der zugehörige SuGaR-Coarse-Wert beträgt 21,223 dB,
+beispielhafte 5-FPS-720p-Wert für SIMPLE\_RADIAL 29,43 dB PSNR, 0,897 SSIM und
+0,122 LPIPS im STS-Splat; der zugehörige SuGaR-Coarse-Wert beträgt 21,22 dB,
 0,778 SSIM und 0,151 LPIPS. Die Repeat-Grafiken verwenden diese getrennten
 Metrikdateien fachlich korrekt. Ältere STS-Baselines aus fehlgeschlagenen
 SuGaR-Routen bleiben historisch nachvollziehbar, werden aber nicht als
 SuGaR-Ergebnisse bezeichnet.
 
 In der jeweiligen Runauflösung zeigt OPENCV-A-Low bei 5 FPS besonders hohe
-Bildmetriken. Bei SIMPLE-RADIAL und OPENCV bezieht sich die Auswertung dabei
+Bildmetriken. Bei SIMPLE\_RADIAL und OPENCV bezieht sich die Auswertung dabei
 auf die ideale, gewarpte Bilddomäne; „jeweilige Runauflösung“ bezeichnet nur
 die Pixelauflösung innerhalb dieser Domäne. Dieser Befund ist ein
 Screening-Ergebnis. Niedrige Auflösung kann Kantenversatz und hochfrequente
@@ -211,13 +211,13 @@ der untersuchten Kameramodelle (29,62\,dB PSNR, 0,902 SSIM und 0,117 LPIPS;
 \texttt{SIMPLE\_RADIAL}: 29,43\,dB, 0,897 und 0,122); die
 Konfiguration ist über die archivierten Läufe reproduzierbar belegt. Die
 Umstellung bleibt dennoch eine datengestützte Projektentscheidung ohne
-unabhängige geometrische Referenz: Bei qhd liegt \texttt{SIMPLE\_RADIAL} mit
+unabhängige geometrische Referenz: Bei QHD liegt \texttt{SIMPLE\_RADIAL} mit
 28,32\,dB vor \texttt{OPENCV} (27,63\,dB), was die nichtmonotone Interaktion
 von Auflösung und Kameramodell unterstreicht. Der Standard gilt daher
 ausdrücklich für die Produktionsauflösung 720p bei 5 FPS.
 
 Eine nachträgliche Analyse des archivierten 720p-OPENCV-Sparse-Modells ergab
-240 registrierte Bilder, 133723 3D-Punkte, 890377 Beobachtungen und einen
+240 registrierte Bilder, 133.723 3D-Punkte, 890.377 Beobachtungen und einen
 mittleren Reprojektionsfehler von 0,706\,Pixel. Die entsprechenden Werte lagen
 bei \texttt{SIMPLE\_RADIAL} bei 0,707\,Pixel und bei \texttt{PINHOLE} bei
 0,705\,Pixel. Damit sind alle drei Modelle intern gut an die beobachteten
@@ -235,7 +235,7 @@ auf zurückgehaltenen Bildkorrespondenzen. Ohne diese Referenz bleibt
 und kein messtechnisch validiertes Kameramodell.
 
 Für die drei Kameramodelle des Repeat-Laufs ergeben sich gemittelte Laufzeiten
-von rund 2011 Sekunden (720p), 1650 Sekunden (qhd) und 1199 Sekunden (low).
+von rund 2011 Sekunden (720p), 1650 Sekunden (QHD) und 1199 Sekunden (low).
 Diese Werte fließen in die Lauf-Preset-Abfrage
 des CLI ein (Kapitel~\ref{sec:implementierung}), mit der zwischen
 Bildauflösung und Rechenaufwand gewählt werden kann. Als reine Schrittzeiten
@@ -255,10 +255,10 @@ resultierenden Meshgrößen.
 \toprule
 Variante & Eingang und Tiefenroute & Vertices & Faces\\
 \midrule
-A & Original-STS-GS, Diamond-Mesh-Z-Buffer & 68471 & 135164\\
-B & Original-STS-GS, Gaussian-Rasterizer-Tiefe & 63266 & 124976\\
-C & SuGaR-Coarse $c=9000$, Diamond-Mesh-Z-Buffer & 79711 & 156935\\
-D & SuGaR-Coarse $c=9000$, Gaussian-Rasterizer-Tiefe & 68618 & 135522\\
+A & Original-STS-GS, Diamond-Mesh-Z-Buffer & 68.471 & 135.164\\
+B & Original-STS-GS, Gaussian-Rasterizer-Tiefe & 63.266 & 124.976\\
+C & SuGaR-Coarse $c=9000$, Diamond-Mesh-Z-Buffer & 79.711 & 156.935\\
+D & SuGaR-Coarse $c=9000$, Gaussian-Rasterizer-Tiefe & 68.618 & 135.522\\
 \bottomrule
 \end{tabularx}
 \caption{Ergebnisse der Coarse-only-Vierfeld-Ablation bei identischen
@@ -267,7 +267,7 @@ Extraktionsparametern und Seed 42.}
 \end{table}
 
 A und B liegen großräumig auf derselben Objektgeometrie, sind aber nicht
-identisch. Gerichtete Mittelwerte aus jeweils 20000 gesampelten Punkten lagen
+identisch. Gerichtete Mittelwerte aus jeweils 20.000 gesampelten Punkten lagen
 bei etwa 1,08 beziehungsweise 0,90\,cm. Gegenüber A betrugen die gerichteten
 Mittelwerte für C etwa 1,79 und 3,39\,cm und für D etwa 1,96 und 2,73\,cm. Die
 größeren Gegenrichtungsabstände und die visuell stärkere Ausreißerstruktur der
@@ -360,17 +360,17 @@ erhalten.
   \centering
   \includegraphics[width=\textwidth]{metric_vs_runtime.pdf}
   \caption{Explorative Beziehung zwischen objektmaskierten Bildmetriken und
-  der Gesamtlaufzeit des archivierten Pipeline-Laufs. SAM3- und COLMAP-Wandzeit
+  der Gesamtlaufzeit des archivierten Pipeline-Laufs. SAM~3.1- und COLMAP-Wandzeit
   sind nur enthalten, wenn sie innerhalb des archivierten Laufs lagen.}
   \label{fig:pa-metric-runtime}
 \end{figure}
 
 Die Mittelwerte der beiden FPS-Profile liegen für
-\texttt{SIMPLE\_RADIAL/SuGaR-Coarse} bei 21,38 dB PSNR, 0,764 SSIM und 0,1534
-LPIPS in 720p; bei QHD bei 21,69 dB, 0,761 und 0,1407; bei Low bei 21,89 dB,
-0,752 und 0,1261. Für \texttt{OPENCV/SuGaR-Coarse} ergeben sich 21,45 dB,
-0,764 und 0,1531 in 720p; 21,62 dB, 0,764 und 0,1367 in QHD sowie 21,81 dB,
-0,749 und 0,1255 in Low. Die Werte sind reine Ansichtsmetriken und werden
+\texttt{SIMPLE\_RADIAL/SuGaR-Coarse} bei 21,38 dB PSNR, 0,764 SSIM und 0,153
+LPIPS in 720p; bei QHD bei 21,69 dB, 0,761 und 0,141; bei Low bei 21,89 dB,
+0,752 und 0,126. Für \texttt{OPENCV/SuGaR-Coarse} ergeben sich 21,45 dB,
+0,764 und 0,153 in 720p; 21,62 dB, 0,764 und 0,137 in QHD sowie 21,81 dB,
+0,749 und 0,126 in Low. Die Werte sind reine Ansichtsmetriken und werden
 nicht als Beleg einer besseren 3D-Geometrie interpretiert.
 
 Die \texttt{sugar\_coarse\_masked.json}-Dateien enthalten je nach FPS zwölf

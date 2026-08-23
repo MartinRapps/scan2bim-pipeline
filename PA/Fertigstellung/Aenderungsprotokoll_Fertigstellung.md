@@ -68,3 +68,46 @@ unzitierte Quellen 3 statt 2. Baseline gilt ab jetzt als Referenz.
   Metriken für den Kurzabschnitt (T11).
 - **Teil-Erledigung möglich sobald:** Archive lokal eingebunden oder Run-Manifeste
   (`run.md`, Metrik-JSONs) kopiert sind. Textgerüste können danach in einer Sitzung folgen.
+
+## T8 – Kurzfassung um Ergebnissätze ergänzen (A2)
+- **Datum / Phase:** 23.08.2026 / Phase D
+- **Anker-Bezug:** Zielrahmen §3.1 (Kurzfassung muss Ergebnisse enthalten); Bewertung To-do 8
+- **Geänderte Dateien:** `pa_arbeitsfassung/main.tex` (Abstract)
+- **Was & Warum:** Drei belegbare Ergebnissätze eingefügt: 240/240 registrierte Bilder;
+  12/12 Folgeläufe + 6 Autopilot-Volläufe + Qualitätsvergleichsbatch ohne Fehlerfall mit
+  Status `success`; Produktionskonfiguration OPENCV/5 FPS/720p/Route A mit 29,62 dB
+  objektmaskierter PSNR. Grenzsatz (kein geodätischer Genauigkeitsnachweis) bleibt erhalten.
+  Bewusst NICHT behauptet: „alle Matrixläufe erfolgreich“ (historische Batches hatten
+  dokumentierte Fehlfälle).
+- **Verifikation:** Alle genannten Zahlen gegen `06_ergebnisse.tex` (Zeilen 181, 209–212,
+  291–298) und Anhang B abgeglichen; Build grün.
+- **Commit:** `T8: …`
+- **Rückwirkung:** Aussagenprüfung §2.x Abstract-Bewertung damit teilweise erledigt (A2).
+
+## T9 – Terminologie & Zahlen vereinheitlichen (A3/A4)
+- **Datum / Phase:** 23.08.2026 / Phase D
+- **Anker-Bezug:** Zielrahmen §5.1 (Konsistenz), §5.2 (Messwerte); Bewertung A3/A4
+- **Geänderte Dateien:** `sections/03_konzept.tex`, `04_implementierung.tex`,
+  `05_versuchsaufbau.tex`, `06_ergebnisse.tex`, `07_diskussion.tex`, `08_fazit.tex`,
+  `appendices/appendix_colmap.tex`, `appendices/appendix_matrix.tex`, `appendices/appendix_repro.tex`
+- **Was & Warum:**
+  - `SAM3` → `SAM~3.1` (3 Stellen Fließtext)
+  - kleines `qhd` → `QHD` (7 Fließtext-Stellen); die 7 Vorkommen in
+    `\durchlaufbild/\durchlaufmasken`-Dateipfaden bewusst **nicht** geändert
+    (Abbildungspfade würden brechen) – dokumentierte Ausnahme zu DoD-Grep
+  - `SIMPLE-RADIAL` → `SIMPLE\_RADIAL` (4 Stellen)
+  - Anhang A: Dezimalpunkt→Komma, `px`→`Pixel`, Tausenderpunkte (139.449 etc.)
+  - Zahlenformat global: PSNR 2 Nachkommastellen (u. a. 21,223→21,22), SSIM/LPIPS 3
+    (Tabelle Anhang B und FPS-Mittelwerte 06_erg angepasst)
+  - Tausenderpunkte: 133.723/890.377, Mesh-Ablation-Tabelle, 20.000 Samples,
+    200.000/5.000.000 Parameterwerte
+- **Verifikation (Regression-Greps nach DoD):** SAM3=0; qhd im Fließtext=0 (nur Pfade);
+  SIMPLE-RADIAL=0; px-Muster colmap-Anhang=0; Build grün (Overfull=5, undefined=0).
+- **Befund nebenbei (für T16):** Text nennt QHD-SuGaR-Coarse-Mittelwert 21,69 dB
+  (`06_ergebnisse.tex:370`), Anhang-B-Tabelle sagt 21,59 dB (ursprünglich 21,586).
+  Diskrepanz bestand bereits vor T9; Klärung gegen Quelldaten (extern) nötig.
+- **Ausnahmen dokumentiert:** $\alpha=0{,}999999$ (exakte Technikkonstante),
+  Hash-Fragment `e254000…`, Batch-Datumsangaben in `\path{}` (20260812/20260818),
+  Frame-Dateinamen (00000 etc.) bleiben unformatiert.
+- **Commit:** `T9: …`
+- **Rückwirkung:** Aussagenprüfung-Zeilen zu Terminologie damit abgehakt (A3/A4-Teil).
