@@ -4,6 +4,14 @@ Die folgende Übersicht macht die für Nachvollziehbarkeit und Wiederholung
 relevanten Artefakte konkret auffindbar. Vor der Abgabe sind Commitstände,
 Dateigrößen und gegebenenfalls Prüfsummen zu ergänzen.
 
+Stand der Ablage (23.08.2026): Die Live-Arbeitsverzeichnisse unter
+\texttt{data/} werden zur Laufzeit erzeugt und sind nicht Bestandteil des
+Repositorys. Die dauerhaften Nachweise liegen in den Run-Archiven unter
+\texttt{data/10\_runs/}; diese sind derzeit extern archiviert
+(Arbeits-VM beziehungsweise V-Laufwerk) und werden vor der Abgabe mit
+Prüfsummen in diesem Index verankert. Grafikquellen, Berichte und Skripte
+liegen im Repository und wurden gegen den lokalen Bestand geprüft.
+
 \begin{longtable}{p{3.0cm}p{5.2cm}p{6.2cm}}
 \toprule
 Bereich & Pfad & Inhalt und Zweck\\
@@ -30,8 +38,12 @@ Grad-10-B-Spline.\\
 GIS & \texttt{data/08\_gis/} & Lokale oder explizit als Fallback markierte
 GeoJSON-/CSV-Ausgaben.\\
 Laufarchive & \texttt{data/10\_runs/} & Manifeste, Parameter, Logs, Metriken und
-Artefakte der Einzel- und Matrixläufe; insbesondere der vollständige
-Repeat-Batch \path{matrix_repeat_20260812}.\\
+Artefakte der Einzel- und Matrixläufe: Repeat-Batch \path{matrix_repeat_20260812},
+Folgematrix \path{matrix_sugar_followup_12}, historische Batches
+\path{matrix_full_pipe}/\path{matrix_rest}, sechs Autopilot-Volläufe
+\path{Alurohr_THWS_*} (18./20.08.2026) sowie der Qualitätsvergleichsbatch
+\path{matrix_qualitaetsvergleich_20260818}; extern archiviert, Prüfsummen folgen
+vor der Abgabe.\\
 Matrixgrafiken & \texttt{docs/grafiken/} & Repeat-basierte CSV mit getrennter
 Modellstufe sowie separate STS- und SuGaR-Coarse-Grafiken.\\
 COLMAP-Berichte & \texttt{docs/COLMAP\_Tests/} & Separate Sparse-SfM-
@@ -51,7 +63,9 @@ Container & \texttt{docker-compose.yml}, \texttt{docker/} & Reproduzierbare
 Laufzeitumgebungen der fünf Pipelinekomponenten.\\
 SuGaR-Fork & \texttt{third\_party/SuGaR/} & Lokaler Fork mit maskenbewusster
 Vergleichsroute und Extraktionskorrekturen; Parent-Gitlink, Checkout und
-Arbeitsbaumstand werden im Reproduzierbarkeitsmanifest festgehalten.\\
+Arbeitsbaumstand werden im Reproduzierbarkeitsmanifest festgehalten. Die
+Nebenprodukte der Folgeläufe liegen unter
+\path{third_party/SuGaR/data/sugar_output/matrix_matrix_sugar_followup_12_*}.\\
 \bottomrule
 \caption{Index der digitalen Anlagen und Ergebnisquellen.}
 \label{tab:anlagenindex}
