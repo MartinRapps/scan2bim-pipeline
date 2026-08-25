@@ -46,16 +46,27 @@ Der für die Vergleichsroute verwendete SuGaR-Stand ist kein unverändertes
 Vanilla-SuGaR. Er liegt als projektinterner Fork unter
 \path{third_party/SuGaR} und wurde als Git-Submodul in die Pipeline eingebunden.
 Die Erweiterungen sind funktionale Codeänderungen, nicht nur andere
-Startparameter. Der Grund dafür ist ein Zielkonflikt, der zunächst als
-Arbeitshypothese formuliert wurde: Eine auf das Objekt reduzierte
-Gaussian-Wolke würde bei einem unveränderten Full-Image-RGB-Loss weiterhin
-gegen Boden und Hintergrund optimiert. Die
-Geometrieeingabe und die Bildsupervision würden damit unterschiedliche
-Objektdefinitionen verwenden. Die maskenbewusste Fork-Variante war von Beginn
-der SuGaR-Vergleichsroute an eingebunden, nicht das Ergebnis einer späteren
-Nachrüstung; die anfänglich dokumentierten Ausfälle dieser Route betrafen den
-SuGaR-Renderpfad (Import- und Tensorlayoutfehler), nicht die
-Maskenbewusstheit des Trainings.
+Startparameter.
+
+Der Grund dafür liegt in einem grundlegenden Zielkonflikt der
+Standardimplementierung: In frühen Entwicklungstests mit unmodifiziertem
+Vanilla-SuGaR führte der unveränderte Full-Image-RGB-Loss dazu, dass das
+System eine bereits auf das Rohr reduzierte Punktwolke weiterhin gegen den
+gesamten Boden- und Wandhintergrund optimierte. Wie in
+Abbildung~\ref{fig:pa-panel-mesh} (Teilbild~2) dokumentiert, führte dieser
+Widerspruch zwischen 3D-Geometrie (nur Rohr) und 2D-Supervision (gesamtes
+Foto) zu massiven Floatern und seitlich in den Raum ragenden Dreiecksflügeln.
+
+Um 3D-Eingabe und 2D-Bildsupervision auf dieselbe Objektdefinition zu
+vereinheitlichen, wurde der SuGaR-Quellcode um einen maskierten
+Optimierungsverlust ($\mathcal{L}_{\mathrm{RGB}}^{M}$,
+Gleichung~\ref{eq:masked-rgb-loss}) erweitert. Für die standardisierte
+Versuchsmatrix war dieser maskenbewusste Fork von Beginn an als feste
+Vergleichsbasis integriert. Die in früheren Matrixläufen beobachteten Ausfälle
+dieser Route waren folglich keine Schwäche des maskierten Trainings, sondern
+ein rein technischer Fehler im nachgelagerten Renderpfad (Import- und
+Tensorlayoutfehler beim Erzeugen der Testansichten), der vor der finalen
+12er-Folgematrix behoben wurde.
 
 \begin{table}[H]
 \centering
@@ -134,10 +145,15 @@ und erzeugt keinen zweiten Bildbestand.\\
 gespeichert, damit bei OOM, leerer Maske oder ungeeignetem Prompt der beste
 Versuch ausgewählt werden kann. Nach der Auswahl sind diese Dateien für die
 Funktion nicht mehr nötig, aber als Diagnose wertvoll.\\
-Flache und hierarchische Masken & Ja & Die flache Maske dient als Auswahl- und
-Debugartefakt; \texttt{default}, \texttt{middle} und \texttt{small} bilden den
-STS-/SuGaR-Kompatibilitätsvertrag. Die Hierarchie ist semantisch nicht drei
-Inferenzläufe, sondern eine unveränderte Maske plus morphologische Ableitungen.\\
+\path{data/03_masks/} und \path{data/05_3dgs/multiview\_masks\_*} & Ja &
+Die flachen Masken in \path{data/03_masks/} sind die Primärdaten. Die
+\path{multiview_masks_*}-Ordner unter \path{05_3dgs} sind STS-spezifische
+Kompatibilitätskopien (Zuordnung zu Objekt-ID 000); STS liest daraus. Die
+\path{*_merged}-Verzeichnisse entstehen intern während der STS-Initialisierung
+und sind flüchtige Arbeitsdaten. Die Hierarchie (\texttt{default},
+\texttt{middle}, \texttt{small}) ist semantisch nicht drei Inferenzläufe,
+sondern eine unveränderte Maske plus morphologische Ableitungen (Dilatation
+und Erosion).\\
 \path{data/10_runs/} & Ja & Matrixläufe werden vollständig archiviert und vor
 dem nächsten Versuch vom Live-Workspace getrennt. Das ist Reproduzierbarkeit,
 keine zusätzliche Verarbeitung im Einzelrun.\\
@@ -149,9 +165,10 @@ keine zusätzliche Verarbeitung im Einzelrun.\\
 
 Die wichtigste physische Bildkopie entsteht somit nicht durch eine unnötige
 SAM-Optimierung, sondern durch die geometrische Neuberechnung in die ideale
-Bilddomäne. Sie kann später durch einen Cache, eine kontrollierte gemeinsame
-Workspace-Struktur oder eine virtuelle Remap-Schicht speichereffizienter
-organisiert werden. Eine solche Optimierung ist für die Funktion des aktuellen
+Bilddomäne. Sie ließe sich später speichereffizienter organisieren, etwa durch
+einen Cache oder eine kontrollierte gemeinsame Workspace-Struktur, in der die
+idealen Bilder ohne zweite physische Kopie bereitgestellt werden. Eine solche
+Optimierung ist für die Funktion des aktuellen
 Workflows nicht elementar: Würde sie die idealen Bilder oder den stabilen
 STS-Pfadvertrag entfernen, wären Kameras, Masken und Pixelkoordinaten nicht
 mehr konsistent.
@@ -252,8 +269,9 @@ bewusst nicht als quantitative Ergebnisreihe zu lesen.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{pa_panel_sts_entwicklung.png}
-  \caption{Historische STS-Entwicklung: von den ersten, teilweise invertiert
-  gerenderten Splats über Floaters und fehlerhafte Zwischenstände bis zu
+  \caption{Historische STS-Entwicklung: von ersten Fehlversuchen mit
+  invertierter Auswahl des segmentierten Trainings (Fehlorientierung im
+  Rendering) über Floaters und fehlerhafte Zwischenstände bis zu
   verlässlichen Objekt-Splats. Die Bildausschnitte stammen aus verschiedenen
   Entwicklungsständen (Juni bis Juli 2026) und untermauern die schrittweise
   Fixierung der STS-/Rendering-Datenverträge.}
@@ -269,9 +287,24 @@ bewusst nicht als quantitative Ergebnisreihe zu lesen.
   \label{fig:pa-panel-mesh}
 \end{figure}
 
-Die Panels zeigen insbesondere, dass ein funktionierendes STS-Rendering nicht
-selbstverständlich ist: Invertierte Splats, Floaters und maskeninkonsistente
-Zwischenstände traten auf, bevor die in Abschnitt~\ref{sec:implementierung}
+Das STS-Panel (Abbildung~\ref{fig:pa-panel-sts}) zeigt den historischen
+Entwicklungsweg des Renderings: Die Teilbilder 2 bis 4 dokumentieren Floater
+und die Probleme ohne die später eingeführte Farbfilterung; Teilbild 5 belegt,
+dass auch bei passender Segmentierung eine schlechte Aufnahme noch immer
+problematische Splats erzeugen kann. Das Mesh-Panel
+(Abbildung~\ref{fig:pa-panel-mesh}) dokumentiert entsprechend die Meshroute:
+Teilbild 1 und 2 zeigen, wie sich SuGaR vor dem Fork verhielt und warum der
+maskenbasierte Verlust nötig wurde. Teilbild 3 entstand aus einem fälschlich
+übergebenen Splat, der direkt in ein Mesh umgewandelt wurde und extrem viele
+Floater hinterließ. Teilbild 4 stammt von der zuerst erprobten
+SuGaR-Coarse-Variante mit Zielzähler 15.000 und bewusst deaktivierter
+DN-Consistency -- die lang gezogenen Strukturen entstanden dort jedoch durch
+die falsche Übergabe und die fehlende Maskenbasiertheit beziehungsweise die
+RGB-lastige Supervision, nicht durch die Route selbst. Die Teilbilder 5 und 6
+zeigen einen Vergleich perfekt segmentierter Splats, Teilbild 7 die
+zugehörige Punktwolke. Insgesamt belegen beide Panels, dass ein
+funktionierendes STS-Rendering nicht selbstverständlich ist und welche
+Fehlerbilder die heutigen Quality-Gates ausschließen.
 \subsection{Splat-Rendering und Generierung der Bildmetriken}
 
 Die Bildmetriken entstehen nicht im Nachgang aus dem extrahierten Dreiecksnetz,
@@ -283,9 +316,11 @@ erzeugt. Die Pipeline unterscheidet dabei drei getrennte Metrik-Dateien:
   \item \textbf{\path{metrics/sts_masked.json} (Original-STS / Route A):}\\
         Nach Abschluss des STS-Curriculums (7000 Iterationen) wird der Standard-3DGS-
         Checkpoint \path{point_cloud/iteration_7000/point_cloud.ply} geladen. Das
-        Skript \path{render_standard_splat} rendert die ungesehenen Test-Kameras;
-        anschließend berechnet \path{evaluate_masked_splat_metrics.py} die
-        objektmaskierten Werte für PSNR, SSIM und LPIPS gegen die Ground-Truth-Bilder.
+        Skript \path{render_standard_splat} rendert die Ansichten des festen
+        Eval-Splits -- also Kameras, deren Bilder nicht im Training enthalten
+        waren; anschließend berechnet \path{evaluate_masked_splat_metrics.py} die
+        objektmaskierten Werte für PSNR, SSIM und LPIPS gegen diese
+        Ground-Truth-Bilder.
         Da Route~A das Mesh direkt aus diesem STS-Splat ohne weiteres Training
         extrahiert, bildet diese Datei die photometrische Qualitätsmetrik für Route~A.
   \item \textbf{\path{metrics/sugar_coarse_masked.json} (SuGaR-Coarse-Vergleich):}\\

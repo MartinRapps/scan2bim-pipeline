@@ -36,26 +36,26 @@
 
 | Nr | S. | Maßnahme | Status |
 |----|----|----------|--------|
-| K2-01 | 8 | Eigenleistung präzisieren: eigene Maskenlogik (dilation/erosion → EIN segmentiertes Objekt statt SAM2+CLIP-Multiobjekt); SAM~3.1-Speedup mit Meta-Blog-Quelle belegen | 🔲 |
-| K2-02 | 10 | Produkte bewerten: B-Spline = Produkt; CSV ohne Eigenaussage (raus); Gaussians+Mesh wichtige Produkte (georeferenzierbar, ESRI-Suite) | 🔲 |
-| K2-03 | 10 | GCP-Dateien: „nur Approximationen der Wirklichkeit, erstellt/verwendet zum Testen der Transformation“ | 🔲 |
-| K2-04 | 11 | Konditionierungssatz durch Nutzerformulierung ersetzen (Freiheitsgrade/Merkmalverteilung/Overfitting) | 🔲 |
-| K2-05 | 12 | Iterationssatz durch Nutzerformulierung ersetzen (5000+2000, Trainingsfortführung) | 🔲 |
-| K2-06 | 12 | STS ↔ SuGaR sauber trennen bei „maskennutzenden Verlustpfaden des Coarse-Trainings“ (SuGaR!) | 🔲 |
-| K2-07 | 14 | Kompletter Neuer SuGaR-/Loss-Block: Nutzer-Langfassung (Poisson-Fußnote kazhdan2006poisson, maskierter RGB-Verlust Gl. eq:masked-rgb-loss, M(p), ε=10⁻⁷, DN erst >9000) ersetzt alten Absatz | 🔲 |
-| K2-08 | 15 | MSE-Formel: I und Î definieren (gerendertes vs. Ground-Truth-Bild am Pixel p) | 🔲 |
-| K2-09 | 20 | Fork-Abschnitt 5.2 komplett neu nach Nutzervorlage (Zielkonflikt, Teilbild 2, Renderpfad-Fehler vs. maskiertes Training) – integriert K2-06/S.20a | 🔲 |
-| K2-10 | 22 | Maskenablagen umformulieren nach Nutzervorlage (03_masks Primärdaten, multiview_masks_* = STS-Kompatibilitätskopien Objekt-ID 000, *_merged flüchtig) | 🔲 |
-| K2-11 | 25 | Panel-Beschreibung vervollständigen (Satz fertigstellen + Bilder 2–7 einzeln erklären: Floater/Farbfilterung, schlechte Aufnahme, Sugar vor Fork, falsch übergebener Splat, 15k-Coarse ohne DN, perfektes Segment → Splat → Punktwolke) | 🔲 |
-| K2-12 | 25 | „Invertierte Splats“ korrigieren: Auswahl des segmentierten Trainings war invertiert (Fehlorientierung des Bildes), nicht die Splats | 🔲 |
-| K2-13 | 25 | „ungesehene Test-Kameras“ → „nicht im Training enthaltene Splats/Kameras“ präzisieren | 🔲 |
-| K2-14 | 45 | Auflösungsvergleich „idiotensicher“ ergänzen: Downsampling=Tiefpass (Hochfrequenzfehler weg), mm-pro-Pixel-Argument für BIM/Vermessung, Konsequenz: gepaarter Vergleich innerhalb derselben Auflösung, keine Rangliste | 🔲 |
+| K2-01 | 8 | Eigenleistung präzisieren: eigene Maskenlogik (dilation/erosion → EIN segmentiertes Objekt statt SAM2+CLIP-Multiobjekt); SAM~3.1-Speedup mit Meta-Blog-Quelle belegen | ✅ |
+| K2-02 | 10 | Produkte bewerten: B-Spline = Produkt; CSV ohne Eigenaussage (raus); Gaussians+Mesh wichtige Produkte (georeferenzierbar, ESRI-Suite) | ✅ |
+| K2-03 | 10 | GCP-Dateien: „nur Approximationen der Wirklichkeit, erstellt/verwendet zum Testen der Transformation“ | ✅ |
+| K2-04 | 11 | Konditionierungssatz durch Nutzerformulierung ersetzen (Freiheitsgrade/Merkmalverteilung/Overfitting) | ✅ |
+| K2-05 | 12 | Iterationssatz durch Nutzerformulierung ersetzen (5000+2000, Trainingsfortführung) | ✅ |
+| K2-06 | 12 | STS ↔ SuGaR sauber trennen bei „maskennutzenden Verlustpfaden des Coarse-Trainings“ (SuGaR!) | ✅ |
+| K2-07 | 14 | Kompletter Neuer SuGaR-/Loss-Block: Nutzer-Langfassung (Poisson-Fußnote kazhdan2006poisson, maskierter RGB-Verlust Gl. eq:masked-rgb-loss, M(p), ε=10⁻⁷, DN erst >9000) ersetzt alten Absatz | ✅ |
+| K2-08 | 15 | MSE-Formel: I und Î definieren (gerendertes vs. Ground-Truth-Bild am Pixel p) | ✅ |
+| K2-09 | 20 | Fork-Abschnitt 5.2 komplett neu nach Nutzervorlage (Zielkonflikt, Teilbild 2, Renderpfad-Fehler vs. maskiertes Training) – integriert K2-06/S.20a | ✅ |
+| K2-10 | 22 | Maskenablagen umformulieren nach Nutzervorlage (03_masks Primärdaten, multiview_masks_* = STS-Kompatibilitätskopien Objekt-ID 000, *_merged flüchtig) | ✅ |
+| K2-11 | 25 | Panel-Beschreibung vervollständigen (Satz fertigstellen + Bilder 2–7 einzeln erklären: Floater/Farbfilterung, schlechte Aufnahme, Sugar vor Fork, falsch übergebener Splat, 15k-Coarse ohne DN, perfektes Segment → Splat → Punktwolke) | ✅ |
+| K2-12 | 25 | „Invertierte Splats“ korrigieren: Auswahl des segmentierten Trainings war invertiert (Fehlorientierung des Bildes), nicht die Splats | ✅ |
+| K2-13 | 25 | „ungesehene Test-Kameras“ → „nicht im Training enthaltene Splats/Kameras“ präzisieren | ✅ |
+| K2-14 | 45 | Auflösungsvergleich „idiotensicher“ ergänzen: Downsampling=Tiefpass (Hochfrequenzfehler weg), mm-pro-Pixel-Argument für BIM/Vermessung, Konsequenz: gepaarter Vergleich innerhalb derselben Auflösung, keine Rangliste | ✅ |
 
 ## K3 – Code-Verifikation + freigegebene Änderungen
 
 | Nr | S. | Maßnahme | Status |
 |----|----|----------|--------|
-| K3-01 | 15 | .pt/.ply-Rendering-Äquivalenz im SuGaR-Fork verifizieren (Code lesen) und Aussage belegen oder abschwächen | 🔲 |
+| K3-01 | 15 | .pt/.ply-Rendering-Äquivalenz im SuGaR-Fork verifizieren (Code lesen) und Aussage belegen oder abschwächen | ✅ |
 | K3-02 | 18/23 | `--from`-Dispatcher: Warp-Stufe ergänzen (FREIGEGEBEN, pipeline_lib.sh) oder dokumentieren; Tex anpassen (auch S.23d „ebenso fraglich ob abgeändert“) | 🔲 |
 | K3-03 | 19 | Autopilot-Preset-Logik im Code prüfen: gewähltes Preset respektiert? Tex korrigieren | 🔲 |
 | K3-04 | 22a | attempts/Fallback-Logik: Argumente sammeln, Empfehlung geben, Text anpassen | 🔲 |
@@ -73,7 +73,7 @@
 
 | Nr | S. | Maßnahme | Status |
 |----|----|----------|--------|
-| K4-01 | 16 | SSIM-Block erweitern: 11×11 = Literaturstandard Wang et al. (2004) (+cite), Randpixel-Rechnung (40 px Rohr ≈ 12 % Rand bei 720p, 20 px ≈ 25 % bei Low), PSNR/SSIM nur im jeweiligen Pixelgitter | 🔲 |
+| K4-01 | 16 | SSIM-Block erweitern: 11×11 = Literaturstandard Wang et al. (2004) (+cite), Randpixel-Rechnung (40 px Rohr ≈ 12 % Rand bei 720p, 20 px ≈ 25 % bei Low), PSNR/SSIM nur im jeweiligen Pixelgitter | ✅ |
 | K4-02 | 16 | UTM/Translation-Frage beantworten und Text schärfen: lokale Transformation gültig; Translation auf UTM nachträglich addierbar, solange Rotation/Skalierung unverändert – vorsichtig formulieren | 🔲 |
 | K4-03 | 28 | COLMAP-Voruntersuchung: Verweis auf Tabelle im Anhang A ergänzen | 🔲 |
 | K4-04 | 32 | SIFT/Guided-Matching-Interpretation ehrlich formulieren (Merkmalslimit erklärt identische Punktzahl; Guided Matching fügt schwerere Matches hinzu → Reprojektionsfehler kann steigen; kein Widerspruch) | 🔲 |

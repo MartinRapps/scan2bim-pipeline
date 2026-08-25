@@ -67,17 +67,20 @@ kurze Stachel-Äste erzeugen. Der produktive \texttt{single}-Modus reduziert
 deshalb die größte zusammenhängende Skelettkomponente auf ihren
 Durchmesserpfad.
 
-Das primäre analytische Produkt der PA ist die lokale Centerline. Masken,
-COLMAP-Modell, STS-Gaussians und Mesh sind notwendige und diagnostisch wichtige
-Zwischenprodukte. CSV-, B-Spline- und GeoJSON-Dateien werden ebenfalls erzeugt,
-aber wegen der noch fehlenden unabhängigen Transformations- und
-Vermessungsreferenz nicht als global genaue Endprodukte bewertet.
+Produkte der PA sind die lokale Centerline und der Grad-10-B-Spline. Auch die
+STS-Gaussians und das Mesh sind wichtige Produkte, besonders weil sie später
+georeferenziert und beispielsweise in der ESRI-Suite verwendet werden können.
+Masken und COLMAP-Modell sind dagegen notwendige und diagnostisch wichtige
+Zwischenprodukte. Die GeoJSON-Dateien werden ebenfalls erzeugt, aber wegen der
+noch fehlenden unabhängigen Transformations- und Vermessungsreferenz nicht als
+global genaue Endprodukte bewertet.
 
 \subsection{Referenzlage und Aussagegrenzen}
 
 Für den aktuellen Testdatensatz liegt keine unabhängig eingemessene
-GNSS-Referenzkurve vor. Vorhandene GCP-Dateien bilden nur einen synthetischen
-beziehungsweise lokalen Test der Dateiverträge. Fehlt eine validierte
+GNSS-Referenzkurve vor. Vorhandene GCP-Dateien sind Approximationen der
+Wirklichkeit; sie wurden ausschließlich erstellt und verwendet, um die
+Transformation selbst zu testen. Fehlt eine validierte
 4x4-Ähnlichkeitstransformation, kann die Pipeline einen explizit bezeichneten
 Translation-Fallback ausführen. Dieser prüft den Exportpfad, aber weder Rotation
 und Maßstab noch Lage- und Höhengenauigkeit.

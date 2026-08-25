@@ -49,7 +49,15 @@ monotone Beziehung zu FPS oder Auflösung, siehe
 Abschnitt~\ref{sec:visueller-aufloesungsvergleich}).
 
 Die nativen Bildmetriken werden in unterschiedlichen Pixelräumen berechnet.
-Downsampling kann Bildfehler und Maskengrenzen mitteln. Ein strengerer
+Downsampling wirkt dabei wie ein Tiefpassfilter: Feine Hochfrequenzfehler wie
+Metallreflexionen oder feine Kantenverschiebungen werden beim Herunterrechnen
+weggeglättet, sodass Low-Auflösung künstlich höhere Werte erreichen kann. Für
+BIM und Vermessung ist 720p trotzdem überlegen: Ein Pixel im 720p-Bild
+entspricht in der realen Welt nur wenigen Millimetern, während ein Pixel in
+Low einen deutlich größeren realen Lagefehler darstellt. Die Konsequenz ist
+zweifach: Auflösungen dürfen nicht in einer globalen Rangliste verglichen
+werden; belastbar sind nur gepaarte Vergleiche von STS gegen SuGaR innerhalb
+derselben Auflösung. Ein strengerer
 Auflösungsvergleich müsste alle Renderings auf eine gemeinsame Zielauflösung
 und identische Eval-Views bringen. Die derzeitige Matrix ist deshalb ein
 Engineering-Screening.
