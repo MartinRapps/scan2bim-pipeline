@@ -110,14 +110,14 @@
 
 | Nr | S. | Maßnahme | Status |
 |----|----|----------|--------|
-| K6-01 | 39a | pa_panel_sugar_iteration.png NEU bauen (Skript unter PA/Fertigstellung/, kein Pipeline-Code); 9200er konsistent als 9001, OHNE Dateinamen-Disclaim; Caption + Einordnung „historische Entwicklung“ | 🔲 |
+| K6-01 | 39a | pa_panel_sugar_iteration.png NEU gebaut (9001 konsistent, ohne Disclaim) (Skript unter PA/Fertigstellung/, kein Pipeline-Code); 9200er konsistent als 9001, OHNE Dateinamen-Disclaim; Caption + Einordnung „historische Entwicklung“ | ✅ |
 
 ## K7 – KI-Dokumentation
 
 | Nr | S. | Maßnahme | Status |
 |----|----|----------|--------|
-| K7-01 | 68 | Anhang G im PDF → Kurzverweis auf separate Anlage | 🔲 |
-| K7-02 | 68 | Neues Dokument `Anlage_KI-Nutzung.md`: Bereiche (Code-Erstellung/Refactoring, Vorgehen/Sparring, Text, Debugging/Auswertung, Grafikskripte), je Bereich Beispiel-Prompts + Übernahmebeschreibung; Werkzeuge: opencode + VS Code (aktuelle Versionen), LLM-Wahl je nach Aufgabenkomplexität/Kosten; Zeitraum Juni–Aug 2026 | 🔲 |
+| K7-01 | 68 | Anhang G im PDF → Kurzverweis auf separate Anlage | ✅ |
+| K7-02 | 68 | Neues Dokument `Anlage_KI-Nutzung.md`: Bereiche (Code-Erstellung/Refactoring, Vorgehen/Sparring, Text, Debugging/Auswertung, Grafikskripte), je Bereich Beispiel-Prompts + Übernahmebeschreibung; Werkzeuge: opencode + VS Code (aktuelle Versionen), LLM-Wahl je nach Aufgabenkomplexität/Kosten; Zeitraum Juni–Aug 2026 | ✅ |
 
 ## K8 – Abschluss
 
