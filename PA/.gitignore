@@ -1,6 +1,6 @@
 build/*
 !build/.gitkeep
-pa_arbeitsfassung/build/*
+Fertigstellung/pa_arbeitsfassung/build/*
 *.aux
 *.bcf
 *.blg
