@@ -1,14 +1,21 @@
-\section{Optionaler Anhang: Matrix- und Robustheitstests}
+\section{Optionaler Anhang: Matrix-Status und Auswertungsregeln}
 
 Die Matrix ist ein kontrollierter Screening-Versuch, kein vollständiger
 Vermessungsnachweis. Die historische STS-Auswertung umfasst den Batch
 \texttt{matrix\_full\_pipe} und den Folge-Batch \texttt{matrix\_rest}
-\parencite{matrixRestResults}. Die
-sechs A-Läufe des ersten Batches werden als bereits ausgeführte Referenz
-markiert; im Folge-Batch wurden PINHOLE und OPENCV als Original-GS-Ablationen
-bei 2 und 5 FPS sowie drei Auflösungen getestet. Die SuGaR-Coarse-Auswertung
-steht als separate, inzwischen abgeschlossene Folgematrix
-\texttt{matrix\_sugar\_followup\_12} daneben.
+\parencite{matrixRestResults}. Die sechs A-Läufe des ersten Batches werden als
+bereits ausgeführte Referenz markiert; im Folge-Batch wurden PINHOLE und
+OPENCV als Original-GS-Ablationen bei 2 und 5 FPS sowie drei Auflösungen
+getestet. Die SuGaR-Coarse-Auswertung steht als separate, inzwischen
+abgeschlossene Folgematrix \texttt{matrix\_sugar\_followup\_12} daneben; ihre
+Ergebnistabellen und Grafiken liegen im Haupttext
+(Abschnitt~\ref{sec:sugar-folgepruefung}).
+
+Die sechs historischen SuGaR-Coarse-Läufe des Batches
+\texttt{matrix\_rest} besitzen teilweise eine STS-Baseline-Metrik, sind aber
+wegen des damaligen technischen Importfehlers im SuGaR-Render-Helfer nicht als
+erfolgreiche SuGaR-Ergebnisse zu werten. Die Statusauswertung trennt daher
+technische Vollständigkeit und vorhandene Zwischenmetriken.
 
 \begin{table}[H]
 \centering
@@ -23,119 +30,19 @@ Gesamt & 24 & 16 & 8\\
 \bottomrule
 \end{tabular}
 \caption{Status der für die PA zusammengeführten Matrixbatches.}
+\label{tab:matrix-status}
 \end{table}
 
-Die sechs historischen SuGaR-Coarse-Läufe des Batches
-\texttt{matrix\_rest} besitzen teilweise eine STS-Baseline-Metrik, sind aber
-wegen des damaligen technischen Importfehlers im SuGaR-Render-Helfer nicht als
-erfolgreiche SuGaR-Ergebnisse zu werten. Die Statusauswertung trennt daher
-technische Vollständigkeit und vorhandene Zwischenmetriken. Die vollständige
-STS-Übersicht liegt in
-\path{docs/grafiken/matrix_repeat_2026-08-17/sts_masked_overview.pdf};
-die getrennte SuGaR-Coarse-Übersicht liegt in
-\path{docs/grafiken/matrix_repeat_2026-08-17/sugar_coarse_masked_overview.pdf}.
-Die gemeinsame historische CSV-Quelle liegt in
-\path{docs/grafiken/verwendet_verbessert/matrix_thesis_data.csv}; die neue
-stufenspezifische Auswertung schreibt zusätzlich
-\path{docs/grafiken/matrix_repeat_2026-08-17/sts_masked_summary.csv} und
-\path{docs/grafiken/matrix_repeat_2026-08-17/sugar_coarse_masked_summary.csv}.
+Die vollständigen Status-, Metrik- und Laufzeitdaten der einzelnen Läufe
+liegen in den digitalen Anlagen unter
+\path{docs/grafiken/matrix_repeat_2026-08-17/}
+beziehungsweise in den Run-Archiven; sie werden nicht zusätzlich im PDF
+dupliziert.
 
-\subsection*{Abgeschlossene SuGaR-Coarse-Folgematrix}
-
-Die Repeat-Konfiguration \path{tools/experiment_matrix_repeat.tsv} enthält für
-SuGaR-Coarse zwölf Läufe: \path{SIMPLE_RADIAL/sugar_coarse} und
-\path{OPENCV/sugar_coarse} bei drei Auflösungen und zwei FPS-Profilen. Der
-Render-Helfer wurde vor dieser Prüfung durch einen expliziten
-\texttt{/opt/sugar}-Importpfad und eine HWC-zu-CHW-Konvertierung korrigiert.
-Ein archivierter 5-FPS-720p-Checkpoint ließ sich damit bereits auf 30
-Testansichten rendern und objektmaskiert auswerten.
-
-Die zwölf SuGaR-Coarse-Läufe unter \path{data/10_runs/matrix_repeat_20260812/}
-sind abgeschlossen. Alle zwölf Manifeste tragen den Status \texttt{success}.
-Die Coarse-Meshgewinnung, das SuGaR-Coarse-Rendering, die objektmaskierte
-Metrikberechnung und das Postprocessing wurden für beide Kameramodelle sowie
-alle Auflösungs-/FPS-Kombinationen erfolgreich archiviert. Die
-\texttt{sugar\_refined\_masked.json}-Dateien weisen dagegen ausdrücklich
-\texttt{no refined.ply exported} aus; die Folgematrix ist daher ein
-SuGaR-Coarse-Nachweis und kein vollständiger SuGaR-Refinement-Vergleich.
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{l l rrr}
-\toprule
-Kameramodell & Auflösung & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$\\
-\midrule
-SIMPLE\_RADIAL & 720p & 21,43 & 0,766 & 0,153\\
-SIMPLE\_RADIAL & qHD  & 21,59 & 0,757 & 0,140\\
-SIMPLE\_RADIAL & Low  & 21,87 & 0,752 & 0,125\\
-OPENCV         & 720p & 21,38 & 0,761 & 0,154\\
-OPENCV         & qHD  & 21,60 & 0,754 & 0,144\\
-OPENCV         & Low  & 21,84 & 0,747 & 0,126\\
-\bottomrule
-\end{tabularx}
-\caption{SuGaR-Coarse-Mittelwerte aus 2 und 5 FPS des Repeat-Batches. Die
-Werte sind objektmaskierte Ansichtsmetriken und kein
-Geometrienachweis.}
-\label{tab:sugar-followup-average}
-\end{table}
-
-Die vollständigen Einzelwerte und die getrennten Darstellungen für Status,
-PSNR, SSIM, LPIPS und Zeit/Qualität liegen in den digitalen Anlagen unter
-\path{docs/grafiken/matrix_repeat_2026-08-17/}. Alle zwölf Läufe verwendeten den
-festen Eval-Split; bei 2 FPS wurden zwölf und bei 5 FPS dreißig gültige
-Evaluationsansichten ausgewertet. Die Laufzeit-/Qualitätsgrafik nutzt die
-archivierte vollständige Pipelinezeit und ist wie bei der STS-Matrix nur ein
-sekundärer Screening-Index.
-
-\clearpage
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{sts_masked_overview.pdf}
-\caption{Objektmaskierte STS-Übersicht der vollständigen Original-GS-Route A.}
-\end{figure}
-
-\clearpage
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{sts_masked_per_frame_boxplots.pdf}
-\caption{Boxplots und Einzelansichten der STS-Route-A-Metriken.}
-\end{figure}
-
-\clearpage
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{sugar_coarse_masked_overview.pdf}
-\caption{Objektmaskierte SuGaR-Coarse-Übersicht mit PSNR, SSIM und LPIPS.}
-\end{figure}
-
-\clearpage
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{sugar_coarse_masked_per_frame_boxplots.pdf}
-\caption{Boxplots und Einzelansichten der SuGaR-Coarse-Metriken.}
-\end{figure}
-
-\clearpage
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{sugar_coarse_vs_sts_delta.pdf}
-\caption{Gepaarte Differenz von SuGaR-Coarse und STS bei identischen
-Konfigurationen.}
-\end{figure}
-
-\clearpage
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{metric_vs_runtime.pdf}
-\caption{Explorative Beziehung zwischen Bildmetriken und archivierter Laufzeit.}
-\end{figure}
-
-\clearpage
 \subsection*{Regeln für die Auswertung}
 
 \begin{itemize}
-  \item \texttt{sts\_masked.json} ist die STS-Baseline vor dem separaten
+  \item \path{sts_masked.json} ist die STS-Baseline vor dem separaten
 	  SuGaR-Rendering und kein SuGaR-Ergebnis.
   \item Ein Average wird nur gebildet, wenn 2-FPS- und 5-FPS-Lauf derselben
 	  Konfiguration vollständig erfolgreich sind.

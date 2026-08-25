@@ -74,15 +74,15 @@
 | Nr | S. | Maßnahme | Status |
 |----|----|----------|--------|
 | K4-01 | 16 | SSIM-Block erweitern: 11×11 = Literaturstandard Wang et al. (2004) (+cite), Randpixel-Rechnung (40 px Rohr ≈ 12 % Rand bei 720p, 20 px ≈ 25 % bei Low), PSNR/SSIM nur im jeweiligen Pixelgitter | ✅ |
-| K4-02 | 16 | UTM/Translation-Frage beantworten und Text schärfen: lokale Transformation gültig; Translation auf UTM nachträglich addierbar, solange Rotation/Skalierung unverändert – vorsichtig formulieren | 🔲 |
-| K4-03 | 28 | COLMAP-Voruntersuchung: Verweis auf Tabelle im Anhang A ergänzen | 🔲 |
-| K4-04 | 32 | SIFT/Guided-Matching-Interpretation ehrlich formulieren (Merkmalslimit erklärt identische Punktzahl; Guided Matching fügt schwerere Matches hinzu → Reprojektionsfehler kann steigen; kein Widerspruch) | 🔲 |
-| K4-05 | 37 | „intern gut angepasst“ begründen/relativieren (Reprojektionsfehler = Konsistenzmaß, kein Gütesiegel) | 🔲 |
-| K4-06 | 38 | Seed 42 erklären (Reproduzierbarkeit stochastischer Schritte) | 🔲 |
-| K4-07 | 38 | cm-Angaben relativieren (lokal skalierte Modelle, relative Vergleichsgrößen) + Extraktionsmethode beschreiben (je 20.000 Samples, gerichtete Mittelwerte paarweise) | 🔲 |
-| K4-08 | 38 | Route B (Rasterizer-Tiefe) erklären, warum nicht Produktionsstandard | 🔲 |
-| K4-09 | 43 | „Ansichtsmetriken“-Disclaimer nur 1× Hauptort, sonst Querverweis (Konsolidierung mit K1-09) | 🔲 |
-| K4-10 | 43 | 87 Rohpunkte präzisieren: welcher Lauf/welche Einstellung; Verhältnis zu Anhang-C-Centerlines klarstellen (Grad-10 hier, Grad-3-glätten dort?) | 🔲 |
+| K4-02 | 16 | UTM/Translation-Frage beantworten und Text schärfen: lokale Transformation gültig; Translation auf UTM nachträglich addierbar, solange Rotation/Skalierung unverändert – vorsichtig formulieren | ✅ |
+| K4-03 | 28 | COLMAP-Voruntersuchung: Verweis auf Tabelle im Anhang A ergänzen | ✅ |
+| K4-04 | 32 | SIFT/Guided-Matching-Interpretation ehrlich formulieren (Merkmalslimit erklärt identische Punktzahl; Guided Matching fügt schwerere Matches hinzu → Reprojektionsfehler kann steigen; kein Widerspruch) | ✅ |
+| K4-05 | 37 | „intern gut angepasst“ begründen/relativieren (Reprojektionsfehler = Konsistenzmaß, kein Gütesiegel) | ✅ |
+| K4-06 | 38 | Seed 42 erklären (Reproduzierbarkeit stochastischer Schritte) | ✅ |
+| K4-07 | 38 | cm-Angaben relativieren (lokal skalierte Modelle, relative Vergleichsgrößen) + Extraktionsmethode beschreiben (je 20.000 Samples, gerichtete Mittelwerte paarweise) | ✅ |
+| K4-08 | 38 | Route B (Rasterizer-Tiefe) erklären, warum nicht Produktionsstandard | ✅ |
+| K4-09 | 43 | „Ansichtsmetriken“-Disclaimer nur 1× Hauptort, sonst Querverweis (Konsolidierung mit K1-09) | ✅ |
+| K4-10 | 43 | 87 Rohpunkte präzisieren: welcher Lauf/welche Einstellung; Verhältnis zu Anhang-C-Centerlines klarstellen (Grad-10 hier, Grad-3-glätten dort?) | ✅ |
 | K4-11 | 44 | „nicht monoton“ auflösen: bezog sich auf Metrikwerte über Konfigurationen, NICHT Maskestabilität; Satz korrigieren (Rohr wurde in jedem Frame erkannt) | ✅ |
 | K4-12 | 46a | Delta-Grafik: SuGaR stringent niedriger = zulässige Aussage; Formulierung anpassen | ✅ |
 | K4-13 | 46f | „invertierte LPIPS“ streichen → Rankingumkehr als Natur der Metrik | ✅ |
@@ -93,18 +93,18 @@
 
 | Nr | S. | Maßnahme | Status |
 |----|----|----------|--------|
-| K5-01 | 29a | matrix_rest-Beschreibung → „welche Tests insgesamt + wo Ergebnisse (Grafiken)“ | 🔲 |
-| K5-02 | 29b/d | gerichtete Distanzen + Coarse-not-Refined: Verweise auf Anhang/Grafiken ergänzen | 🔲 |
-| K5-03 | 31b | Blockquote „Offener Abbildungsnachweis“ ENTFERNEN → Nachweis via Anhang C referenzieren | 🔲 |
-| K5-04 | 31c/32a | Eval-Split (210/30) früher erklären (Kap. 5), in 7.x nur Erinnerung + Anhang-C-Verweis früh geben | 🔲 |
-| K5-05 | 31a | Erfolgskriterium 6 gegen Nutzer-Inventar harmonisieren (followup_12, 24er-Matrix, Vierfeld, Produktionslauf, historische Tests, Autopilotläufe, Qualitätsvergleich) | 🔲 |
-| K5-06 | 39b/40 | SuGaR-Boxplots + Delta + metric_vs_runtime zu den Splat-Metrik-Grafiken verschieben; Zusatzgrafik-Abschnitt aufräumen | 🔲 |
-| K5-07 | 38d | 7.6-Absatz drastisch kürzen (90 % Redundanz); Abbildung 7 zur historischen Entwicklung ordnen | 🔲 |
-| K5-08 | 50 | Tabelle (SuGaR-Mittelwerte) in Haupttext übernehmen; Anhang B radikal schlank/streichen | 🔲 |
-| K5-09 | 65 | Anhang E (Repro): ausdünnen/streichen (Inhalte im Text mehrfach vorhanden) | 🔲 |
-| K5-10 | 66 | Anhang F: Kurzverweis (1–2 Sätze) behalten; vollständigen Index als `ABGABE_Index.md` für Abgabeordner auslagern | 🔲 |
+| K5-01 | 29a | matrix_rest-Beschreibung → „welche Tests insgesamt + wo Ergebnisse (Grafiken)“ | ✅ |
+| K5-02 | 29b/d | gerichtete Distanzen + Coarse-not-Refined: Verweise auf Anhang/Grafiken ergänzen | ✅ |
+| K5-03 | 31b | Blockquote „Offener Abbildungsnachweis“ ENTFERNEN → Nachweis via Anhang C referenzieren | ✅ |
+| K5-04 | 31c/32a | Eval-Split (210/30) früher erklären (Kap. 5), in 7.x nur Erinnerung + Anhang-C-Verweis früh geben | ✅ |
+| K5-05 | 31a | Erfolgskriterium 6 gegen Nutzer-Inventar harmonisieren (followup_12, 24er-Matrix, Vierfeld, Produktionslauf, historische Tests, Autopilotläufe, Qualitätsvergleich) | ✅ |
+| K5-06 | 39b/40 | SuGaR-Boxplots + Delta + metric_vs_runtime zu den Splat-Metrik-Grafiken verschieben; Zusatzgrafik-Abschnitt aufräumen | ✅ |
+| K5-07 | 38d | 7.6-Absatz drastisch kürzen (90 % Redundanz); Abbildung 7 zur historischen Entwicklung ordnen | ✅ |
+| K5-08 | 50 | Tabelle (SuGaR-Mittelwerte) in Haupttext übernehmen; Anhang B radikal schlank/streichen | ✅ |
+| K5-09 | 65 | Anhang E (Repro): ausdünnen/streichen (Inhalte im Text mehrfach vorhanden) | ✅ |
+| K5-10 | 66 | Anhang F: Kurzverweis (1–2 Sätze) behalten; vollständigen Index als `ABGABE_Index.md` für Abgabeordner auslagern | ✅ |
 | K5-11 | 28b | Abgabe-Empfehlung: welche vollständigen Läufe liefern (Smoke, Autopilot 720p/qHD/low, Produktionslauf, Golden-Run-Arm) → Dokument im Fertigstellungsordner | 🔲 |
-| K5-12 | 49b/66 | Pfade in Ausarbeitung an geplante Abgabeordnerstruktur anpassen (COLMAP_Rohberichte etc.) | 🔲 |
+| K5-12 | 49b/66 | Pfade in Ausarbeitung an geplante Abgabeordnerstruktur anpassen (COLMAP_Rohberichte etc.) | ✅ |
 
 ## K6 – Grafikarbeiten
 

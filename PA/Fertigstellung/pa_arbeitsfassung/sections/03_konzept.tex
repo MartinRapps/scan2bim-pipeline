@@ -27,8 +27,18 @@ Geometriedomäne. Der Ablauf ist:
 Abbildung~\ref{fig:pa-pipeline-flow} fasst diesen Datenfluss zusammen: Die
 beiden aktuellen Meshrouten A und \texttt{sugar\_coarse} werden explizit
 getrennt dargestellt. Der CloudCompare-Schritt ist als optionaler
-Georeferenzierungszweig enthalten und nicht als validierter PA-
-Genauigkeitsnachweis zu lesen.
+Georeferenzierungszweig enthalten. Für den Testdatensatz existieren
+CloudCompare-Transformationsmatrizen; sie wurden jedoch ohne unabhängige
+Vermessungsreferenz erzeugt und sind daher kein validierter
+PA-Genauigkeitsnachweis. Die Referenzierung ist zunächst rein lokal, das
+heißt ohne Verschiebung in ein globales Koordinatensystem definiert. Das ist
+methodisch unproblematisch: Eine UTM-Referenz lässt sich nachträglich
+herstellen, indem die lokalen Koordinaten um einen frei wählbaren
+UTM-Ankerpunkt versetzt und die vorhandene 4x4-Transformationsmatrix
+anschließend unverändert angewandt wird; Rotation, Maßstab und Form der
+Geometrie bleiben dabei erhalten. Was damit nicht entsteht, ist eine
+unabhängige Genauigkeitsaussage zur absoluten Lage -- diese bleibt der
+Bachelorarbeit vorbehalten.
 
 \begin{figure}[H]
 \centering

@@ -1,99 +1,62 @@
 \section{Optionaler Anhang: Reproduzierbarkeit}
 
-Die Ausführung erfolgt mit Docker Compose. Der nachgewiesene Matrix- und
-Replaypfad verwendet unmaskierte Bilder für COLMAP, hält das originale Modell
-für GCP/SfM vor und führt STS sowie SuGaR in der idealen PINHOLE-Bilddomäne
-aus. Bei Verzeichnungsmodellen werden die SAM-Masken dort mit derselben
-Kameramodellabbildung in die ideale Domäne gewarpt. Der normale Inline-Vollauf
-ruft denselben Maskenwarp vor STS auf; im Replay-Dispatcher gilt dasselbe für
-alle Läufe mit frischem COLMAP-Lauf (Start ab \texttt{gcp}, \texttt{sam3}
-oder \texttt{colmap}). Nur Replays ab \texttt{sts}, \texttt{sugar} oder
-\texttt{postprocess} erwarten einen bereits passenden idealen Maskensatz.
-
-Die wichtigsten konstanten Parameter der PA-Versuche sind:
+Die Ausführung erfolgt mit Docker Compose; Domänenkette, Warp-Stufe und
+Quality-Gates sind in Kapitel~\ref{sec:implementierung} beschrieben und gelten
+für Inline-Vollauf, Matrixrunner und Replays mit frischem COLMAP gleichermaßen.
+Dieser Anhang fasst nur die konstanten Parameter der PA-Versuche zusammen:
 
 \begin{itemize}
   \item Prompt \texttt{pipe};
   \item 4096 SIFT-Merkmale, Sequential-Overlap 15, Guided Matching aus;
   \item STS 7000 Gesamtiterationen, Stage-2-Fenster 5000;
-  \item Objektmasken für die Bildmetriken und feste Eval-Listen;
+  \item Objektmasken für die Bildmetriken und feste Eval-Listen
+        (210 Training / 30 Evaluation);
   \item 200.000 Mesh-Vertices, 5.000.000 Oberflächenstichproben und Seed 42;
-  \item objektmaskierte PSNR-, SSIM- und LPIPS-Auswertung.
-    \item Produktionsroute \texttt{original\_gs}; SuGaR-Coarse nur als
-      explizite Vergleichsroute;
-    \item Centerline-Modus \texttt{single}, Voxelgröße 0,1, B-Spline Grad 10,
-      Eckensegmentierung deaktiviert.
+  \item objektmaskierte PSNR-, SSIM- und LPIPS-Auswertung;
+  \item Produktionsroute \texttt{original\_gs}; SuGaR-Coarse nur als
+        explizite Vergleichsroute;
+  \item Centerline-Modus \texttt{single}, Voxelgröße 0,1, B-Spline Grad 10,
+        Eckensegmentierung deaktiviert.
 \end{itemize}
 
-  \subsection*{Ausführungsmodi}
+\subsection*{Ausführungsmodi}
 
-  \begin{description}
-    \item[Interaktiver Vollauf] führt durch Video-, COLMAP-, STS- und
-      Meshroutenparameter sowie den optionalen GCP-Breakpoint.
-    \item[Autopilot] setzt die dokumentierten Standardwerte und überspringt den
-      manuellen GCP-Breakpoint, falls keine Matrix bereitsteht.
-    \item[Replay] startet mit \texttt{--from} an einer Schrittgrenze und setzt
-      konsistente vorhandene Artefakte voraus.
-    \item[Matrixrunner] führt deklarierte Varianten seriell aus, archiviert sie
-      und bereinigt danach den Live-Workspace.
-  \end{description}
+\begin{description}
+  \item[Interaktiver Vollauf] führt durch Video-, COLMAP-, STS- und
+    Meshroutenparameter sowie den optionalen GCP-Breakpoint.
+  \item[Autopilot] setzt die dokumentierten Standardwerte und überspringt den
+    manuellen GCP-Breakpoint, falls keine Matrix bereitsteht.
+  \item[Matrixrunner] führt deklarierte Varianten seriell aus, archiviert sie
+    und bereinigt danach den Live-Workspace.
+\end{description}
 
-  Diese Modi dürfen in der Ergebnisinterpretation nicht gleichgesetzt werden.
-  Insbesondere belegt eine erfolgreiche Matrix die Batchfähigkeit, aber nicht
-  automatisch die vollständige Nutzerführung des Autopiloten.
+\subsection*{SuGaR-Fork: Versionierung}
 
-  \subsection*{SuGaR-Fork: Versionierung und Detailnachweis}
+Der mask-aware Fork liegt unter \path{third_party/SuGaR}. Parent-Gitlink,
+Fork-Checkout und Docker-Parameter \texttt{SUGAR\_REF} verweisen konsistent
+auf \texttt{a0fc37b} im Zweig \path{project/masked-sugar}; genau dieser
+Stand wurde in allen archivierten Läufen verwendet. Die Änderungsschichten im
+Einzelnen:
 
-  Der mask-aware Fork liegt unter \path{third_party/SuGaR}. Die für die
-  Projektarbeit relevanten Änderungsschichten sind:
+\begin{itemize}
+  \item \texttt{48bbfdd}: maskenbewusster Semantic-Mask-Provider sowie
+    maskierte RGB-/DSSIM-Supervision in den Coarse-Trainern und im Refinement,
+    maskierte DN-Consistency, konfigurierbare Maskenstufen/Dilatationen,
+    semantisch begrenztes UV-Baking sowie erweiterte Trainings- und
+    Meshparameter;
+  \item \texttt{8f4f7a2}: Poisson-Schutz bei zu kleinen Punktwolken oder
+    ungültigen Normalen und Korrektur der Coarse-Iterationsprüfung für
+    STS-Startzähler;
+  \item \texttt{e254000}: Schalter für Gaussian-Rasterizer-Tiefe als
+    kontrollierte Surface-Sampling-Diagnose;
+  \item \texttt{ecda7ef}: zusätzliche Surface-Sampling-Optionen und explizite
+    Background-Mesh-Steuerung;
+  \item \texttt{eca4ea1}/\texttt{a0fc37b}: normalisierte feste Eval-Splits,
+    Schutz gegen nicht gematchte Kameras und explizite Prüfung der
+    Eval-Kameranamen.
+\end{itemize}
 
-  \begin{itemize}
-    \item \texttt{48bbfdd}: maskenbewusster Semantic-Mask-Provider sowie
-      maskierte RGB-/DSSIM-Supervision in den Coarse-Trainern und im Refinement,
-      maskierte DN-Consistency, konfigurierbare Maskenstufen/Dilatationen,
-      semantisch begrenztes UV-Baking sowie erweiterte Trainings- und
-      Meshparameter;
-    \item \texttt{8f4f7a2}: Poisson-Schutz bei weniger als drei gültigen Punkten
-      beziehungsweise ungültigen Normalen und Korrektur der
-      Coarse-Iterationsprüfung für STS-Startzähler;
-    \item \texttt{e254000}: Schalter für Gaussian-Rasterizer-Tiefe als
-      kontrollierte Surface-Sampling-Diagnose;
-    \item \texttt{ecda7ef}: zusätzliche Surface-Sampling-Optionen und
-      explizite Background-Mesh-Steuerung;
-    \item \texttt{eca4ea1} sowie der lokale Arbeitsbaum: normalisierte feste
-      Eval-Splits, explizite Kardinalitätsprüfung und verständliche Fehler
-      für nicht gematchte Kameras.
-  \end{itemize}
-
-  Die letzte Gruppe ist zum Zeitpunkt der Erstellung dieser Fassung noch nicht
-  vollständig in den Parent-Gitlink übernommen. Vor der Abgabe müssen der
-  Parent-Gitlink, der ausgecheckte Fork-Commit, der lokale Diff und
-  \texttt{SUGAR\_REF} im finalen Manifest festgehalten werden.
-
-  \subsection*{Bild- und Maskenablagen}
-
-  Die Bildablage verwendet absichtlich mehrere Schnittstellen. SAM schreibt
-  Arbeitsframes nach \path{data/02_frames}; COLMAP erzeugt bei einem
-  verzeichnungsbehafteten Modell mit \texttt{image\_undistorter} eine physische
-  ideale Kopie unter \path{data/04_sfm/undistorted/images}. STS erhält über
-  \path{data/05_3dgs/images} nur einen Symlink auf diese ideale Szene. Die
-  \path{data/03_masks/_attempts}-Ordner enthalten Prompt-Fallbacks; die flachen
-  Masken sowie die drei hierarchischen Stufen sind Auswahl-, STS- und
-  SuGaR-Vertragsdateien. Matrixarchive kopieren die relevanten Artefakte, damit
-  ein Lauf unabhängig vom später bereinigten Live-Workspace replaybar bleibt.
-
-  Die Reduktion dieser Ablagen ist eine Speicher-/I/O-Optimierung und kein
-  elementarer Funktionsschritt. Elementar ist die inhaltliche Konsistenz von
-  Frame, Kamera, idealem Bild und gewarpter Maske. Entfernt werden können nach
-  erfolgreicher Auswahl vor allem nicht mehr benötigte Promptversuche oder
-  regenerierbare Kompatibilitätskopien; die ideale Bilddomäne und der
-  STS-Imagevertrag dürfen nicht ersatzlos gelöscht werden.
-
-Die vollständige Laufhistorie mit Parametern, Status und Logs wird nicht in die
-PA kopiert. Sie bleibt in den Matrixarchiven unter
-\path{data/10_runs/}. Die zwölf abgeschlossenen SuGaR-Coarse-Läufe liegen
-unter \path{data/10_runs/matrix_repeat_20260812/}. Die Metriken der beiden
-Modellstufen werden getrennt ausgewertet und über die gemeinsame CSV-Quelle in
-\path{docs/grafiken/} nachvollziehbar. Vor einer finalen Abgabe sollten
-Repository-Commit, SuGaR-Submodul-Commit, Docker-Image-Version und Hardware
-zusätzlich in einem finalen Laufmanifest festgehalten werden.
+Den vollständigen Diff ab \texttt{48bbfdd} hält die Datei
+\path{sugar_fork_diff_48bbfdd_a0fc37b.diff} im digitalen Anlagenband fest.
+Repository-Commit, Submodul-Commit, Docker-Image-Version und Hardware werden
+zusätzlich im finalen Laufmanifest dokumentiert.

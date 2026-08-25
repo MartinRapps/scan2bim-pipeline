@@ -7,30 +7,22 @@ Referenzlaufs dargestellt. Die endgültige Fassung zeigt dafür dieselbe
 Verarbeitungskette in aufeinander abgestimmten Ansichten: Rohframe,
 \texttt{default}/\texttt{middle}-Maske, ideale Bild-/Maskendomäne,
 COLMAP-Sparse-Modell, objektbezogene STS-Gaussians, Route-A-Coarse-Mesh sowie
-lokale Centerline und Grad-10-B-Spline.
+lokale Centerline und Grad-10-B-Spline. Eine solche Kette ist für alle drei
+Auflösungsstufen visuell dokumentiert; Anhang~\ref{app:durchlauf} zeigt den
+vollständigen Pipeline-Durchlauf mit 5 FPS und OPENCV in 720p, qHD und Low.
 
-\begin{quote}
-\textbf{Offener Abbildungsnachweis:} Vor der finalen Abgabe sind die
-Artefakte eines ausgewählten Golden Runs in identischen beziehungsweise
-nachvollziehbar zugeordneten Ansichten zu exportieren. Eine Mischung aus
-verschiedenen Matrixläufen darf nicht als einzelne End-to-End-Kette erscheinen.
-\end{quote}
-
-Ein archivierter Low-Smoke-Test weist die Pipeline ab dem Eintritt in die
-ideale, verzeichnungsfreie Bildszene nach: Ab dieser Stufe sind Bild-, Masken-
-und Kamerakoordinaten untereinander konsistent, sodass alle nachgelagerten
-Stufen (STS, Meshroute, Rendering, Metriken, Centerline) auf derselben Domäne
-arbeiten. Der Lauf verwendet 240 Kameras; davon dienen 210 dem Training und 30
-der Evaluation. Die Evaluationsbilder sind gerade dadurch bewertbar, dass sie
-nicht am Training beteiligt waren und unabhängig von ihm ausgewertet werden
-können. Der Lauf erzeugte Route-A-Mesh, Rendering, objektmaskierte Metriken,
-Centerline, B-Spline und GeoJSON. Für den vollständigen Autopilotnachweis ist
-zusätzlich ein archivierter Autopilot-Vollauf oder ein gleichwertiger
-Vertragstest erforderlich; der Matrixrunner allein belegt nur die
-Batchfähigkeit. Die historischen Zwischenstände, die zu den heutigen
-Einstellungen in STS, Objektfilterung und SuGaR geführt haben, sind in
-Kapitel~\ref{sec:implementierung} (Abschnitt
-``Historische Zwischenstände der STS- und Objektfilterungsroute'') sowie in
+Die archivierten Läufe verwenden durchgängig 240 Kameras; davon dienen 210 dem
+Training und 30 der Evaluation. Der feste Eval-Split und seine Begründung sind
+in Kapitel~\ref{sec:versuchsaufbau} beschrieben; hier genügt die Erinnerung,
+dass die Evaluationsbilder gerade deshalb bewertbar sind, weil sie nicht am
+Training beteiligt waren. Jede archivierte Kette erzeugte Route-A-Mesh,
+Rendering, objektmaskierte Metriken, Centerline, B-Spline und GeoJSON. Der
+Autopilotnachweis selbst ist über sechs archivierte Autopilot-Volläufe erbracht
+(Abschnitt~\ref{sec:versuchsaufbau}); die Visualisierung dieser Durchläufe in
+ausgewählten Screenshots liegt ebenfalls im Anhang~\ref{app:durchlauf}. Die
+historischen Zwischenstände, die zu den heutigen Einstellungen in STS,
+Objektfilterung und SuGaR geführt haben, sind in
+Kapitel~\ref{sec:implementierung} sowie in
 Abschnitt~\ref{sec:sugar-folgepruefung} dokumentiert.
 
 \subsection{Visueller Vergleich der Auflösungsvarianten}
@@ -89,13 +81,23 @@ qualitativ und ersetzen keine Vermessung gegen eine unabhängige Centerline.
 Ebenso wurde vor den Matrixläufen eine Versuchsreihe mit COLMAP gestartet;
 dabei wurde geprüft, inwiefern sich einzelne Einstellungen im Hinblick auf den
 zeitlichen Aufwand und die Qualität der Sparse-Rekonstruktion lohnen. Alle
-fünf dokumentierten Hauptläufe registrierten 240 von 240 Bildern. Guided
+fünf dokumentierten Hauptläufe registrierten 240 von 240 Bildern; die
+vollständige Tabelle steht in Anhang~\ref{tab:colmap-vorstudie}. Guided
 Matching erhöhte die Sparse-Punktzahl gegenüber Plain-SIFT 4096 nur um rund
 1,98\,\%, benötigte aber nahezu die doppelte Zeit und erhöhte den mittleren
 Reprojektionsfehler. 8192 Merkmale lieferten etwa 0,82\,\% mehr Punkte bei
-5,5\,\% mehr Laufzeit. Damit ist Plain-SIFT 4096 ohne Guided Matching für den
-Projektstand der begründete Standard. Die vollständige Tabelle steht in
-Anhang~\ref{tab:colmap-vorstudie}.
+5,5\,\% mehr Laufzeit.
+
+Diese Beobachtungen widersprechen einander nicht: Bei fixiertem
+Merkmalslimit ist die Anzahl detektierter Merkmale pro Bild weitgehend
+identisch, weshalb die Punktzahl kaum steigt -- mehr Eingabemerkmale führen
+nicht automatisch zu mehr 3D-Punkten. Guided Matching ergänzt zusätzlich
+Korrespondenzen an schwierigen Stellen; dass dabei der mittlere
+Reprojektionsfehler leicht ansteigt, zeigt, dass diese zusätzlichen Matches
+im Mittel schwerer zu konsistenten Spuren zu bündeln sind als das
+Grundmuster. Beides zusammen rechtfertigt für den Projektstand den Standard
+Plain-SIFT 4096 ohne Guided Matching: gleiche Registrierungsqualität bei
+geringerer Laufzeit und einfacherer Fehlerdiagnose.
 
 \subsection{Objektmaskierte Bildmetriken}
 
@@ -170,6 +172,19 @@ verschiedene Auflösungen wird nicht vorgenommen.
   \label{fig:pa-sugar-overview}
 \end{figure}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sugar_coarse_masked_per_frame_boxplots.pdf}
+  \caption[SuGaR-Coarse-Einzelansichten]{Verteilung der Einzelansichten in
+  den zwölf SuGaR-Coarse-Läufen. Punkte entsprechen den in
+  \texttt{per\_frame} archivierten Ansichtsmetriken.}
+  \label{fig:pa-sugar-boxplots}
+\end{figure}
+
+Die Boxplotpunkte liegen jeweils in der x-Kategorie ihres Laufs und werden nur
+leicht horizontal verteilt; die y-Achsen berücksichtigen alle archivierten
+Einzelwerte einschließlich Ausreißern.
+
 Die deutlich niedrigeren SuGaR-Werte gegenüber den STS-Werten sind kein
 direkter Widerspruch. Die beiden Dateien beschreiben unterschiedliche
 Modellstufen: Der STS-Splat wird vor der zusätzlichen SuGaR-Optimierung und dem
@@ -218,9 +233,12 @@ Eine nachträgliche Analyse des archivierten 720p-OPENCV-Sparse-Modells ergab
 240 registrierte Bilder, 133.723 3D-Punkte, 890.377 Beobachtungen und einen
 mittleren Reprojektionsfehler von 0,706\,Pixel. Die entsprechenden Werte lagen
 bei \texttt{SIMPLE\_RADIAL} bei 0,707\,Pixel und bei \texttt{PINHOLE} bei
-0,705\,Pixel. Damit sind alle drei Modelle intern gut an die beobachteten
-Bildkorrespondenzen angepasst; der geringe Unterschied entscheidet jedoch
-nicht, welches Modell das reale Objektiv physikalisch korrekt beschreibt.
+0,705\,Pixel. Alle drei Modelle beschreiben die beobachteten
+Bildkorrespondenzen damit fast identisch und mit einem Fehler, der klein
+gegenüber der Bildbreite ist; ein absoluter Schwellenwert, ab dem man von
+einer „guten" Anpassung sprechen dürfte, existiert jedoch nicht. Der geringe
+Unterschied entscheidet daher nicht, welches Modell das reale Objektiv
+physikalisch korrekt beschreibt.
 Die Reprojektionswerte sind eine Konsistenzprüfung des SfM-Modells und keine
 unabhängige Kalibrierung.
 
@@ -265,10 +283,18 @@ Extraktionsparametern und Seed 42.}
 \end{table}
 
 A und B liegen großräumig auf derselben Objektgeometrie, sind aber nicht
-identisch. Gerichtete Mittelwerte aus jeweils 20.000 gesampelten Punkten lagen
-bei etwa 1,08 beziehungsweise 0,90\,cm. Gegenüber A betrugen die gerichteten
-Mittelwerte für C etwa 1,79 und 3,39\,cm und für D etwa 1,96 und 2,73\,cm. Die
-größeren Gegenrichtungsabstände und die visuell stärkere Ausreißerstruktur der
+identisch. Alle vier Varianten entstammen derselben STS-Basis und teilen
+deren lokales Koordinatensystem; der Modellmaßstab ist allerdings nicht gegen
+eine reale Referenz geeicht, weshalb die Zentimeterangaben lokale
+Modelleinheiten und keine Vermessungswerte sind. Für jeden Variantenvergleich
+wurden jeweils 20.000 Punkte gleichmäßig auf einer Oberfläche gesampelt und
+gegen die andere Oberfläche gerichtet ausgewertet; daraus ergeben sich pro
+Paar zwei gerichtete Mittelwerte (hin und zurück). So lagen A gegen B bei
+etwa 1,08 beziehungsweise 0,90\,cm, C gegen A bei etwa 1,79 und 3,39\,cm und
+D gegen A bei etwa 1,96 und 2,73\,cm. Seed 42 legt dabei die Zufallsfolgen
+von Surface-Sampling und stochastischen Optimierungsschritten fest und macht
+die vier Varianten untereinander reproduzierbar vergleichbar. Die größeren
+Gegenrichtungsabstände und die visuell stärkere Ausreißerstruktur der
 Coarse-Varianten zeigen, dass die zusätzliche Gaussian-Optimierung die
 Oberflächenstützung relevant verändert. Diese Werte messen Variantenabstände,
 nicht die Genauigkeit zum realen Rohr.
@@ -276,8 +302,14 @@ nicht die Genauigkeit zum realen Rohr.
 Route A wird deshalb als Produktionsstandard gewählt: Sie bewahrt die
 Original-STS-Gaussians als primäre Geometriehypothese und vermeidet eine
 zusätzliche Coarse-Optimierung, die für die Centerline-Anwendung mehr Details,
-aber auch mehr Spitzen und Randartefakte erzeugen kann. Die Wahl bleibt eine
-begründete Projektentscheidung ohne unabhängige Ground Truth. Dass die
+aber auch mehr Spitzen und Randartefakte erzeugen kann. Route~B verwendet zwar
+denselben Original-STS-Eingang, wurde aber nur als Diagnosevariante für die
+Tiefenquelle geführt: Die Rasterizer-Tiefe stammt aus der Diskretisierung der
+projizierten Gaussians und wirkt an Silhouetten und verdeckten Bereichen
+unruhiger, während die projizierte Diamond-Mesh-Tiefe näher an der gelernten
+Oberfläche bleibt; zudem liefert B das kleinste Vertex-/Face-Ergebnis der
+vier Varianten. Die Wahl bleibt eine begründete Projektentscheidung ohne
+unabhängige Ground Truth. Dass die
 Coarse-Route dennoch existiert, erklärt sich aus der SuGaR-Startarchitektur:
 Sie ist der dort übliche Weg zur Meshgewinnung, während die direkte Extraktion
 ohne Coarse-Optimierung erst im Projektverlauf ergänzend erprobt wurde
@@ -287,62 +319,65 @@ ohne Coarse-Optimierung erst im Projektverlauf ergänzend erprobt wurde
 \label{sec:sugar-folgepruefung}
 
 Die zwölf Läufe der separaten Matrix
-\texttt{matrix\_sugar\_followup\_12} wurden vollständig ausgeführt. Je sechs
-Läufe entfielen auf \texttt{SIMPLE\_RADIAL} und \texttt{OPENCV}; beide
-Kameramodelle wurden bei 2 und 5 FPS sowie in 720p, qHD und Low getestet. Alle
-zwölf Manifeste tragen den Status \texttt{success}. Damit sind Masken- und
-Domänenprüfung, STS-Training, SuGaR-Coarse-Mesh, SuGaR-Coarse-Rendering,
-objektmaskierte Metriken und Postprocessing für diese zwölf Konfigurationen
-archiviert.
-
-Die Coarse-Route ist der konzeptionelle Standardweg von SuGaR: Meshes werden
-dort üblicherweise erst nach einer zusätzlichen Coarse-Optimierung der
-Gaussian-Geometrie extrahiert. Die in dieser Arbeit als Produktionsroute
-verwendete Route A weicht bewusst von diesem Standardweg ab, weil sie direkt
-aus der unveränderten Original-STS-Gaussian-Wolke extrahiert. Diese Variante
-wurde erst im Projektverlauf ergänzend erprobt und hat anschließend die
-Produktionsrolle übernommen; die Coarse-Route wird deshalb nicht als
-Fehlversuch, sondern als wissenschaftlicher Vergleichsarm weitergeführt
-(vgl. Kapitel~\ref{sec:grundlagen}). Abbildung~\ref{fig:pa-panel-sugar}
-dokumentiert ausgewählte historische Zwischenstände dieser Entwicklung.
+\texttt{matrix\_sugar\_followup\_12} wurden vollständig ausgeführt: je sechs
+auf \texttt{SIMPLE\_RADIAL} und \texttt{OPENCV}, bei 2 und 5 FPS sowie in
+720p, qHD und Low. Alle zwölf Manifeste tragen den Status \texttt{success};
+Masken- und Domänenprüfung, STS-Training, SuGaR-Coarse-Mesh,
+SuGaR-Coarse-Rendering, objektmaskierte Metriken und Postprocessing sind damit
+für diese zwölf Konfigurationen archiviert. Warum die Coarse-Route neben der
+Produktionsroute A weitergeführt wird, ist in Kapitel~\ref{sec:grundlagen}
+begründet; Abbildung~\ref{fig:pa-panel-sugar} ordnet die historischen
+Entwicklungsstände dieser Route ein.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{pa_panel_sugar_iteration.png}
-  \caption[Historische SuGaR-Coarse-Zwischenstände]{Historische SuGaR-Coarse-Zwischenstände: Meshstufen mit
-  Zielzähler 9001 sowie bilaterale Vergleichsläufe im 9000er-/10.000er- und
-  10.000er-/15.000er-Bereich. Die Angabe ``9200'' kam ausschließlich in zwei
-  historischen Screenshot-Dateinamen vor und ist weder durch Manifest noch
-  durch Log bestätigt; die zugehörigen Bilder sind hier einheitlich als
-  Stände mit Zielzähler 9001 eingeordnet.}
+  \caption[Historische SuGaR-Coarse-Zwischenstände]{Historische
+  SuGaR-Coarse-Zwischenstände der Vergleichsroute: Meshstufen mit Zielzähler
+  9001 sowie bilaterale Vergleichsläufe im 9000er-/10.000er- und
+  10.000er-/15.000er-Bereich.}
   \label{fig:pa-panel-sugar}
 \end{figure}
 
-Die neuen Grafikquellen trennen die Modellstufen ausdrücklich. Neben den beiden
-Übersichten werden die Streuung der Einzelansichten, die gepaarte Differenz
-zwischen SuGaR-Coarse und STS sowie die Beziehung zwischen Bildmetrik und
-archivierter Laufzeit separat dargestellt. Diese Zusatzgrafiken sind
-Diagnose- und Interpretationshilfen, keine neuen Geometriemetriken.
+Die Mittelwerte der beiden FPS-Profile liegen für
+\texttt{SIMPLE\_RADIAL/SuGaR-Coarse} bei 21,38 dB PSNR, 0,764 SSIM und 0,153
+LPIPS in 720p; bei qHD bei 21,69 dB, 0,761 und 0,141; bei Low bei 21,89 dB,
+0,752 und 0,126. Für \texttt{OPENCV/SuGaR-Coarse} ergeben sich 21,45 dB,
+0,764 und 0,153 in 720p; 21,62 dB, 0,764 und 0,137 in qHD sowie 21,81 dB,
+0,749 und 0,126 in Low. Tabelle~\ref{tab:sugar-followup-average} fasst die
+Mittelwerte zusammen; für ihre Interpretation gilt der in
+Kapitel~\ref{sec:grundlagen} eingeführte Ansichtsmetrik-Vorbehalt unverändert.
 
-Die Boxplotpunkte liegen jeweils in der x-Kategorie ihres Laufs und werden nur
-leicht horizontal verteilt. Die y-Achsen berücksichtigen alle archivierten
-Einzelwerte einschließlich Ausreißern. In der Laufzeitgrafik ist die x-Achse
-auf 15--40 Minuten begrenzt und zeigt die Gesamtlaufzeit des archivierten
-Pipeline-Laufs. Grün und Lila kodieren STS und SuGaR-Coarse; kräftige und
-blasse Farbtöne kodieren 5 beziehungsweise 2 FPS. Kreis, Quadrat und Dreieck
-stehen für 720p, qHD und Low. Die Kamera wird über die Achsenbeschriftung
-angegeben, nicht über eine zusätzliche SR-/OPENCV-Legende. Die separate Matrixstatusgrafik gehört
-nicht mehr zum PA-Anhang; der Status bleibt als Tabelle und Manifestinformation
-erhalten.
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l rrr}
+\toprule
+Kameramodell & Auflösung & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$\\
+\midrule
+SIMPLE\_RADIAL & 720p & 21,43 & 0,766 & 0,153\\
+SIMPLE\_RADIAL & qHD  & 21,59 & 0,757 & 0,140\\
+SIMPLE\_RADIAL & Low  & 21,87 & 0,752 & 0,125\\
+OPENCV         & 720p & 21,38 & 0,761 & 0,154\\
+OPENCV         & qHD  & 21,60 & 0,754 & 0,144\\
+OPENCV         & Low  & 21,84 & 0,747 & 0,126\\
+\bottomrule
+\end{tabularx}
+\caption{SuGaR-Coarse-Mittelwerte aus 2 und 5 FPS der Folgematrix. Die
+Werte sind objektmaskierte Ansichtsmetriken und kein Geometrienachweis.}
+\label{tab:sugar-followup-average}
+\end{table}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{sugar_coarse_masked_per_frame_boxplots.pdf}
-  \caption[SuGaR-Coarse-Einzelansichten]{Verteilung der Einzelansichten in
-  den zwölf SuGaR-Coarse-Läufen. Punkte entsprechen den in
-  \texttt{per\_frame} archivierten Ansichtsmetriken.}
-  \label{fig:pa-sugar-boxplots}
-\end{figure}
+Die \texttt{sugar\_coarse\_masked.json}-Dateien enthalten je nach FPS zwölf
+beziehungsweise dreißig Evaluationsansichten. Die zugehörigen
+\texttt{sugar\_refined\_masked.json}-Dateien sind in allen zwölf Archiven
+wegen eines nicht exportierten \texttt{refined.ply} übersprungen. Der neue
+Befund weist daher die technische SuGaR-Coarse-Route nach, schließt aber noch
+keinen Vergleich der SuGaR-Refined-Stufe ein.
+
+Als Zusatzgrafiken bleiben die gepaarte Differenz zwischen SuGaR-Coarse und
+STS sowie die Beziehung zwischen Bildmetrik und archivierter Laufzeit. Sie
+sind Diagnose- und Interpretationshilfen, keine neuen Geometriemetriken.
 
 \begin{figure}[H]
   \centering
@@ -363,20 +398,12 @@ erhalten.
   \label{fig:pa-metric-runtime}
 \end{figure}
 
-Die Mittelwerte der beiden FPS-Profile liegen für
-\texttt{SIMPLE\_RADIAL/SuGaR-Coarse} bei 21,38 dB PSNR, 0,764 SSIM und 0,153
-LPIPS in 720p; bei qHD bei 21,69 dB, 0,761 und 0,141; bei Low bei 21,89 dB,
-0,752 und 0,126. Für \texttt{OPENCV/SuGaR-Coarse} ergeben sich 21,45 dB,
-0,764 und 0,153 in 720p; 21,62 dB, 0,764 und 0,137 in qHD sowie 21,81 dB,
-0,749 und 0,126 in Low. Die Werte sind reine Ansichtsmetriken und werden
-nicht als Beleg einer besseren 3D-Geometrie interpretiert.
-
-Die \texttt{sugar\_coarse\_masked.json}-Dateien enthalten je nach FPS zwölf
-beziehungsweise dreißig Evaluationsansichten. Die zugehörigen
-\texttt{sugar\_refined\_masked.json}-Dateien sind in allen zwölf Archiven
-wegen eines nicht exportierten \texttt{refined.ply} übersprungen. Der neue
-Befund weist daher die technische SuGaR-Coarse-Route nach, schließt aber noch
-keinen Vergleich der SuGaR-Refined-Stufe ein.
+In der Laufzeitgrafik ist die x-Achse auf 15--40 Minuten begrenzt und zeigt
+die Gesamtlaufzeit des archivierten Pipeline-Laufs. Grün und Lila kodieren STS
+und SuGaR-Coarse; kräftige und blasse Farbtöne kodieren 5 beziehungsweise
+2 FPS. Kreis, Quadrat und Dreieck stehen für 720p, qHD und Low. Die Kamera
+wird über die Achsenbeschriftung angegeben, nicht über eine zusätzliche
+SR-/OPENCV-Legende.
 
 \subsection{Funktionsnachweis der Endstufen}
 
@@ -400,10 +427,14 @@ Endstufen.
   \label{fig:pa-panel-alurohr}
 \end{figure}
 
-Beim archivierten Referenzlauf extrahierte DGtal 87 Rohpunkte; der
+Beim kanonischen Produktionslauf (\path{Alurohr_THWS.mp4}, OPENCV, 5 FPS,
+720p, Route~A) extrahierte DGtal 87 Rohpunkte; der
 Grad-10-B-Spline erzeugte 380 Ausgabepunkte. Diese Zahlen belegen die
 Ausführbarkeit des Postprocessings. Sie bewerten weder die Lage der Linie im
-Rohr noch ihre Formabweichung gegen eine Referenz.
+Rohr noch ihre Formabweichung gegen eine Referenz. Die anschaulichen
+Centerline-Bilder der drei Auflösungsstufen finden sich in
+Anhang~\ref{app:durchlauf}; dort sind sie als Teil der vollständigen
+Durchlaufkette im Kontext der übrigen Zwischenstufen zu sehen.
 
 \subsection{Negative Ergebnisse als Robustheitsbefund}
 
