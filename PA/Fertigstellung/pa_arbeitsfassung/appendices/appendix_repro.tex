@@ -5,10 +5,10 @@ Replaypfad verwendet unmaskierte Bilder für COLMAP, hält das originale Modell
 für GCP/SfM vor und führt STS sowie SuGaR in der idealen PINHOLE-Bilddomäne
 aus. Bei Verzeichnungsmodellen werden die SAM-Masken dort mit derselben
 Kameramodellabbildung in die ideale Domäne gewarpt. Der normale Inline-Vollauf
-ruft denselben Maskenwarp inzwischen ebenfalls vor STS auf; eine eigene
-Warp-Stufe besitzt weiterhin nur der Replay über den allgemeinen
-\texttt{--from}-Dispatcher nicht, der daher einen bereits passenden idealen
-Maskensatz erwartet.
+ruft denselben Maskenwarp vor STS auf; im Replay-Dispatcher gilt dasselbe für
+alle Läufe mit frischem COLMAP-Lauf (Start ab \texttt{gcp}, \texttt{sam3}
+oder \texttt{colmap}). Nur Replays ab \texttt{sts}, \texttt{sugar} oder
+\texttt{postprocess} erwarten einen bereits passenden idealen Maskensatz.
 
 Die wichtigsten konstanten Parameter der PA-Versuche sind:
 

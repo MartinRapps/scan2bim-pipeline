@@ -56,17 +56,17 @@
 | Nr | S. | Maßnahme | Status |
 |----|----|----------|--------|
 | K3-01 | 15 | .pt/.ply-Rendering-Äquivalenz im SuGaR-Fork verifizieren (Code lesen) und Aussage belegen oder abschwächen | ✅ |
-| K3-02 | 18/23 | `--from`-Dispatcher: Warp-Stufe ergänzen (FREIGEGEBEN, pipeline_lib.sh) oder dokumentieren; Tex anpassen (auch S.23d „ebenso fraglich ob abgeändert“) | 🔲 |
-| K3-03 | 19 | Autopilot-Preset-Logik im Code prüfen: gewähltes Preset respektiert? Tex korrigieren | 🔲 |
-| K3-04 | 22a | attempts/Fallback-Logik: Argumente sammeln, Empfehlung geben, Text anpassen | 🔲 |
-| K3-05 | 22c/d | „Remap-Schicht“ erklären/vereinfachen; `_attempts`-Satz konsistent zu K3-04 | 🔲 |
-| K3-06 | 23e | „Stems“ erklären (Dateiname ohne Endung) oder umschreiben | 🔲 |
-| K3-07 | 23f/24 | objektmaskierte Metrik + 11×11-Fensterproblem querverweisen (→ K4 SSIM-Block) | 🔲 |
-| K3-08 | 24 | Poisson-Gate: Verhalten bei Verletzung + Definition gültiger Punkte/Normalen ergänzen | 🔲 |
-| K3-09 | 23a/46g | Laufzeiten-Archivierung prüfen: Gesamtzeit oder STS-bis-Postprocess? Tex korrigieren | 🔲 |
-| K3-10 | 23c | Bildablageorte klären (undistorted: 04_sfm? je nach Pfad unterschiedlich?) und Text/Tabelle angleichen | 🔲 |
+| K3-02 | 18/23 | `--from`-Dispatcher: Warp-Stufe ergänzen (FREIGEGEBEN, pipeline_lib.sh) oder dokumentieren; Tex anpassen (auch S.23d „ebenso fraglich ob abgeändert“) | ✅ |
+| K3-03 | 19 | Autopilot-Preset-Logik im Code prüfen: gewähltes Preset respektiert? Tex korrigieren | ✅ |
+| K3-04 | 22a | attempts/Fallback-Logik: Argumente sammeln, Empfehlung geben, Text anpassen | ✅ |
+| K3-05 | 22c/d | „Remap-Schicht“ erklären/vereinfachen; `_attempts`-Satz konsistent zu K3-04 | ✅ |
+| K3-06 | 23e | „Stems“ erklären (Dateiname ohne Endung) oder umschreiben | ✅ |
+| K3-07 | 23f/24 | objektmaskierte Metrik + 11×11-Fensterproblem querverweisen (→ K4 SSIM-Block) | ✅ |
+| K3-08 | 24 | Poisson-Gate: Verhalten bei Verletzung + Definition gültiger Punkte/Normalen ergänzen | ✅ |
+| K3-09 | 23a/46g | Laufzeiten-Archivierung prüfen: Gesamtzeit oder STS-bis-Postprocess? Tex korrigieren | ✅ |
+| K3-10 | 23c | Bildablageorte klären (undistorted: 04_sfm? je nach Pfad unterschiedlich?) und Text/Tabelle angleichen | ✅ |
 | K3-11 | 46c | GCP-Breakpoint: existiert der noch im Code? Text korrigieren | ✅ |
-| K3-12 | 21 🔴 | T5-Versionsdreieck lösen (FREIGEGEBEN): Submodul initialisieren/prüfen → Fork committen → Parent-Gitlink → Dockerfile SUGAR_REF → Diff exportieren → Tex 04_impl:97 ff. final | 🔶 Vorbehalt VM-Stand |
+| K3-12 | 21 🔴 | T5-Versionsdreieck lösen (FREIGEGEBEN): Submodul initialisieren/prüfen → Fork committen → Parent-Gitlink → Dockerfile SUGAR_REF → Diff exportieren → Tex 04_impl:97 ff. final | ✅ (a0fc37b clean, Gitlink stimmte bereits, Diff exportiert) |
 | K3-13 | 46d | Autopilot-Vollauf: „wurde doch schon gemacht“ – Erfolgskriterium 6/Diskussion entsprechend (mit K5-Inventar) | ✅ |
 
 ## K4 – Fachliche Antworten einarbeiten

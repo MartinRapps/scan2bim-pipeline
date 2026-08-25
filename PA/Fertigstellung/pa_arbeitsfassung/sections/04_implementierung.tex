@@ -93,23 +93,25 @@ projizierten Diamond-Mesh-Tiefe.\\
 \path{sugar_extractors/coarse_mesh.py}, \path{sugar_scene/sugar_model.py} &
 Konfigurierbare Surface-Sampling-Parameter und explizite Behandlung der
 Background-Mesh-Komponente.\\
-\texttt{eca4ea1} / Arbeitsstand & \path{gaussian_splatting/scene/dataset_readers.py},
+\texttt{eca4ea1} & \path{gaussian_splatting/scene/dataset_readers.py},
+\path{sugar_scene/cameras.py}, \path{sugar_scene/gs_model.py} &
+Normalisierte feste Eval-Splits und Schutz gegen nicht gematchte Kameras.\\
+\texttt{a0fc37b} (final) & \path{gaussian_splatting/scene/dataset_readers.py},
 \path{sugar_scene/gs_model.py} &
-Normalisierte feste Eval-Splits und Schutz gegen nicht gematchte Kameras; im
-aktuellen Arbeitsbaum wird die Split-Kardinalität zusätzlich explizit geprüft.\\
+Explizite Prüfung der Kameranamen des festen Eval-Splits; damit ist die
+Split-Kardinalität abgesichert.\\
 \bottomrule
 \end{tabularx}
 \caption{Funktionale Änderungen des maskenbewussten SuGaR-Forks.}
 \label{tab:sugar-fork-aenderungen}
 \end{table}
 
-Der aktuelle Parent-Gitlink zeigt auf \texttt{ecda7ef}; der ausgecheckte
-Entwicklungszweig steht auf \texttt{eca4ea1}. Die zusätzlichen Änderungen in
-\path{dataset_readers.py} und \path{gs_model.py} sind zum Zeitpunkt dieser
-Fassung noch lokale Arbeitsbaumänderungen. Vor der Abgabe müssen Parent-
-Gitlink, Fork-Commit und Docker-Parameter \texttt{SUGAR\_REF} auf einen
-identischen, reproduzierbaren Stand gebracht werden. Die vollständige
-Commit-Historie und der lokale Diff gehören in den digitalen Anlagenindex.
+Parent-Gitlink, Fork-Checkout und Docker-Parameter \texttt{SUGAR\_REF}
+verweisen konsistent auf den Fork-Commit \texttt{a0fc37b} auf dem Zweig
+\texttt{project/masked-sugar}; genau dieser Stand wurde in allen archivierten
+Matrix- und Folgeläufen verwendet. Die vollständige Fork-Historie ab
+\texttt{48bbfdd} sowie der zugehörige Diff liegen als Datei
+\path{sugar_fork_diff_48bbfdd_a0fc37b.diff} im digitalen Anlagenband.
 
 Für die Projektarbeit ist diese Forkentwicklung wissenschaftlich relevant,
 weil dadurch zwei Wirkorte derselben SAM-Semantik getrennt geprüft werden:
@@ -175,7 +177,11 @@ mehr konsistent.
 
 Speicher- und I/O-Optimierungen sind dennoch möglich. Die Promptversuche in
 \path{_attempts} können nach erfolgreicher Auswahl archiviert und aus dem
-Arbeitsbereich entfernt werden. Die STS-Kompatibilitätskopien können langfristig
+Arbeitsbereich entfernt werden; in allen Läufen dieser Arbeit war der erste
+Prompt bereits erfolgreich, sodass die Fallback-Kette nie greifen musste. Sie
+bleibt dennoch bewusst erhalten: Sie fängt leere Masken oder Speicherfehler
+automatisch ab und dokumentiert in den Versuchsordnern nachvollziehbar, was
+probiert wurde. Die STS-Kompatibilitätskopien können langfristig
 regenerierbar statt dauerhaft gespeichert werden. Der Symlink unter
 \path{data/05_3dgs/images} sollte dagegen erhalten bleiben. Diese Maßnahmen
 reduzieren Speicherbedarf und Kopierzeit, verändern aber nicht die zentrale
@@ -212,8 +218,9 @@ gemittelten Laufzeiten der Produktionskonfiguration (Route A, 5 FPS,
 \texttt{OPENCV}) aus: rund 34 Minuten für 720p, 27 Minuten für qHD und
 19 Minuten für low. Diese Werte umfassen die archivierten Schrittzeiten von
 STS bis Postprocessing; SAM~3.1, COLMAP, Rendering und Metrikberechnung sind
-nicht vollständig enthalten. Im Autopilot-Modus wird automatisch das
-720p-Preset mit allen Standardeingaben gewählt; die gewählte Auflösung wird
+nicht vollständig enthalten. Bei interaktiver Nutzung bestimmt dagegen die
+gewählte Auswahl das Lauf-Preset; nur der Autopilot setzt automatisch das
+720p-Preset mit allen Standardeingaben. Die gewählte Auflösung wird
 im Run-Report protokolliert.
 
 \subsection{Quality-Gates und Datenverträge}
@@ -226,16 +233,20 @@ Qualitätsrelevante Implementierungsentscheidungen sind:
   \item Matrixrunner und Inline-Vollauf prüfen die Maskenabdeckung vor STS;
         der Guard bricht bei mindestens 30\,\% leeren oder fehlenden
         \texttt{middle}-Masken ab.
-  \item Matrixrunner und Inline-Vollauf warpen die Rohmasken nach COLMAP in
-        dieselbe ideale Bilddomäne wie die STS-Bilder. Die Rohmasken bleiben
-        unter \path{data/03_masks/} erhalten; die gewarpten Masken liegen unter
-        \path{data/03_masks_ideal/} und werden an STS sowie SuGaR übergeben.
-        Der Matrixrunner erzeugt zusätzlich einen festen Eval-Split aus den
-        nichtleeren idealen Masken. Ein Replay ab \texttt{sts} verwendet bereits
-        bereitgestellte ideale Masken; ein Replay ab \texttt{colmap} besitzt
-        diese automatische Warp-Stufe weiterhin nicht und benötigt daher einen
-        passenden idealen Maskensatz.
-  \item Die SuGaR-Kameranamen werden als normalisierte Stems verglichen; leere
+  \item Matrixrunner, Inline-Vollauf und Replays mit frischem COLMAP-Lauf
+        (Start ab \texttt{gcp}, \texttt{sam3} oder \texttt{colmap}) warpen die
+        Rohmasken nach COLMAP in dieselbe ideale Bilddomäne wie die
+        STS-Bilder. Die Ablagen bleiben dabei getrennt: Die idealen Bilder
+        liegen unter \path{data/04_sfm/undistorted/images/}, die Rohmasken
+        unter \path{data/03_masks/} und die gewarpten Masken unter
+        \path{data/03_masks_ideal/}; Letztere werden an STS sowie SuGaR
+        übergeben. Der Matrixrunner erzeugt zusätzlich einen festen Eval-Split
+        aus den nichtleeren idealen Masken. Replays ab \texttt{sts},
+        \texttt{sugar} oder \texttt{postprocess} erzeugen keine neue
+        COLMAP-Szene und verwenden daher bereits bereitgestellte ideale
+        Masken.
+  \item Die SuGaR-Kameranamen werden als normalisierte Dateinamen ohne
+        Endung (sogenannte Stems) verglichen; leere
         Kamera- oder Eval-Listen werden mit klaren Fehlern abgelehnt.
   \item Die Bildauswertung ist ausschließlich objektmaskiert. Full-frame-Werte
         würden bei einem object-only Splat überwiegend den nicht rekonstruierten
@@ -245,9 +256,15 @@ Qualitätsrelevante Implementierungsentscheidungen sind:
 Zusätzlich prüfen Replay- und Matrixpfad, ob ein vollständiges COLMAP-Modell
 vorliegt, die Objektfilterung nicht alle Gaussians entfernt, die Poisson-
 Eingabe gültige Punkte und Normalen enthält und die für einen Replay
-notwendigen Artefakte aus demselben Frame-, Kamera- und Iterationsstand stammen.
-Der Matrixrunner archiviert jeden Lauf, bevor der Live-Arbeitsbereich für die
-nächste Konfiguration bereinigt wird.
+notwendigen Artefakte aus demselben Frame-, Kamera- und Iterationsstand
+stammen. „Gültig" bedeutet hier: Die Punktwolke besitzt ausreichend viele
+Stützpunkte, und die zugehörigen Normalen sind endliche, von null
+verschiedene Vektoren, die sich normalisieren lassen. Trifft eine der
+Prüfungen nicht zu, bricht der Lauf an dieser Stelle mit einem expliziten
+Fehler ab, statt ein defektes Folgeprodukt still weiterzureichen; der Lauf
+wird im Archiv als fehlgeschlagen geführt. Der Matrixrunner archiviert jeden
+Lauf, bevor der Live-Arbeitsbereich für die nächste Konfiguration bereinigt
+wird.
 
 \subsection{STS-Objektfilterung und geometrischer Eingang}
 

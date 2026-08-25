@@ -10,9 +10,9 @@ eine lokale Centerline samt B-Spline exportieren. Der wissenschaftlich
 relevante Befund ist dabei nicht nur ein einzelner erfolgreicher Lauf. Die im
 Matrix-/Replaypfad wirksamen Quality-Gates für Masken, Kameramodelle, ideale
 Bilddomäne, Eval-Split und Ergebnisarchive verhindern mehrere zuvor
-beobachtete stille oder verspätete Fehler; der Inline-Vollauf nutzt dieselbe
-Gate-/Warp-Kette, während der Replay über den \texttt{--from}-Dispatcher
-weiterhin einen passenden idealen Maskensatz voraussetzt.
+beobachtete stille oder verspätete Fehler; Inline-Vollauf, Matrixrunner und
+Replays mit frischem COLMAP nutzen dieselbe Gate-/Warp-Kette, während
+Replays ab \texttt{sts} einen bereits passenden idealen Maskensatz voraussetzen.
 
 Robustheit bedeutet in dieser Arbeit nicht Fehlerfreiheit unter jeder
 denkbaren Eingabe. Sie bedeutet, dass bekannte Voraussetzungen geprüft,
