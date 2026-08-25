@@ -13,24 +13,24 @@
 
 | Nr | S. | Maßnahme | Status |
 |----|----|----------|--------|
-| K1-01 | 9 | Containeranalyse raus → Rohdatei einfach beschreiben (H.264, Auflösung, FPS) | 🔲 |
-| K1-02 | 13 | „supervidiert“ durch einfaches Synonym ersetzen | 🔲 |
-| K1-03 | 13 | Satz zu obj_id-/STS-Objektdateien-Zuordnung löschen | 🔲 |
-| K1-04 | 20 | Fußnote (Host-UID/-GID) an das tatsächliche Seitenende setzen (Layout) | 🔲 |
-| K1-05 | 25 | Satz „Zielzählerangaben … historische Dateinamen“ löschen | 🔲 |
-| K1-06 | 26 | Multi-View-Crop-Satz löschen (alter Stand, irrelevant) | 🔲 |
-| K1-07 | 29 | Wiederholung „Importpfad und Tensorlayout … zwölf Läufe“ kürzen (3. Wiederholung) | 🔲 |
-| K1-08 | 29 | Abschnitt 5.7 „Historische SuGaR-Zählerstände“ komplett streichen (inkl. Tabelle) | 🔲 |
-| K1-09 | 33 | Ansichtsmetrik-Wiederholung kürzen (Hinweisprinzip: 1× Hauptort + Querverweis) | 🔲 |
-| K1-10 | 45 | Punktwolken-Absatz = Wiederholung von 7.2 → kürzen/streichen | 🔲 |
-| K1-11 | 45 | PINHOLE-Absatz = Wiederholung → kürzen | 🔲 |
-| K1-12 | 46 | „Zeit/Qualitätsmatrix im Anhang“-Satz: Matrix ist in Ausarbeitung → Anhangsbezug streichen | 🔲 |
-| K1-13 | 47 | „Replay runner“ generisch raus (nicht anders als Matrixrun) | 🔲 |
-| K1-14 | 47 | „Matrix-/Smoke-/Replaypfad“ → normaler Inline-Lauf mit gemeint | 🔲 |
-| K1-15 | 47 | Fazit: Replay-Nennung weglassen; Maskenwarp „bereits nachgewiesen“ statt „separater Nachweis sinnvoll“ | 🔲 |
-| K1-16 | 47 | Fazit: Folgematrix-Satz löschen („klingt nach KI-Antwort“) | 🔲 |
-| K1-17 | 48 | Fazit: Block „endgültige Kurzfassung … nochmals geprüft“ löschen | 🔲 |
-| K1-18 | 49 | COLMAP-Anhang: Satz „Alle fünf dokumentierten Läufe registrierten … archiviert“ löschen | 🔲 |
+| K1-01 | 9 | Containeranalyse raus → Rohdatei einfach beschreiben (H.264, Auflösung, FPS) | ✅ |
+| K1-02 | 13 | „supervidiert“ durch einfaches Synonym ersetzen | ✅ |
+| K1-03 | 13 | Satz zu obj_id-/STS-Objektdateien-Zuordnung löschen | ✅ |
+| K1-04 | 20 | Fußnote (Host-UID/-GID) an das tatsächliche Seitenende setzen (Layout) | ✅ |
+| K1-05 | 25 | Satz „Zielzählerangaben … historische Dateinamen“ löschen | ✅ |
+| K1-06 | 26 | Multi-View-Crop-Satz löschen (alter Stand, irrelevant) | ✅ |
+| K1-07 | 29 | Wiederholung „Importpfad und Tensorlayout … zwölf Läufe“ kürzen (3. Wiederholung) | ✅ |
+| K1-08 | 29 | Abschnitt 5.7 „Historische SuGaR-Zählerstände“ komplett streichen (inkl. Tabelle) | ✅ |
+| K1-09 | 33 | Ansichtsmetrik-Wiederholung kürzen (Hinweisprinzip: 1× Hauptort + Querverweis) | ✅ |
+| K1-10 | 45 | Punktwolken-Absatz = Wiederholung von 7.2 → kürzen/streichen | ✅ |
+| K1-11 | 45 | PINHOLE-Absatz = Wiederholung → kürzen | ✅ |
+| K1-12 | 46 | „Zeit/Qualitätsmatrix im Anhang“-Satz: Matrix ist in Ausarbeitung → Anhangsbezug streichen | ✅ |
+| K1-13 | 47 | „Replay runner“ generisch raus (nicht anders als Matrixrun) | ✅ |
+| K1-14 | 47 | „Matrix-/Smoke-/Replaypfad“ → normaler Inline-Lauf mit gemeint | ✅ |
+| K1-15 | 47 | Fazit: Replay-Nennung weglassen; Maskenwarp „bereits nachgewiesen“ statt „separater Nachweis sinnvoll“ | ✅ |
+| K1-16 | 47 | Fazit: Folgematrix-Satz löschen („klingt nach KI-Antwort“) | ✅ |
+| K1-17 | 48 | Fazit: Block „endgültige Kurzfassung … nochmals geprüft“ löschen | ✅ |
+| K1-18 | 49 | COLMAP-Anhang: Satz „Alle fünf dokumentierten Läufe registrierten … archiviert“ löschen | ✅ |
 
 ## K2 – Nutzerformulierungen einbauen (wörtlich/adaptiert)
 
@@ -65,9 +65,9 @@
 | K3-08 | 24 | Poisson-Gate: Verhalten bei Verletzung + Definition gültiger Punkte/Normalen ergänzen | 🔲 |
 | K3-09 | 23a/46g | Laufzeiten-Archivierung prüfen: Gesamtzeit oder STS-bis-Postprocess? Tex korrigieren | 🔲 |
 | K3-10 | 23c | Bildablageorte klären (undistorted: 04_sfm? je nach Pfad unterschiedlich?) und Text/Tabelle angleichen | 🔲 |
-| K3-11 | 46c | GCP-Breakpoint: existiert der noch im Code? Text korrigieren | 🔲 |
+| K3-11 | 46c | GCP-Breakpoint: existiert der noch im Code? Text korrigieren | ✅ |
 | K3-12 | 21 🔴 | T5-Versionsdreieck lösen (FREIGEGEBEN): Submodul initialisieren/prüfen → Fork committen → Parent-Gitlink → Dockerfile SUGAR_REF → Diff exportieren → Tex 04_impl:97 ff. final | 🔶 Vorbehalt VM-Stand |
-| K3-13 | 46d | Autopilot-Vollauf: „wurde doch schon gemacht“ – Erfolgskriterium 6/Diskussion entsprechend (mit K5-Inventar) | 🔲 |
+| K3-13 | 46d | Autopilot-Vollauf: „wurde doch schon gemacht“ – Erfolgskriterium 6/Diskussion entsprechend (mit K5-Inventar) | ✅ |
 
 ## K4 – Fachliche Antworten einarbeiten
 
@@ -83,11 +83,11 @@
 | K4-08 | 38 | Route B (Rasterizer-Tiefe) erklären, warum nicht Produktionsstandard | 🔲 |
 | K4-09 | 43 | „Ansichtsmetriken“-Disclaimer nur 1× Hauptort, sonst Querverweis (Konsolidierung mit K1-09) | 🔲 |
 | K4-10 | 43 | 87 Rohpunkte präzisieren: welcher Lauf/welche Einstellung; Verhältnis zu Anhang-C-Centerlines klarstellen (Grad-10 hier, Grad-3-glätten dort?) | 🔲 |
-| K4-11 | 44 | „nicht monoton“ auflösen: bezog sich auf Metrikwerte über Konfigurationen, NICHT Maskestabilität; Satz korrigieren (Rohr wurde in jedem Frame erkannt) | 🔲 |
-| K4-12 | 46a | Delta-Grafik: SuGaR stringent niedriger = zulässige Aussage; Formulierung anpassen | 🔲 |
-| K4-13 | 46f | „invertierte LPIPS“ streichen → Rankingumkehr als Natur der Metrik | 🔲 |
-| K4-14 | 46i | Scheitelachse vs. Centerline klären (Kontext lesen, ggf. präzisieren) | 🔲 |
-| K4-15 | 47a | Abzweigungen/Ringschluss: explizit außerhalb BA-Scope stellen (lineare Objekte) | 🔲 |
+| K4-11 | 44 | „nicht monoton“ auflösen: bezog sich auf Metrikwerte über Konfigurationen, NICHT Maskestabilität; Satz korrigieren (Rohr wurde in jedem Frame erkannt) | ✅ |
+| K4-12 | 46a | Delta-Grafik: SuGaR stringent niedriger = zulässige Aussage; Formulierung anpassen | ✅ |
+| K4-13 | 46f | „invertierte LPIPS“ streichen → Rankingumkehr als Natur der Metrik | ✅ |
+| K4-14 | 46i | Scheitelachse vs. Centerline klären (Kontext lesen, ggf. präzisieren) | ✅ |
+| K4-15 | 47a | Abzweigungen/Ringschluss: explizit außerhalb BA-Scope stellen (lineare Objekte) | ✅ |
 
 ## K5 – Struktur-Umbau
 

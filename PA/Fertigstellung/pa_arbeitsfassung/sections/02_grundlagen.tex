@@ -132,8 +132,8 @@ eine Oberfläche findet dabei nicht statt; die Farbübertragung aus den
 Ansichten erfolgt erst in der nachgelagerten UV-Texturphase.
 
 Die Depth-Normal-Consistency (DN) vergleicht dagegen die aus der gerenderten
-Gaussian-Tiefe abgeleiteten Normalen mit den gerenderten Normalen und
-supervidiert bewusst auf der erodierten \texttt{middle}-Stufe ohne Dilatation.
+Gaussian-Tiefe abgeleiteten Normalen mit den gerenderten Normalen und wird
+bewusst auf der erodierten \texttt{middle}-Stufe ohne Dilatation angewandt.
 Der Grund ist die Silhouettenstabilität: Tiefe und daraus abgeleitete
 Normalen sind direkt an Objektkanten unzuverlässig, und genau dort kann eine
 \texttt{default}-Maske über die Objektsilhouette hinausragen. Ein solcher
@@ -160,9 +160,7 @@ beziehungsweise von der Evaluation ausgeschlossen.
 
 \subsection{Objektselektion und Meshgewinnung}
 
-Die Ziel-Gaussians werden über die konfigurierte Objekt-ID selektiert; die
-Zuordnung stammt aus den STS-Objektdateien (eigene \texttt{obj\_id}-Eigenschaft
-der PLY beziehungsweise die Objekt-ID-Tensoren der STS-Ausgabe). Bei einem
+Die Ziel-Gaussians werden über die konfigurierte Objekt-ID selektiert. Bei einem
 Datensatz mit genau einem linearen Objekt ist die Objekt-ID eine
 Formalschnittstelle des übernommenen STS-Schemas; die eigentliche Auswahl
 trifft der nachgelagerte Opazitäts- und Farbfilter. Ein Opazitätsfilter kann

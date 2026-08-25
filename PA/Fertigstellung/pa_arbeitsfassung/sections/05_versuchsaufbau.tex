@@ -128,55 +128,14 @@ einer Ground Truth.
 
 \subsection{Abgeschlossene SuGaR-Folgeprüfung}
 
-Die frühere SuGaR-Matrix scheiterte nach vorhandenen STS-Baselinewerten im
-separaten Renderpfad. Nach Korrektur von Importpfad und Tensorlayout wurde die
-Konfiguration mit zwölf Läufen ausgeführt: \texttt{SIMPLE\_RADIAL} und
-\texttt{OPENCV}, jeweils mit \texttt{sugar\_coarse}, drei Auflösungen und zwei
-FPS-Profilen. Alle zwölf Manifeste und Coarse-Metrikdateien sind erfolgreich
+Die Folgematrix umfasst zwölf Läufe über die Kameramodelle
+\texttt{SIMPLE\_RADIAL} und \texttt{OPENCV} (jeweils mit
+\texttt{sugar\_coarse}) bei drei Auflösungen und zwei FPS-Profilen. Alle zwölf
+Manifeste und Coarse-Metrikdateien sind erfolgreich
 archiviert. Ein verfeinertes PLY wurde in diesen Läufen nicht exportiert; die
-Folgematrix bewertet daher die Coarse-Route, nicht die SuGaR-Refined-Stufe.
-
-\subsection{Historische SuGaR-Zählerstände}
-
-Während der Entwicklung wurden für die SuGaR-Coarse-Route unterschiedliche
-Zielzählerstände verwendet. Für die Auswertung ist eine klare Trennung wichtig,
-weil nicht alle genannten Werte durch Laufmanifeste belegt sind.
-Tabelle~\ref{tab:sugar-zaehlerstaende} ordnet die in Dokumentation und
-historischen Dateinamen vorkommenden Stände ein.
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{p{2.6cm}p{3.0cm}X}
-\toprule
-Bezeichnung & Zählerstand & Bedeutung und Nachweislage\\
-\midrule
-Aktueller Coarse-Standard & 9000 & Standard für Vierfeld-Ablation,
-Folgeprüfung und aktuelle Pipeline (Standardwert
-\texttt{COARSE\_ITERATIONS=9000}); durch Manifeste und
-Konfigurationsdateien belegt.\\
-Historische Ablationen & 9001, 10.000, 18.000 & In Exposé und
-Entwicklungsdokumentation aufgeführte Ablationsstufen; nicht der aktuelle
-Standard.\\
-Weitere historische Versuche & 12.000, 15.000 & In den Entwicklungsnotizen
-dokumentierte Vergleichsläufe.\\
-Historische Screenshots & 9200 & Kommt ausschließlich in zwei historischen
-Screenshot-Dateinamen vor; ein Zählerstand von 9200 ist nicht durch Manifest
-oder Log bestätigt. Die zugehörigen Bilder werden in der Arbeit einheitlich
-als historische Stände mit Zielzähler 9001 eingeordnet.\\
-\bottomrule
-\end{tabularx}
-\caption{In der Entwicklung verwendete SuGaR-Coarse-Zählerstände und ihre
-Nachweislage.}
-\label{tab:sugar-zaehlerstaende}
-\end{table}
-
-Die Abweichung zwischen dem früher üblichen Zielzähler 9001 und dem aktuellen
-Standardwert 9000 hat einen technischen Hintergrund: Die DN-/SDF-Terme des
-localen Forks werden erst oberhalb des Zählerstands 9000 aktiviert, sodass
-Läufe mit Zielzähler 9001 diese Terme gerade noch nicht erreichen. Für die
-Vergleichbarkeit gelten die in dieser Arbeit ausgewerteten Läufe
-(Folgeprüfung, Vierfeld-Ablation) einheitlich mit dem Standardwert 9000.
+Folgematrix bewertet daher nur die Coarse-Route. Die Ergebnisse zeigen die
+Grafiken in Abschnitt~\ref{sec:sugar-folgepruefung} und die Fehlerchronik in
+Tabelle~\ref{tab:fehlerchronik}.
 
 \subsection{Evaluationsprotokoll}
 

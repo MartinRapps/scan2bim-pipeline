@@ -119,16 +119,12 @@ Route A stützt sich deshalb vor allem auf die A/B/C/D-Geometrieablation und
 den direkten Erhalt der STS-Gaussian-Geometrie; die Matrix ergänzt diesen
 Befund um Robustheit und reproduzierbare Vergleichswerte.
 
-Die drei Bildmetriken sind dabei ausschließlich Ansichtsmetriken der jeweils
-gerenderten Gaussian-Repräsentation. Die STS-Grafik verwendet
-\texttt{sts\_masked.json}; die SuGaR-Grafik verwendet
-\texttt{sugar\_coarse\_masked.json}. Ein höherer PSNR- oder SSIM-Wert
-beziehungsweise ein niedrigerer LPIPS-Wert bedeutet deshalb zunächst nur eine
-ähnlichere Objektansicht zum Ground-Truth-Bild. Daraus folgt weder eine
-korrektere Meshoberfläche noch eine bessere Centerline. Für die Meshentscheidung
-sind weiterhin Vertex-/Face-Struktur, relative Meshabstände und die visuelle
-Artefaktprüfung maßgeblich; eine absolute geometrische Referenz fehlt in der
-Projektarbeit.
+Die STS-Grafik verwendet ausschließlich \path{sts_masked.json}, die
+SuGaR-Grafik \path{sugar_coarse_masked.json}; die Interpretation der drei
+Ansichtsmetriken und ihre Grenzen wurden bereits in
+Kapitel~\ref{sec:grundlagen} definiert und werden hier nicht wiederholt.
+Für die Meshentscheidung sind zusätzlich Vertex-/Face-Struktur, relative
+Meshabstände und die visuelle Artefaktprüfung maßgeblich.
 
 Ein erneuter vollständiger Matrixlauf ist als Wiederholungsprüfung sinnvoll.
 Bei nominal gleichen Parametern sind kleine Abweichungen durch stochastische
@@ -194,12 +190,14 @@ Fehler glätten, sodass bessere Bildmetriken nicht automatisch eine bessere
 3D-Geometrie bedeuten. Die Werte werden daher nicht als alleinige
 Produktionsentscheidung verwendet.
 
-Die Ergebnisse sind nicht monoton. 5 FPS liefern nicht in jeder Kombination
-den numerisch besten Wert, und Low-Auflösung ist nicht in jedem Modell besser
-als qHD. Die beobachteten Unterschiede entstehen daher wahrscheinlich aus
-einer Interaktion von Bildauflösung, zeitlicher Überdeckung, konkreter
-Kamerabewegung, Maskenstabilität, Kameramodell und STS-Optimierung. Ein
-isolierter Kausalnachweis für einen einzelnen Faktor liegt nicht vor.
+Die Metrikwerte verhalten sich nicht monoton über die Konfigurationen: 5 FPS
+liefern nicht in jeder Kombination den numerisch besten Wert, und Low-Auflösung
+ist nicht in jedem Modell besser als qHD. Die beobachteten Unterschiede
+entstehen daher wahrscheinlich aus einer Interaktion von Bildauflösung,
+zeitlicher Überdeckung, konkreter Kamerabewegung, Kameramodell und
+STS-Optimierung. Die Maskensegmentierung selbst blieb davon unberührt stabil –
+das Rohr wurde in jedem Frame erkannt. Ein isolierter Kausalnachweis für einen
+einzelnen Faktor liegt nicht vor.
 
 \subsection{Produktionskonfiguration aus der Matrixauswertung}
 \label{sec:produktionskonfiguration}

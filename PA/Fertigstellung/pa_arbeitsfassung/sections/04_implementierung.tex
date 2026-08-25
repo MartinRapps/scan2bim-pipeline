@@ -32,13 +32,11 @@ E & DGtal/GDAL & kompatibles OBJ & lokale Centerline, B-Spline, CSV/GeoJSON\\
 \label{tab:containerrollen}
 \end{table}
 
-Die Master-Skripte übernehmen die numerische Host-UID und -GID\footnote{Die
-Host-UID/-GID sind die Benutzer- und Gruppenkennung des ausführenden Nutzers
-auf dem Host. Durch die Übergabe an die Container gehören neu erzeugte
-Dateien auf dem Host dem eigenen Benutzer und nicht dem Container-Root, sodass
-bind-gemountete Dateien auch auf Hochschul- und Domänensystemen lesbar und
-bearbeitbar bleiben.}, sodass
-bind-gemountete Dateien auch auf Hochschul- und Domänensystemen lesbar bleiben.
+Die Master-Skripte übernehmen die numerische Host-UID und -GID, das ist die
+Benutzer- und Gruppenkennung des ausführenden Nutzers auf dem Host. Dadurch
+gehören neu erzeugte Dateien auf dem Host dem eigenen Benutzer und nicht dem
+Container-Root; bind-gemountete Dateien bleiben so auch auf Hochschul- und
+Domänensystemen lesbar und bearbeitbar.
 Run-Tags und Ausgabeordner werden vor unbeabsichtigtem Überschreiben geschützt.
 Manifeste, Parameter und Logs bleiben außerhalb kurzlebiger Container erhalten.
 
@@ -267,10 +265,7 @@ bewusst nicht als quantitative Ergebnisreihe zu lesen.
   \includegraphics[width=\textwidth]{pa_panel_mesh_filterung.png}
   \caption{Historische Meshgewinnung und Objektfilterung: vom ersten
   herausgeschnittenen Objekt über schlecht segmentierte Zwischenstände und
-  Floaters bis zum segmentierten Refined-Mesh der aktuellen Route. Die
-  Zielzählerangaben der Screenshots folgen den jeweiligen historischen
-  Dateinamen; nicht durch Manifest oder Log bestätigte Angaben sind in den
-  Bildunterschriften nicht als verifiziert zu werten.}
+  Floaters bis zum segmentierten Refined-Mesh der aktuellen Route.}
   \label{fig:pa-panel-mesh}
 \end{figure}
 
@@ -329,9 +324,7 @@ Route A speichert das Coarse-PLY und konvertiert es für die bestehende
 Centerline-Schnittstelle zusätzlich in \texttt{refined.obj}. Dieser
 Kompatibilitätsname bedeutet ausdrücklich nicht, dass ein SuGaR-Refinement
 ausgeführt wurde. Die Vergleichsroute schreibt Coarse-, Refined- und
-gegebenenfalls Texturartefakte getrennt. Ein optionaler Multi-View-Crop bleibt
-deaktiviert, weil er in früheren Diagnosen entweder zu konservativ oder zu
-destruktiv war.
+gegebenenfalls Texturartefakte getrennt.
 
 \subsection{Centerline und Export}
 

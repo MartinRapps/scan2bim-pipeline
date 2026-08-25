@@ -41,8 +41,12 @@ unabhängige Referenz notwendig.
 Die Matrix zeigt, dass Kameramodell, zeitliche Samplingdichte und Auflösung
 nicht isoliert interpretiert werden dürfen. Die 2-FPS-Profile enthalten weniger
 zeitlich benachbarte Ansichten; bei dünnen Objekten kann dies die SAM-
-Propagation und die verfügbare Überdeckung erschweren. Die Beobachtung ist
-jedoch nicht monoton: Einzelne Low- und 720p-Läufe bleiben maskenstabil.
+Propagation und die verfügbare Überdeckung erschweren. Die Maskensegmentierung
+selbst war im Testdatensatz stabil: Das Rohr wurde über alle Auflösungen und
+FPS-Profile hinweg in jedem Frame erkannt; instabil waren allenfalls die
+numerischen Metrikwerte über die Konfigurationen hinweg (dort besteht keine
+monotone Beziehung zu FPS oder Auflösung, siehe
+Abschnitt~\ref{sec:visueller-aufloesungsvergleich}).
 
 Die nativen Bildmetriken werden in unterschiedlichen Pixelräumen berechnet.
 Downsampling kann Bildfehler und Maskengrenzen mitteln. Ein strengerer
@@ -59,38 +63,21 @@ Kameramodell- und FPS-Konfiguration. Die neue Boxplot-Auswertung ergänzt die
 Mittelwerte um die Streuung der einzelnen Testansichten; sie ersetzt aber
 nicht die geometrische Referenzmessung.
 
-Die Bildtafeln des Pipeline-Durchlaufs präzisieren diese Einschränkung. Trotz
-des gleichen SIFT-Merkmalslimits sind in der Punktwolken-Übersicht kaum
-Auflösungsunterschiede sichtbar; lokal weist die \texttt{720p}-Punktwolke in
-der linken unteren Wandecke jedoch mehr sichtbare Punkte auf. Eine räumlich
-breitere Verteilung der bei begrenztem Merkmalsbudget gefundenen homologen
-Punkte könnte die Track- und SfM-Stabilität verbessern. Dies bleibt eine
-plausible Hypothese zur internen Geometriekonsistenz und ist keine Aussage
-über die absolute Richtigkeit der Rekonstruktion. Ebenso widerspricht ein
-solcher möglicher SfM-Vorteil höheren SSIM-Werten einer niedrigeren Auflösung
-nicht: SSIM bewertet die Ähnlichkeit der gerenderten Bildansicht im jeweiligen
-Pixelraum, nicht die räumliche Verteilung der SfM-Tracks oder die geometrische
-Richtigkeit des späteren Meshes. Die sichtbaren Floater-, Rand- und
-Centerline-Unterschiede zeigen deshalb, warum Bildmetrik und Geometrie getrennt
-bewertet werden müssen.
+Die Bildtafeln des Pipeline-Durchlaufs in
+Anhang~\ref{app:durchlauf} präzisieren diese Einschränkung: Trotz des gleichen
+SIFT-Merkmalslimits sind in den Punktwolken kaum Auflösungsunterschiede
+sichtbar; die sichtbaren Floater-, Rand- und Centerline-Unterschiede zeigen
+jedoch, warum Bildmetrik und Geometrie getrennt bewertet werden müssen.
 
-Der direkte PINHOLE-Lauf darf nicht als Nachweis einer Entzerrung interpretiert
-werden. Er erzwingt auf den Rohbildern die Annahme einer idealen Kamera. Der
-Produktionsweg mit \texttt{OPENCV} (Standard seit der Matrixauswertung,
-Abschnitt~\ref{sec:produktionskonfiguration}) schätzt dagegen zunächst eine
-Verzeichnung und erzeugt anschließend eine separate ideale Szene; dasselbe
-gilt für die historische \texttt{SIMPLE\_RADIAL}-Baseline. OPENCV kann
-zusätzliche Verzeichnungsanteile modellieren, besitzt aber mehr
-Freiheitsgrade. Aus den Bildmetriken allein lässt sich daher keine generell
-beste Kamerakonfiguration ableiten; der gewählte Standard ist eine
-datengestützte Projektentscheidung für 720p bei 5 FPS und bleibt für
-veränderte Datensätze neu zu prüfen. Die von COLMAP ausgegebenen
-Verzeichnungskoeffizienten sind aus den Bildkorrespondenzen geschätzte
-Parameter, nicht unabhängig gemessene Objektivdaten. Ein niedriger mittlerer
-Reprojektionsfehler belegt daher die interne Geometriekonsistenz, aber nicht
-die physikalische Richtigkeit der Entzerrung. Für einen Vermessungsnachweis
-ist eine externe Kamerakalibrierung mit Referenzmustern oder bekannten
-Kalibrierparametern erforderlich; diese liegt in der Projektarbeit nicht vor.
+Der direkte PINHOLE-Lauf ist eine Ablation und kein Nachweis einer gelungenen
+Entzerrung: Er erzwingt auf den Rohbildern die Annahme einer idealen Kamera,
+während der Produktionsweg mit \texttt{OPENCV} zunächst Verzeichnung schätzt
+und daraus eine separate ideale Szene erzeugt
+(Abschnitt~\ref{sec:produktionskonfiguration}). Die von COLMAP ausgegebenen
+Verzeichnungskoeffizienten sind geschätzte Parameter, keine gemessenen
+Objektivdaten; der Reprojektionsfehler belegt interne Konsistenz, nicht die
+physikalische Richtigkeit der Entzerrung. Für einen Vermessungsnachweis wäre
+eine externe Kamerakalibrierung erforderlich; diese liegt nicht vor.
 
 \subsection{Original-GS und SuGaR-Coarse}
 
@@ -112,31 +99,36 @@ auf SuGaR-Coarse beschränkt; eine SuGaR-Refined-Auswertung bleibt offen.
 
 Der gepaarte Delta-Vergleich der zwölf Follow-up-Konfigurationen ist deshalb
 als Rendervergleich zu lesen: SuGaR-Coarse wird jeweils mit dem STS-Splat
-derselben Konfiguration verglichen. Die beobachteten Unterschiede können neben
-der zusätzlichen SuGaR-Optimierung auch aus dem unterschiedlichen Renderpfad
-entstehen. Die Delta-Grafik beweist somit weder eine allgemeine Überlegenheit
-noch eine Unterlegenheit von SuGaR und keine Meshgenauigkeit.
+derselben Konfiguration verglichen. Über alle zwölf gepaarten Konfigurationen
+liegt die SuGaR-Coarse-Bildmetrik durchgängig unter der STS-Baseline. Diese
+konsistente Richtung ist eine zulässige Aussage der Delta-Grafik – SuGaR
+schneidet in den Ansichtsmetriken stringent schlechter ab. Sie bleibt
+allerdings ein Rendervergleich und kein Meshgenauigkeitsnachweis; die
+Unterschiede können neben der zusätzlichen SuGaR-Optimierung auch aus dem
+unterschiedlichen Renderpfad entstehen.
 
-\subsection{Autopilot, Replay und Batchfähigkeit}
+\subsection{Autopilot und Batchfähigkeit}
 
 Der Matrixrunner belegt die serielle Batchverarbeitung deklarierter
-Konfigurationen. Der Replay reduziert Wiederholungsaufwand, verlangt aber
-vollständige und kompatible Eingabeartefakte an der gewählten Schrittgrenze.
-Der Autopilot füllt interaktive Entscheidungen mit Standardwerten und kann den
-manuellen GCP-Breakpoint überspringen. Diese drei Funktionen sind verwandt,
-aber nicht identisch.
+Konfigurationen. Der Autopilot füllt interaktive Entscheidungen mit
+Standardwerten und kann den manuellen GCP-Breakpoint überspringen. Beide
+Funktionen sind verwandt, aber nicht identisch.
 
-Vor einer endgültigen Aussage zur nutzerseitigen Autonomie muss ein
-Autopilot-Vollauf oder ein gleichwertiger Vertragstest archiviert werden. Die
-Containerisierung und nichtinteraktive Matrix bereiten einen Serverbetrieb vor;
-ein Deployment, Mehrbenutzerbetrieb und Betriebsmonitoring wurden nicht
-evaluiert. Benutzerfreundlichkeit wird deshalb nur als reduzierte Zahl
-manueller Entscheidungen, nicht als formale Usability-Messung bewertet.
+Die nutzerseitige Autonomie ist durch archivierte Autopilot-Volläufe belegt
+(Abschnitt~\ref{sec:versuchsaufbau}, Erfolgskriterium~6). Die
+Containerisierung und die nichtinteraktive Matrix bereiten einen Serverbetrieb
+vor; ein Deployment, Mehrbenutzerbetrieb und Betriebsmonitoring wurden nicht
+evaluiert. Eine formale Usability-Messung wurde ebenfalls nicht durchgeführt;
+im Sinne der Nutzerfreundlichkeit wurden durch Tests gewonnene Standardwerte
+jedoch so gesetzt, dass dem Nutzer wiederkehrende Entscheidungen abgenommen
+werden.
 
 \subsection{Laufzeit und Effizienz}
 
 Der Zeit-/Qualitätsquotient ist ebenfalls sekundär. Er kombiniert normalisierte
-PSNR-, SSIM- und invertierte LPIPS-Werte mit gleichen Gewichten und verwendet
+PSNR-, SSIM- und LPIPS-Werte mit gleichen Gewichten; bei LPIPS kehrt sich das
+Ranking um, da hier niedrigere Werte besser sind – das ist die Natur der
+Metrik, keine Inversion der Daten. Er verwendet
 nur die archivierten STS-bis-Postprocess-Zeiten. SAM~3.1- und COLMAP-Zeit sowie
 Container-Overheads der Rendering- und Metrikschritte sind nicht vollständig
 enthalten. Für die Bachelorarbeit müssen Rohmetriken und geometrische
@@ -144,9 +136,9 @@ Referenzmetriken höher gewichtet werden.
 
 Die Effizienzanalyse ist trotzdem praktisch relevant: Ein automatischer
 Screeninglauf kann ungeeignete Kombinationen aussortieren, bevor eine
-hochaufgelöste Produktionsrechnung erfolgt. Wegen unvollständiger
-End-to-End-Laufzeiten bleibt die Zeit-/Qualitätsmatrix im Anhang und dient nicht
-als primäre wissenschaftliche Rangliste.
+hochaufgelöste Produktionsrechnung erfolgt. Die Zeit-/Qualitätsauswertung
+dient damit als Screening-Hilfe, nicht als primäre wissenschaftliche
+Rangliste.
 
 \subsection{Centerline, Georeferenzierung und externer Geltungsbereich}
 
@@ -155,11 +147,16 @@ Translation-Fallback prüft zwar die Ausführung, sagt aber nichts über Lage-
 oder Höhengenauigkeit aus. Ebenso sind die Testdaten keine reale Rohr- oder
 Kabeltrasse und enthalten keine unabhängige GNSS-Referenzkurve.
 
-Auch die lokale Centerline ist bisher nur als erzeugtes Artefakt, nicht als
-geometrisch richtige Scheitelachse validiert. Der \texttt{single}-Modus ist für
-eine einzelne Trasse robust, verwirft aber bewusst Netzwerktopologie. Eine
-Übertragung auf Abzweigungen erfordert neue Referenzdaten und eigene
-Graphmetriken.
+Auch die lokale Centerline ist bisher nur als erzeugtes Artefakt validiert,
+nicht gegen eine geometrisch definierte Referenz wie die wahre Scheitelachse
+des Rohrs. Centerline und Scheitelachse fallen nur bei einer idealen
+Rekonstruktion zusammen; ihr Vergleich setzt eine unabhängige Vermessung
+voraus. Der \texttt{single}-Modus ist für eine einzelne Trasse robust,
+verwirft aber bewusst Netzwerktopologie. Das ist für den Untersuchungsgegenstand
+gewollt: Die Bachelorarbeit untersucht bewusst lineare Objekte ohne
+Ringschluss oder Abzweigungen; eine Übertragung auf verzweigte Netze würde
+neue Referenzdaten und eigene Graphmetriken erfordern und ist nicht Teil des
+Scopes.
 
 Für die Bachelorarbeit folgen daraus vier priorisierte Schritte: reale
 Aufnahmebedingungen, echte GCP-/GNSS-Daten, validierte relative
@@ -174,13 +171,18 @@ ingenieurtechnische Toleranz geprüft werden.
 	  getrennte ideale Bilddomäne, denselben Warp für Masken, einen
 	  nichtleeren gematchten Eval-Split und explizite Statusprüfungen aller
 	  Ergebnisstufen.
-  \item Kameramodell, FPS und Auflösung verändern Pipelineerfolg und
-	  Ansichtsmetriken, jedoch nicht monoton. Die aktuelle Matrix erlaubt ein
-	  Screening, aber keinen isolierten Kausal- oder Geometrienachweis.
+  \item Kameramodell, FPS und Auflösung verändern die Ansichtsmetriken in
+	  unterschiedlichen Richtungen: Kein Faktor führt über alle Konfigurationen
+	  hinweg zu durchgängig besseren Werten (keine monotone Beziehung zwischen
+	  Metrikwert und Faktorstufe). Die Maskensegmentierung selbst war dagegen
+	  stabil – im Testvideo wurde das Rohr in jedem Frame erkannt. Die Matrix
+	  erlaubt damit ein Screening, aber keinen isolierten Kausal- oder
+	  Geometrienachweis.
   \item Route A bewahrt die Original-STS-Gaussians direkter und zeigt im
 	  relativen Vergleich weniger unerwünschte Oberflächenveränderung. Ihre
 	  absolute geometrische Richtigkeit bleibt offen.
-  \item Replay und Matrixrunner sind für reproduzierbare Wiederholungen und
-	  Batchläufe nachgewiesen. Der Autopilot ist implementiert; sein
-	  vollständiger End-to-End-Nachweis bleibt vor Abgabe zu archivieren.
+  \item Der normale Inline-Vollauf und der Matrixrunner sind als
+	  reproduzierbare Ausführungswege durch archivierte Läufe nachgewiesen
+	  (Abschnitt~\ref{sec:versuchsaufbau}); der Autopilot ist über sechs
+	  archivierte Volläufe belegt.
 \end{enumerate}
