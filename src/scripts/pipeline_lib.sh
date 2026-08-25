@@ -566,6 +566,38 @@ breakpoint_cloudcompare() {
     run_step_end 0
 }
 
+run_step_mask_warp() {
+    # Warpt die Rohmasken nach COLMAP in die ideale Bilddomaene (identisch zum
+    # Inline-Vollauf). Wird im Replay-Dispatcher nach einem frischen COLMAP-Lauf
+    # aufgerufen, damit auch Replays ab gcp/sam3/colmap dieselbe Gate-/Warp-Kette
+    # nutzen. Replays ab sts/sugar/postprocess erwarten weiterhin bereits
+    # ideale Masken und rufen diese Funktion nicht auf.
+    local ideal_masks_host="${IDEAL_MASKS_HOST_DIR:-data/03_masks_ideal}"
+    local sts_masks_dir="${STS_MASKS_DIR:-/data/03_masks_ideal}"
+    local max_empty="${MASK_MAX_EMPTY_FRACTION:-0.30}"
+    run_step_start "Masken-Warp in die ideale Bilddomaene"
+    echo "Warpe Rohmasken aus /data/03_masks in die COLMAP-Idealbilddomaene..."
+    rm -rf "$ideal_masks_host"
+    mkdir -p "$ideal_masks_host"
+    docker compose run --rm sam3-preprocess \
+        python3 /app/src/python/warp_masks_to_undistorted.py \
+        --raw-masks-dir /data/03_masks \
+        --output-dir "$sts_masks_dir" \
+        --raw-sfm-txt /data/04_sfm/sparse_txt \
+        --ideal-sfm-txt /data/04_sfm/undistorted/sparse_txt \
+        --raw-images-dir /data/02_frames \
+        --ideal-images-dir /data/04_sfm/undistorted/images \
+        --report "$sts_masks_dir/mask_warp_report.json"
+    docker compose run --rm sam3-preprocess \
+        python3 /app/src/python/validate_mask_coverage.py \
+        --frames-dir /data/04_sfm/undistorted/images \
+        --masks-dir "$sts_masks_dir" \
+        --mask-name middle \
+        --max-empty-fraction "$max_empty" \
+        --report "$sts_masks_dir/mask_coverage_report.json"
+    run_step_end 0
+}
+
 run_step_sts_prep() {
     run_step_start "STS-Workspace und Initialisierung"
     log_step "[Step 3/5] Setting up Segment-then-Splat (STS) workspace..."
@@ -706,6 +738,7 @@ run_pipeline_from() {
                     return 0
                 fi
                 breakpoint_cloudcompare
+                run_step_mask_warp || return 1
                 ;;
             sts)
                 run_step_sts_prep
