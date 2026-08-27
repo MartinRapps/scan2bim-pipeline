@@ -83,8 +83,7 @@ GitHub-Repository abgelegt:
 
 - **URL:** <https://github.com/MartinRapps/scan2bim-pipeline>
 - **Branch:** `pa-fertigstellung`
-- **Commit-Stand dieser Abgabe:** `a878546` (27.08.2026) — *vor Abgabe auf den
-  finalen Commit aktualisieren*
+- **Commit-Stand dieser Abgabe:** `d73b858` (27.08.2026) — Stand der abgegebenen Quellen
 - **SuGaR-Fork-Commit:** `a0fc37b` (siehe `05_SuGaR-Fork/`, dort auch das
   vollständige Diff zur Vanilla-Basis `48bbfdd`)
 
