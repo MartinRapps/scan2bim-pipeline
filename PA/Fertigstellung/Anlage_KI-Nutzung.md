@@ -83,6 +83,42 @@ Alle KI-Ausgaben wurden manuell geprüft, verstanden und verantwortet.
 
 ---
 
+## 6. Überprüfung der Abgabe mit einer Prüfer-Persona
+
+**Worum es ging:** Strukturierte Endabnahme des Anlagenpakets aus der Sicht
+einer fiktiven Prüfer-Persona (Geovisualisierung/Geoinformatik,
+Computer-Vision-Grundlagen, keine Segmentierungserfahrung, keine Vorkenntnis
+der Arbeit). Ziel: Formales, inhaltliche Widersprüche und nicht auffindbare
+Nachweise finden, bevor die Arbeit abgegeben wird — absichtlich in kleinen
+Schritten statt einer einzelnen Sammelanfrage.
+
+**Beispielhafte Prompts:**
+- „Bevor du die Arbeit liest: Lege eine Datei persona.md an — fiktiver Prüfer
+  (Geovisualisierung, CV-Grundlagen, keine Vorkenntnisse), Prüfmaterial,
+  Regeln gegen Vorwissen (Erwartung vor der Lektüre, Fachbegriffe nur zählen,
+  wenn sie eingeführt wurden) und ein Phasenplan von der Ordnerstruktur bis
+  zum Fazit."
+- „Prüfe zuerst nur die Ordnerstruktur des Abgabepakets: Was erwarte ich pro
+  Ebene als Prüfer? Notiere Abweichungen als nummerierte Notizzettel, ohne
+  bereits Inhalte zu lesen."
+- „Lies jetzt nur die Dateien auf der Wurzelebene (Index, KI-Anlage) und
+  danach Formalien und Inhaltsverzeichnis der Arbeit; prüfe Prüfsummen per
+  Stichprobe und vermerke offene Punkte."
+- „Gehe Kapitel für Kapitel vor: erst die Erwartung an das Kapitel notieren,
+  dann nur den aktuellen Abschnitt lesen; neue Fachbegriffe und Zusagen
+  mitführen und Zahlen gegen die beigelegten CSVs prüfen — Kurzurteil je
+  Unterkapitel."
+- „Fasse zum Schluss zusammen: Notizzettel nach Schweregrad, offene Zusagen,
+  Literaturprüfung und eine priorisierte Fixliste zum Abarbeiten."
+
+**Prüfung:** Jeder Fund wurde gegen Code, Archive und die beiliegenden
+CSV-Dateien verifiziert, bevor er behoben wurde (u. a. Zahlenkorrektur der
+Centerline-Punkte auf den beiliegenden Golden-Run-Lauf, ein
+Zeichenkodierungsfehler im PDF und eine fehlende Container-Beschriftung im
+Ablaufdiagramm). Der vollständige Bericht liegt dem Anlagenband bei.
+
+---
+
 ## Eigenständigkeit
 
 Alle Inhalte wurden fachlich geprüft, vollständig verstanden und können selbstständig vertreten werden. KI-Ausgaben wurden nicht als wissenschaftliche Quellen zitiert. Die Verantwortung für fachliche Richtigkeit und Eigenständigkeit liegt beim Verfasser.
