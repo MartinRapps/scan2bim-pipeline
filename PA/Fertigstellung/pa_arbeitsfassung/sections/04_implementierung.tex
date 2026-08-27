@@ -320,9 +320,12 @@ maskenbasierte Verlust nötig wurde. Teilbild 3 entstand aus einem fälschlich
 übergebenen Splat, der direkt in ein Mesh umgewandelt wurde und extrem viele
 Floater hinterließ. Teilbild 4 stammt von der zuerst erprobten
 SuGaR-Coarse-Variante mit Zielzähler 15.000 und bewusst deaktivierter
-DN-Consistency -- die lang gezogenen Strukturen entstanden dort jedoch durch
-die falsche Übergabe und die fehlende Maskenbasiertheit beziehungsweise die
-RGB-lastige Supervision, nicht durch die Route selbst. Die Teilbilder 5 und 6
+DN-Consistency; da der DN-Term des Forks erst oberhalb des Zählerstands 9000
+aktiviert wird, blieb die Regularisierung so über die vollen 15.000
+Iterationen rein dichtebasiert. Die lang gezogenen Strukturen entstanden dort
+jedoch durch die falsche Übergabe und die fehlende Maskenbasiertheit
+beziehungsweise die RGB-lastige Supervision, nicht durch die Route selbst und
+nicht durch das Fehlen der DN-Consistency. Die Teilbilder 5 und 6
 zeigen einen Vergleich perfekt segmentierter Splats, Teilbild 7 die
 zugehörige Punktwolke. Insgesamt belegen beide Panels, dass ein
 funktionierendes STS-Rendering nicht selbstverständlich ist und welche
@@ -359,7 +362,7 @@ erzeugt. Die Pipeline unterscheidet dabei drei getrennte Metrik-Dateien:
         Diese Datei ist für das Rendering eines verfeinerten, mesh-gebundenen Splats
         (\path{refined.ply}) vorgesehen. Wurde im jeweiligen Lauf kein
         \path{refined.ply} exportiert, schreibt der Matrixrunner ein explizites
-        \texttt{\{"status":"skipped","reason":"no refined.ply exported"\}}.
+        \texttt{\{\string"status\string":\string"skipped\string",\string"reason\string":\string"no refined.ply exported\string"\}}.
 \end{enumerate}
 
 Für das korrekte SuGaR-Rendering waren zwei technische Korrekturen in

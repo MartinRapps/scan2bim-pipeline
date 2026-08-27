@@ -11,11 +11,10 @@ lokale Centerline und Grad-10-B-Spline. Eine solche Kette ist für alle drei
 Auflösungsstufen visuell dokumentiert; Anhang~\ref{app:durchlauf} zeigt den
 vollständigen Pipeline-Durchlauf mit 5 FPS und OPENCV in 720p, qHD und Low.
 
-Die archivierten Läufe verwenden durchgängig 240 Kameras; davon dienen 210 dem
-Training und 30 der Evaluation. Der feste Eval-Split und seine Begründung sind
-in Kapitel~\ref{sec:versuchsaufbau} beschrieben; hier genügt die Erinnerung,
-dass die Evaluationsbilder gerade deshalb bewertbar sind, weil sie nicht am
-Training beteiligt waren. Jede archivierte Kette erzeugte Route-A-Mesh,
+Die archivierten Läufe verwenden durchgängig 240 Kameras; 210 dienen dem
+Training und 30 der Evaluation auf einem festen, vom Training getrennten
+Split (Auswahl und Begründung: Kapitel~\ref{sec:versuchsaufbau}). Jede
+archivierte Kette erzeugte Route-A-Mesh,
 Rendering, objektmaskierte Metriken, Centerline, B-Spline und GeoJSON. Der
 Autopilotnachweis selbst ist über sechs archivierte Autopilot-Volläufe erbracht
 (Abschnitt~\ref{sec:versuchsaufbau}); die Visualisierung dieser Durchläufe in
