@@ -75,6 +75,24 @@ ABGABE/
 `matrix_smoke_low_pipe_full` existiert nicht mehr im Archivbestand und ist im
 Text auch nicht mehr referenziert.
 
+## Projektimplementierung (GitHub)
+
+Die vollständige Projektimplementierung (Pipeline-Orchestrierung `run_pipeline.sh`,
+`src/`, `tools/`, Containerdefinitionen, SuGaR-Fork als Submodul) ist im
+GitHub-Repository abgelegt:
+
+- **URL:** <https://github.com/MartinRapps/scan2bim-pipeline>
+- **Branch:** `pa-fertigstellung`
+- **Commit-Stand dieser Abgabe:** `a878546` (27.08.2026) — *vor Abgabe auf den
+  finalen Commit aktualisieren*
+- **SuGaR-Fork-Commit:** `a0fc37b` (siehe `05_SuGaR-Fork/`, dort auch das
+  vollständige Diff zur Vanilla-Basis `48bbfdd`)
+
+Der im Anlagenband enthaltene Pflichtnachweis (Manifeste, Parameter, Logs,
+Metriken) entspricht genau diesem Commit-Stand; die Replays sind über die im
+Repository enthaltenen Skripte reproduzierbar. Falls das Repository zum
+Abgabezeitpunkt privat ist, ist hier den Zugang für die Prüfer zu dokumentieren.
+
 ## Umgesetzter Stand (27.08.2026)
 
 Der Ordner `ABGABE/` ist nach dieser Struktur befüllt:
