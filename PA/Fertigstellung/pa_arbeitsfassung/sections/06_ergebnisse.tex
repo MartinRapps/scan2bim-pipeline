@@ -258,6 +258,43 @@ Bildauflösung und Rechenaufwand gewählt werden kann. Als reine Schrittzeiten
 von STS bis Postprocessing ersetzen sie keine vollständige End-to-End-
 Zeitmessung.
 
+\subsection{Gemessene End-to-End-Laufzeiten}
+\label{sec:laufzeiten-e2e}
+
+Für vollständige End-to-End-Zeiten wurde der Verifikationsbatch
+\path{matrix_e2e_verifikation_260826} ausgeführt: drei Matrixläufe der
+Produktionskonfiguration (Route A, \texttt{OPENCV}, 5 FPS) über die drei
+Auflösungen, jeweils inklusive SAM~3.1, COLMAP, Maskenwarp, Rendering und
+Archivierung. Tabelle~\ref{tab:e2e-laufzeiten} fasst die aus dem Batch-Log
+rekonstruierten Phasenzeiten zusammen; die Nachlaufphase ist als Obergrenze bis
+zum Folgesegmentbeginn ausgewiesen.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{lrrrr}
+\toprule
+Auflösung & Kopf (SAM3+COLMAP+Warp) & STS--Post & Nachlauf & Gesamt\\
+\midrule
+720p & 7:49 & 32:23 & $\le$0:52 & $\approx$40:25\\
+qHD  & 7:17 & 26:24 & $\le$0:44 & $\approx$33:52\\
+low  & 5:27 & 18:11 & --        & $\approx$23:46\\
+\bottomrule
+\end{tabularx}
+\caption{Gemessene End-to-End-Laufzeiten der Produktionskonfiguration
+(Verifikationsbatch \path{matrix_e2e_verifikation_260826}, Quelle
+\path{e2e_times.csv}). Die Nachlaufphase umfasst Render-, Eval- und
+Archivierungsschritte bis zum Folgesegmentbeginn.}
+\label{tab:e2e-laufzeiten}
+\end{table}
+
+Die Werte bestätigen die Preset-Angabe des CLI und werden durch den
+unabhängigen Batch \path{matrix_qualitaetsvergleich_20260818} gestützt, dessen
+Segmentlogs nach derselben Methode 40:16, 34:35 und 24:02 Minuten ergeben. Die
+Kopfphase skaliert erwartbar mit der Auflösung; die STS--Post-Zeiten dominieren
+den Gesamtlauf mit 80--82\,\%. Die timeshare-Angaben begründen keine
+Genauigkeitsaussagen und dienen allein der Ressourcenplanung.
+
 \subsection{Vierfeld-Ablation und Produktionsentscheidung}
 
 Die kontrollierte Ablation trennt Original-STS-Gaussians beziehungsweise
@@ -297,7 +334,10 @@ die vier Varianten untereinander reproduzierbar vergleichbar. Die größeren
 Gegenrichtungsabstände und die visuell stärkere Ausreißerstruktur der
 Coarse-Varianten zeigen, dass die zusätzliche Gaussian-Optimierung die
 Oberflächenstützung relevant verändert. Diese Werte messen Variantenabstände,
-nicht die Genauigkeit zum realen Rohr.
+nicht die Genauigkeit zum realen Rohr. Die Ablationsmeshes liegen im
+komprimierten Archivband des Ursprungsbatches; Extraktionsparameter und Seed
+sind in Tabelle~\ref{tab:versuchsparameter} vollständig dokumentiert, sodass
+die Zellen bei Vorliegen des Checkpoints deterministisch reproduzierbar sind.
 
 Route A wird deshalb als Produktionsstandard gewählt: Sie bewahrt die
 Original-STS-Gaussians als primäre Geometriehypothese und vermeidet eine
@@ -393,8 +433,10 @@ sind Diagnose- und Interpretationshilfen, keine neuen Geometriemetriken.
   \centering
   \includegraphics[width=\textwidth]{metric_vs_runtime.pdf}
   \caption{Explorative Beziehung zwischen objektmaskierten Bildmetriken und
-  der Gesamtlaufzeit des archivierten Pipeline-Laufs. SAM~3.1- und COLMAP-Wandzeit
-  sind nur enthalten, wenn sie innerhalb des archivierten Laufs lagen.}
+  der archivierten Laufzeit der Pipeline-Segmente STS bis Postprocessing.
+  SAM~3.1- und COLMAP-Wandzeit sind in diesen Segmentzeiten nicht enthalten;
+  gemessene Gesamtlaufzeiten je Auflösung weist Abschnitt~\ref{sec:laufzeiten-e2e}
+  separat aus.}
   \label{fig:pa-metric-runtime}
 \end{figure}
 

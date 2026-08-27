@@ -138,7 +138,11 @@ Der Zeit-/Qualitätsquotient ist ebenfalls sekundär. Er kombiniert normalisiert
 PSNR-, SSIM- und invertierte LPIPS-Werte mit gleichen Gewichten und verwendet
 nur die archivierten STS-bis-Postprocess-Zeiten. SAM3- und COLMAP-Zeit sowie
 Container-Overheads der Rendering- und Metrikschritte sind nicht vollständig
-enthalten. Für die Bachelorarbeit müssen Rohmetriken und geometrische
+enthalten. Vollständige End-to-End-Zeiten liegen zwischenzeitlich aus dem
+Verifikationsbatch \path{matrix_e2e_verifikation_260826} vor
+(Abschnitt~\ref{sec:laufzeiten-e2e}); sie ergänzen die Ressourcenplanung,
+ändern aber nichts an der Segmentbasis des Quotienten. Für die
+Bachelorarbeit müssen Rohmetriken und geometrische
 Referenzmetriken höher gewichtet werden.
 
 Die Effizienzanalyse ist trotzdem praktisch relevant: Ein automatischer

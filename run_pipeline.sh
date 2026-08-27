@@ -28,7 +28,7 @@ if [[ "${1:-}" == "--from" ]]; then
 fi
 
 RAW_DIR="data/01_raw"
-DEFAULT_SAM3_FRAME_MAX_SIDE=768
+DEFAULT_SAM3_FRAME_MAX_SIDE=1280
 FRAME_PROFILE_SCOPE="${FRAME_PROFILE_SCOPE:-all}"
 COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-OPENCV}"
 COLMAP_MAX_FEATURES="${COLMAP_MAX_FEATURES:-4096}"
@@ -52,12 +52,15 @@ MASK_MAX_EMPTY_FRACTION="${MASK_MAX_EMPTY_FRACTION:-0.30}"
 
 explain_frame_profile_scope() {
     echo ""
-    echo "  all: Der Frame-Satz (standardmaessig 1280x720 bei 5 FPS) gilt fuer SAM3,"
-    echo "       COLMAP, STS und SuGaR. Das ist der sichere Vollpipeline-Modus."
-    echo "  colmap-stop: SAM3 erzeugt weiterhin den benoetigten Frame-/Maskensatz;"
-    echo "               danach stoppt die Pipeline vor GCP/STS/SuGaR."
-    echo "  Ein spaeterer FHD-Test fuer SAM3/STS ist eine getrennte Studie und wird"
-    echo "  nicht mit dem aktuellen COLMAP-Standard vermischt."
+    echo "  all: Der Frame-Satz (Aufloesung laut Lauf-Preset, standardmaessig 5 FPS)"
+    echo "       gilt fuer SAM3, COLMAP, STS und SuGaR. Das ist der normale Vollpipeline-Modus."
+    echo "  colmap-stop: Diagnoseprofil fuer die SfM-Stufe. SAM3 erzeugt weiterhin den"
+    echo "       Frame-/Maskensatz und COLMAP wird ausgewertet; danach stoppt die Pipeline"
+    echo "       vor GCP/STS/SuGaR. Sinnvoll, um Registrierungsquote, Punktanzahl und"
+    echo "       Reprojektionsfehler zu pruefen, ohne teure Trainingsstufen zu starten."
+    echo "       Die Rohmasken werden VOR dem Stopp in die ideale Domäne gewarpt, sodass"
+    echo "       der Zwischenstand jederzeit mit './run_pipeline.sh --from sts'"
+    echo "       fortgesetzt werden kann (kein erneuter SAM3-/COLMAP-Lauf noetig)."
     echo ""
 }
 
@@ -85,15 +88,15 @@ explain_run_preset() {
     echo "  Das Lauf-Preset bestimmt die Aufloesung des Arbeitsvideos und damit"
     echo "  die Frame-/STS-/SuGaR-Aufloesung (das Rohvideo bleibt unveraendert)."
     echo "  720p = 1280x720 (Standard), qhd = 960x540, low = 640x360."
-    echo "  Durchschnittliche Laufzeiten (Route A, 5 FPS, OPENCV):"
-    echo "    720p: 2023 s (~34 min)   - Standardaufloesung, alle Eingabefragen"
-    echo "     qhd: 1648 s (~27 min)   - Aufloesungsfragen fest vorbesetzt"
-    echo "     low: 1141 s (~19 min)   - Aufloesungsfragen fest vorbesetzt"
-    echo "  Quellen: gemittelte archivierte Matrixlaeufe (matrix_full_pipe,"
-    echo "  matrix_rest, matrix_repeat_20260812, docs/grafiken/matrix_mean_2026-08-17)."
-    echo "  Die Zeiten umfassen die archivierten Schrittzeiten von STS bis"
-    echo "  Postprocess; SAM3, COLMAP, Rendering und Metrikberechnung sind nicht"
-    echo "  vollstaendig enthalten."
+    echo "  Erwartete GESAMTlaufzeiten (Route A, 5 FPS, OPENCV):"
+    echo "    720p: ~40 min gesamt, davon 32 min STS->Postprocess (gemessen)"
+    echo "     qhd: ~34 min gesamt, davon 26 min STS->Postprocess (gemessen)"
+    echo "     low: ~24 min gesamt, davon 18 min STS->Postprocess (gemessen)"
+    echo "  Grundlage: gemessener Verifikationsbatch matrix_e2e_verifikation_260826"
+    echo "  (Kopf SAM3+COLMAP+Warp 6-8 min, Schwanz Render/Archiv ~1 min); die"
+    echo "  Werte wurden unabhaengig durch den Batch matrix_qualitaetsvergleich_"
+    echo "  20260818 bestaetigt (40:16/34:35/24:02). Eine reine Schritttabelle"
+    echo "  wuerde den Gesamtlauf unterschaetzen."
     echo ""
 }
 
@@ -105,20 +108,27 @@ resolution_dimensions() {
     esac
 }
 
-configure_run_preset() {
-    if [[ "$AUTOPILOT" == "true" ]]; then
-        RUN_RESOLUTION="720p"
-        echo "Autopilot aktiv: Lauf-Preset 720p (Standardaufloesung mit allen Eingaben)."
-        return
-    fi
+# SAM3 works on the full working-video width of the selected preset, matching
+# the archived production runs (720p->1280, qhd->960, low->640).
+sam3_side_for_resolution() {
+    case "${1:-720p}" in
+        qhd) echo "960" ;;
+        low) echo "640" ;;
+        *)   echo "1280" ;;
+    esac
+}
 
+configure_run_preset() {
+    # The preset question is intentionally asked in BOTH modes: after the
+    # autopilot decision it is one of the two remaining interactive choices
+    # (resolution + prompt) by design.
     echo ""
     echo "=== Lauf-Preset (Arbeitsvideo-Aufloesung) ==="
-    echo "Durchschnittliche Laufzeiten (Route A, 5 FPS, OPENCV, gemittelt ueber"
-    echo "die archivierten Matrixlaeufe; ohne SAM3/COLMAP/Rendering/Metrik):"
-    echo "  720p: 2023 s (~34 min)   - Standardaufloesung mit allen Eingabefragen"
-    echo "   qhd: 1648 s (~27 min)   - 960x540, Aufloesungsfragen fest vorbesetzt"
-    echo "   low: 1141 s (~19 min)   - 640x360, Aufloesungsfragen fest vorbesetzt"
+    echo "Gemessene GESAMTlaufzeiten (Route A, 5 FPS, OPENCV; inkl. SAM3, COLMAP,"
+    echo "Video-/Maskenvorbereitung, Rendering und Archivierung):"
+    echo "  720p: ~40 min gesamt (davon 32 min STS->Post, gemessen)"
+    echo "   qhd: ~34 min gesamt (davon 26 min STS->Post, gemessen)"
+    echo "   low: ~24 min gesamt (davon 18 min STS->Post, gemessen)"
     while true; do
         read -r -p "Lauf-Preset (720p/qhd/low oder EXPLAIN) [Default: 720p]: " USER_PRESET
         USER_PRESET=${USER_PRESET:-720p}
@@ -169,8 +179,8 @@ configure_frame_profile_scope() {
             ;;
         colmap|colmap-only|colmap-stop)
             FRAME_PROFILE_SCOPE="colmap"
-            echo "COLMAP-only gewaehlt: Nach SfM wird gestoppt."
-            echo "Der Frame-Satz darf nicht ohne passende SAM3-Masken an STS weitergereicht werden."
+            echo "COLMAP-only gewaehlt: Nach SfM und Maskenwarp wird gestoppt."
+            echo "Fortsetzung des Zwischenstands spaeter mit './run_pipeline.sh --from sts'."
             ;;
         *)
             echo "Ungueltige Auswahl, verwende all."
@@ -399,14 +409,19 @@ print_sam3_resolution_estimate() {
 }
 
 configure_sam3_frame_resolution() {
-    SAM3_FRAME_MAX_SIDE="${SAM3_FRAME_MAX_SIDE:-$DEFAULT_SAM3_FRAME_MAX_SIDE}"
+    # Default follows the run preset so that SAM3 processes the full working
+    # width of the selected resolution (matches archived production runs).
+    local preset_side
+    preset_side="$(sam3_side_for_resolution "$RUN_RESOLUTION")"
+    SAM3_FRAME_MAX_SIDE="${SAM3_FRAME_MAX_SIDE:-$preset_side}"
 
     if [[ "$AUTOPILOT" == "true" ]]; then
-        echo "Autopilot aktiv: SAM3_FRAME_MAX_SIDE=$SAM3_FRAME_MAX_SIDE."
+        echo "Autopilot aktiv: SAM3_FRAME_MAX_SIDE=$SAM3_FRAME_MAX_SIDE (an Preset $RUN_RESOLUTION gekoppelt)."
         print_sam3_resolution_estimate "$SAM3_FRAME_MAX_SIDE"
         return
     fi
 
+    echo "Vorschlag aus Lauf-Preset $RUN_RESOLUTION: $preset_side (frei ueberschreibbar)."
     while true; do
         read -r -p "SAM3 Frame-Max-Side (z.B. 768 oder EXPLAIN) [Default: $SAM3_FRAME_MAX_SIDE]: " USER_SAM3_SIDE
         if [[ "${USER_SAM3_SIDE,,}" == "explain" ]]; then
@@ -717,6 +732,17 @@ configure_sugar_values() {
 
 echo "=== Starting Scan-to-BIM Reconstruction Pipeline ==="
 
+# Autopilot decision comes FIRST so that Step 0 (GCP preparation) and all
+# subsequent configure_* helpers can honor it. In autopilot mode only the
+# run preset (resolution) and the segmentation prompt remain interactive.
+read -p "Moechten Sie die Pipeline im Autopilot-Modus ausfuehren? (Nur Lauf-Preset und Objekt-Prompt werden abgefragt, alle weiteren Vorgaben automatisch gewaehlt) (y/n) [Default: n]: " USER_AUTOPILOT
+if [[ "$USER_AUTOPILOT" =~ ^[Yy]$ ]]; then
+    AUTOPILOT="true"
+    echo "Autopilot-Modus AKTIVIERT. Es folgen nur noch die Fragen nach Lauf-Preset und Objekt-Prompt."
+else
+    AUTOPILOT="false"
+fi
+
 # Step 0: GCP Coordinate Preparation (Relative Coordinates)
 run_step_start "GCP-Vorbereitung"
 echo "[Step 0/5] Preparing relative GCP coordinates..."
@@ -764,18 +790,10 @@ fi
 # token value and rejects invalid saved tokens before the expensive SAM step.
 ensure_hf_token
 
-read -p "Geben Sie den Begriff ein, der maskiert werden soll (z.B. 'cable', 'pipe'): " TEXT_PROMPT
-
-# Autopilot Prompt configuration
-read -p "Moechten Sie die Pipeline im Autopilot-Modus ausfuehren? (Alle Standardvorgaben automatisch waehlen) (y/n) [Default: n]: " USER_AUTOPILOT
-if [[ "$USER_AUTOPILOT" =~ ^[Yy]$ ]]; then
-    AUTOPILOT="true"
-    echo "Autopilot-Modus AKTIVIERT. Interaktive Abfragen werden mit Standardwerten beantwortet."
-else
-    AUTOPILOT="false"
-fi
-
+# Remaining interactive decisions (in both modes): run preset, then prompt.
 configure_run_preset
+
+read -p "Geben Sie den Begriff ein, der maskiert werden soll (z.B. 'cable', 'pipe'): " TEXT_PROMPT
 
 SELECTED_VIDEO=""
 configure_frame_profile_scope
@@ -818,13 +836,9 @@ docker compose run --rm \
     colmap-sfm /app/src/scripts/run_sfm.sh
 run_step_end 0
 
-if [[ "$FRAME_PROFILE_SCOPE" == "colmap" ]]; then
-    echo "COLMAP-only-Profil abgeschlossen. Pipeline stoppt vor GCP/STS/SuGaR."
-    echo "Fuer einen vollstaendigen Lauf FRAME_PROFILE_SCOPE=all verwenden oder"
-    echo "einen exakt passenden SAM3-Maskensatz fuer diesen Frame-Satz bereitstellen."
-    exit 0
-fi
-
+# The mask warp runs in BOTH frame-profile scopes. A colmap-stop run therefore
+# leaves a continuation-ready state (raw AND ideal masks), so a later
+# './run_pipeline.sh --from sts' works without re-running SAM3 or COLMAP.
 run_step_start "Masken-Warp in die ideale Bilddomaene"
 echo "Warpe Rohmasken aus /data/03_masks in die COLMAP-Idealbilddomaene..."
 rm -rf "$IDEAL_MASKS_HOST_DIR"
@@ -846,6 +860,13 @@ docker compose run --rm sam3-preprocess \
     --max-empty-fraction "$MASK_MAX_EMPTY_FRACTION" \
     --report "$STS_MASKS_DIR/mask_coverage_report.json"
 run_step_end 0
+
+if [[ "$FRAME_PROFILE_SCOPE" == "colmap" ]]; then
+    echo "COLMAP-only-Profil abgeschlossen. Rohmasken wurden in die ideale Domäne gewarpt,"
+    echo "der Zwischenstand ist mit './run_pipeline.sh --from sts' fortsetzbar."
+    echo "Für einen vollständigen Lauf FRAME_PROFILE_SCOPE=all verwenden."
+    exit 0
+fi
 
 run_step_start "GCP-Picking / CloudCompare"
 echo "=========================================================="

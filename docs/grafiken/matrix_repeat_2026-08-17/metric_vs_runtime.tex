@@ -28,7 +28,7 @@
 \pagestyle{empty}
 \begin{center}
 {\Large\bfseries Bildmetriken im Verhältnis zur Laufzeit}\\[3pt]
-{\small Explorative Darstellung; Laufzeit = vollständiger archivierter Pipeline-Lauf}\\[8pt]
+{\small Explorative Darstellung; Laufzeit = archivierte Pipeline-Segmentzeit STS→Postprocess}\\[8pt]
 \begin{tabular}{@{}ll@{\hspace{0.8cm}}ll@{\hspace{0.8cm}}ll@{}}
 \legendcircle{stsstronggreen} & Farbe: STS (grün) & \legendcircle{sugarstrongpurple} & Farbe: SuGaR-Coarse (lila) & & \\
 \legendcircle{stslightgreen} & Intensität: 2 FPS (blass) & \legendcircle{stsstronggreen} & Intensität: 5 FPS (kräftig) & & \\
@@ -36,7 +36,7 @@
 \legendbordercircle{srblue} & Rand: SR (blau) & \legendbordercircle{opencvorange} & Rand: OPENCV (orange) & \legendbordercircle{incompletegray} & Rand: PINHOLE (grau)\\
 \end{tabular}\par\vspace{8pt}
 \begin{tikzpicture}
-\begin{axis}[width=0.98\linewidth,height=5.7cm,xlabel={Gesamtlaufzeit des archivierten Pipeline-Laufs (min)},ylabel={PSNR (dB) $\uparrow$},xmin=15,xmax=40,xtick={15,20,25,30,35,40},ymin=20,ymax=31,grid=major]
+\begin{axis}[width=0.98\linewidth,height=5.7cm,xlabel={Archivierte Laufzeit STS→Postprocess (min)},ylabel={PSNR (dB) $\uparrow$},xmin=15,xmax=40,xtick={15,20,25,30,35,40},ymin=20,ymax=31,grid=major]
 \addplot[only marks,mark=*,mark size=2.2pt,mark options={fill=stslightgreen,draw=srblue,line width=0.6pt}] coordinates {(30.450000,26.43472655)};
 \addplot[only marks,mark=square*,mark size=2.2pt,mark options={fill=stslightgreen,draw=srblue,line width=0.6pt}] coordinates {(23.416667,27.20227747)};
 \addplot[only marks,mark=triangle*,mark size=2.2pt,mark options={fill=stslightgreen,draw=srblue,line width=0.6pt}] coordinates {(16.633333,27.53329738)};
@@ -69,7 +69,7 @@
 \addplot[only marks,mark=triangle*,mark size=2.2pt,mark options={fill=sugarstrongpurple,draw=opencvorange,line width=0.6pt}] coordinates {(20.983333,21.91248076)};
 \end{axis}\end{tikzpicture}\par\vspace{2pt}
 \begin{tikzpicture}
-\begin{axis}[width=0.98\linewidth,height=5.7cm,xlabel={Gesamtlaufzeit des archivierten Pipeline-Laufs (min)},ylabel={SSIM $\uparrow$},xmin=15,xmax=40,xtick={15,20,25,30,35,40},ymin=0.68,ymax=1.0,grid=major]
+\begin{axis}[width=0.98\linewidth,height=5.7cm,xlabel={Archivierte Laufzeit STS→Postprocess (min)},ylabel={SSIM $\uparrow$},xmin=15,xmax=40,xtick={15,20,25,30,35,40},ymin=0.68,ymax=1.0,grid=major]
 \addplot[only marks,mark=*,mark size=2.2pt,mark options={fill=stslightgreen,draw=srblue,line width=0.6pt}] coordinates {(30.450000,0.83750625)};
 \addplot[only marks,mark=square*,mark size=2.2pt,mark options={fill=stslightgreen,draw=srblue,line width=0.6pt}] coordinates {(23.416667,0.84375028)};
 \addplot[only marks,mark=triangle*,mark size=2.2pt,mark options={fill=stslightgreen,draw=srblue,line width=0.6pt}] coordinates {(16.633333,0.86402045)};
@@ -102,7 +102,7 @@
 \addplot[only marks,mark=triangle*,mark size=2.2pt,mark options={fill=sugarstrongpurple,draw=opencvorange,line width=0.6pt}] coordinates {(20.983333,0.77217281)};
 \end{axis}\end{tikzpicture}\par\vspace{2pt}
 \begin{tikzpicture}
-\begin{axis}[width=0.98\linewidth,height=5.7cm,xlabel={Gesamtlaufzeit des archivierten Pipeline-Laufs (min)},ylabel={LPIPS $\downarrow$},xmin=15,xmax=40,xtick={15,20,25,30,35,40},ymin=0.05,ymax=0.2,grid=major]
+\begin{axis}[width=0.98\linewidth,height=5.7cm,xlabel={Archivierte Laufzeit STS→Postprocess (min)},ylabel={LPIPS $\downarrow$},xmin=15,xmax=40,xtick={15,20,25,30,35,40},ymin=0.05,ymax=0.2,grid=major]
 \addplot[only marks,mark=*,mark size=2.2pt,mark options={fill=stslightgreen,draw=srblue,line width=0.6pt}] coordinates {(30.450000,0.12228184)};
 \addplot[only marks,mark=square*,mark size=2.2pt,mark options={fill=stslightgreen,draw=srblue,line width=0.6pt}] coordinates {(23.416667,0.09976729)};
 \addplot[only marks,mark=triangle*,mark size=2.2pt,mark options={fill=stslightgreen,draw=srblue,line width=0.6pt}] coordinates {(16.633333,0.08927700)};

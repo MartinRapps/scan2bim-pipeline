@@ -27,6 +27,18 @@ export HOST_GID="${HOST_GID:-$(id -g)}"
 # Pipeline state (set by configure_* functions, consumed by run_* functions)
 AUTOPILOT="${AUTOPILOT:-false}"
 FRAME_PROFILE_SCOPE="${FRAME_PROFILE_SCOPE:-all}"
+RUN_RESOLUTION="${RUN_RESOLUTION:-720p}"
+
+# SAM3 works on the full working-video width of the selected preset, matching
+# the archived production runs (720p->1280, qhd->960, low->640).
+_sam3_side_for_resolution() {
+    case "${1:-720p}" in
+        qhd) echo "960" ;;
+        low) echo "640" ;;
+        *)   echo "1280" ;;
+    esac
+}
+
 COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-OPENCV}"
 COLMAP_MAX_FEATURES="${COLMAP_MAX_FEATURES:-4096}"
 COLMAP_SEQUENTIAL_OVERLAP="${COLMAP_SEQUENTIAL_OVERLAP:-15}"
@@ -228,10 +240,12 @@ configure_frame_profile_scope() {
 
 explain_frame_profile_scope() {
     echo ""
-    echo "  all: Der Frame-Satz gilt fuer SAM3, COLMAP, STS und SuGaR."
-    echo "  colmap-stop: SAM3 erzeugt weiterhin den benoetigten Frame-/Maskensatz;"
-    echo "               Replay stoppt danach vor GCP/STS/SuGaR."
-    echo "  FHD fuer SAM3/STS ist eine getrennte Studie, nicht der COLMAP-Standard."
+    echo "  all: Der Frame-Satz (Aufloesung laut Lauf-Preset) gilt fuer SAM3, COLMAP,"
+    echo "       STS und SuGaR. Das ist der normale Vollpipeline-Modus."
+    echo "  colmap-stop: Diagnoseprofil fuer die SfM-Stufe; der Replay stoppt danach"
+    echo "       vor GCP/STS/SuGaR. Die Rohmasken werden VOR dem Stopp in die ideale"
+    echo "       Domäne gewarpt, sodass der Zwischenstand mit '--from sts'"
+    echo "       fortsetzbar bleibt (kein erneuter SAM3-/COLMAP-Lauf noetig)."
     echo ""
 }
 
@@ -504,13 +518,16 @@ run_step_sam3() {
     run_step_start "SAM3-Maskenextraktion"
     log_step "[Step 1/5] SAM 3.1 Mask Extraction: '$TEXT_PROMPT'"
 
+    # Mirror the inline flow: SAM3 always receives an explicit max side that
+    # follows the run preset (720p->1280, qhd->960, low->640).
+    local sam3_side="${SAM3_FRAME_MAX_SIDE:-$(_sam3_side_for_resolution "${RUN_RESOLUTION:-720p}")}"
     if [[ -n "$SELECTED_VIDEO" ]]; then
-        log_info "Eingabevideo: $SELECTED_VIDEO"
-        docker compose run --rm sam3-preprocess python3 /app/src/python/extract_masks_notebook_flow.py \
+        log_info "Eingabevideo: $SELECTED_VIDEO (SAM3_FRAME_MAX_SIDE=$sam3_side)"
+        docker compose run --rm -e SAM3_FRAME_MAX_SIDE="$sam3_side" sam3-preprocess python3 /app/src/python/extract_masks_notebook_flow.py \
             --prompt "$TEXT_PROMPT" \
             --input-path "/data/01_raw/$(basename "$SELECTED_VIDEO")"
     else
-        docker compose run --rm sam3-preprocess python3 /app/src/python/extract_masks_notebook_flow.py \
+        docker compose run --rm -e SAM3_FRAME_MAX_SIDE="$sam3_side" sam3-preprocess python3 /app/src/python/extract_masks_notebook_flow.py \
             --prompt "$TEXT_PROMPT"
     fi
 
@@ -733,12 +750,15 @@ run_pipeline_from() {
                 configure_colmap_values
                 run_log_pipeline_settings
                 run_step_colmap || return 1
+                # The mask warp runs in BOTH frame-profile scopes so that a
+                # colmap-stop replay leaves a continuation-ready state
+                # ('--from sts' works without re-running SAM3/COLMAP).
+                run_step_mask_warp || return 1
                 if [[ "$FRAME_PROFILE_SCOPE" == "colmap" ]]; then
-                    log_info "COLMAP-only-Profil abgeschlossen; Replay stoppt vor GCP/STS/SuGaR."
+                    log_info "COLMAP-only-Profil abgeschlossen; Masken sind gewarpt, Fortsetzung mit '--from sts' moeglich."
                     return 0
                 fi
                 breakpoint_cloudcompare
-                run_step_mask_warp || return 1
                 ;;
             sts)
                 run_step_sts_prep

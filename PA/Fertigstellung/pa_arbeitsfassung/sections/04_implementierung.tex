@@ -213,15 +213,20 @@ einem Lauf-Preset, das die Auflösung des Arbeitsvideos und damit die
 Frame-/STS-/SuGaR-Auflösung festlegt: 720p ($1280\times720$, Standard),
 qHD ($960\times540$) oder low ($640\times360$). Bei qHD und low werden die
 Zielauflösungsfragen im Video-Preprocessing fest vorbesetzt; bei 720p bleiben
-alle Eingabefragen erhalten. Die Abfrage weist die aus den Matrixläufen
-gemittelten Laufzeiten der Produktionskonfiguration (Route A, 5 FPS,
-\texttt{OPENCV}) aus: rund 34 Minuten für 720p, 27 Minuten für qHD und
-19 Minuten für low. Diese Werte umfassen die archivierten Schrittzeiten von
-STS bis Postprocessing; SAM~3.1, COLMAP, Rendering und Metrikberechnung sind
-nicht vollständig enthalten. Bei interaktiver Nutzung bestimmt dagegen die
-gewählte Auswahl das Lauf-Preset; nur der Autopilot setzt automatisch das
-720p-Preset mit allen Standardeingaben. Die gewählte Auflösung wird
-im Run-Report protokolliert.
+alle Eingabefragen erhalten. Die Abfrage weist die gemessenen Gesamtlaufzeiten
+der Produktionskonfiguration (Route A, 5 FPS,
+\texttt{OPENCV}) aus: rund 40 Minuten für 720p, 34 Minuten für qHD und
+24 Minuten für low. Die Werte stammen aus dem archivierten
+Verifikationsbatch \path{matrix_e2e_verifikation_260826}, dessen drei Läufe
+die vollständige Kette inklusive SAM~3.1, COLMAP, Maskenwarp, Rendering und
+Archivierung durchlaufen (Kopfphase 5--8 Minuten, STS--Postprocess
+32/26/18 Minuten, Render- und Archivierungsschwanz etwa eine Minute). Ein
+unabhängiger früherer Batch (\path{matrix_qualitaetsvergleich_20260818})
+bestätigt die Werte mit 40:16, 34:35 und 24:02 Minuten. Die
+Preset-Abfrage bleibt bewusst in beiden Modi
+aktiv: Der Autopilot fragt nach seiner Aktivierung ausschließlich Lauf-Preset
+und Objekt-Prompt ab und übernimmt alle übrigen Entscheidungen als
+Standardeingaben. Die gewählte Auflösung wird im Run-Report protokolliert.
 
 \subsection{Quality-Gates und Datenverträge}
 
