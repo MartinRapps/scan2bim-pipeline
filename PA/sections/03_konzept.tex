@@ -27,8 +27,18 @@ Geometriedomäne. Der Ablauf ist:
 Abbildung~\ref{fig:pa-pipeline-flow} fasst diesen Datenfluss zusammen: Die
 beiden aktuellen Meshrouten A und \texttt{sugar\_coarse} werden explizit
 getrennt dargestellt. Der CloudCompare-Schritt ist als optionaler
-Georeferenzierungszweig enthalten und nicht als validierter PA-
-Genauigkeitsnachweis zu lesen.
+Georeferenzierungszweig enthalten. Für den Testdatensatz existieren
+CloudCompare-Transformationsmatrizen; sie wurden jedoch ohne unabhängige
+Vermessungsreferenz erzeugt und sind daher kein validierter
+PA-Genauigkeitsnachweis. Die Referenzierung ist zunächst rein lokal, das
+heißt ohne Verschiebung in ein globales Koordinatensystem definiert. Das ist
+methodisch unproblematisch: Eine UTM-Referenz lässt sich nachträglich
+herstellen, indem die lokalen Koordinaten um einen frei wählbaren
+UTM-Ankerpunkt versetzt und die vorhandene 4x4-Transformationsmatrix
+anschließend unverändert angewandt wird; Rotation, Maßstab und Form der
+Geometrie bleiben dabei erhalten. Was damit nicht entsteht, ist eine
+unabhängige Genauigkeitsaussage zur absoluten Lage -- diese bleibt der
+Bachelorarbeit vorbehalten.
 
 \begin{figure}[H]
 \centering
@@ -50,7 +60,7 @@ Genauigkeitsnachweis zu lesen.
       \node[box, below=of input] (sam) {\textbf{Container A: SAM 3.1}\\Temporale Segmentierung\\default / middle / small};
       \node[box, below=of sam] (colmap) {\textbf{Container B: COLMAP}\\Unmaskiertes SfM\\Originales Kameramodell und Sparse-Modell};
       \node[box, below left=1.55cm and 2.4cm of colmap] (ideal) {Idealbilddomäne\\\texttt{image\_undistorter}\\Maskenwarp mit identischer Abbildung};
-      \node[box, below right=1.55cm and 2.4cm of colmap] (gcp) {Originalmodell\\GCP-/CloudCompare-Zweig\\Matrix optional und PA-seitig nicht validiert};
+      \node[box, below right=1.55cm and 2.4cm of colmap] (gcp) {Originalmodell\\GCP-/CloudCompare-Zweig\\Matrix optional und in dieser Arbeit nicht validiert};
       \node[box, below=1.55cm of ideal] (sts) {\textbf{Container C: STS}\\Objekt-ID-Zuordnung\\Objektbezogene Gaussian-Repräsentation};
       \node[decision, below=1.55cm of sts] (meshroute) {Meshroute};
       \node[route, below left=1.55cm and 1.7cm of meshroute] (original) {\textbf{Route A: Original-GS}\\Surface-Sampling, Poisson, Decimation\\kein SuGaR-Coarse/Refinement/UV};
@@ -113,14 +123,16 @@ Schnittstelle als Pass-through verwendet. Somit sehen STS, Renderer,
 SuGaR-Route und Metrikberechnung stets zueinander passende Pixel- und
 Kamerakoordinaten.
 
-Diese vollständige Domänenkette ist heute in allen Ausführungsformen
-einheitlich verankert: Matrixpfad, Replay-Dispatcher und interaktiver
-Vollauf rufen nach COLMAP denselben Maskenwarp mit anschließender
-Coverage-Prüfung auf. Lediglich das Diagnoseprofil \texttt{colmap-stop}
-beendet den Lauf nach der COLMAP-Auswertung; auch hier werden die Rohmasken
-vor dem Stopp gewarpt, sodass der Zwischenstand mit einem Replay ab
-\texttt{sts} fortsetzbar bleibt. Bild und Maske liegen damit in jedem
-Fortsetzungsstand gemeinsam in der idealen Szene.
+Diese vollständige Domänenkette ist im automatisierten Matrixpfad, im
+restaurierten Smoke-/Replaypfad und im normalen Inline-Vollauf nachgewiesen.
+Nach COLMAP rufen Inline-Vollauf und Matrixrunner denselben Maskenwarp mit
+identischer Abbildungsvorschrift auf, prüfen die Abdeckung der gewarpten
+Masken und übergibt \mbox{\path{data/03_masks_ideal}} an STS und SuGaR. Im
+Replay-Dispatcher gilt dasselbe für alle Läufe, die COLMAP selbst ausführen
+(Start ab \texttt{gcp}, \texttt{sam3} oder \texttt{colmap}); nur Replays ab
+\texttt{sts}, \texttt{sugar} oder \texttt{postprocess} setzen einen von
+vornherein passenden idealen Maskensatz voraus, weil dort keine frische
+COLMAP-Szene erzeugt wird.
 
 \subsection{Semantische Objektkette}
 
@@ -151,17 +163,17 @@ eigentlichen Mesh-Extraktion zu unterscheiden.
 
 Der interaktive Vollauf führt durch Eingabeauswahl und Parameterentscheidungen.
 Vor der Parametrisierung fragt er nach einem Lauf-Preset für die
-Arbeitsvideoauflösung (720p, qhd oder low) und weist dabei die gemessenen
+Arbeitsvideoauflösung (720p, qHD oder low) und weist dabei die gemessenen
 Gesamtlaufzeiten der Produktionskonfiguration aus (Route A, 5 FPS,
-\texttt{OPENCV}: rund 40 Minuten bei 720p, 34 Minuten bei qhd und 24 Minuten
-bei low, jeweils inklusive SAM3-, COLMAP-, Render- und Archivierungsanteil);
+\texttt{OPENCV}: rund 40 Minuten bei 720p, 34 Minuten bei qHD und 24 Minuten
+bei low, jeweils inklusive SAM~3.1-, COLMAP-, Render- und Archivierungsanteil);
 das Preset dient der bewussten Wahl zwischen Bildauflösung und Rechenaufwand.
 Der Autopilot fragt nach seiner Aktivierung nur noch das Lauf-Preset und den
 Objekt-Prompt ab, übernimmt für alle übrigen Entscheidungen validierte
 Defaults und überspringt den manuellen
 CloudCompare-Breakpoint, wenn keine echte Transformationsmatrix bereitsteht.
 Das Preset legt auch die SAM3-Verarbeitungsbreite fest (720p$\to$1280,
-qhd$\to$960, low$\to$640 Pixel) und damit die Frame-Auflösung der
+qHD$\to$960, low$\to$640 Pixel) und damit die Frame-Auflösung der
 Segmentierung. Neben dem Vollprofil existiert das Diagnoseprofil
 \texttt{colmap-stop}: Es dient der SfM-Prüfung (Registrierung, Punktanzahl,
 Reprojektionsfehler) ohne die teuren Trainingsstufen und warpt die Rohmasken

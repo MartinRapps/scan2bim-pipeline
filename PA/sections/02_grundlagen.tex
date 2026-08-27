@@ -51,14 +51,17 @@ modelliert getrennte Brennweiten und einen Hauptpunkt, aber keine Verzeichnung. 
 ideale Bilddomäne voraus. \texttt{SIMPLE\_RADIAL} ergänzt eine gemeinsame
 Brennweite um einen radialen Verzeichnungsparameter. \texttt{OPENCV} besitzt
 zusätzliche radiale und tangentiale Freiheitsgrade. Das flexiblere Modell ist
-nicht grundsätzlich genauer, weil schwache oder ungünstig verteilte Merkmale
-zusätzliche Parameter schlecht konditionieren können. Als Produktionsstandard
+nicht grundsätzlich überlegen, da zusätzliche Freiheitsgrade eine
+flächendeckende und rauschfreie Merkmalsverteilung voraussetzen. Fehlt diese,
+ist das Gleichungssystem schlecht konditioniert – der Optimierer neigt dann
+zum Overfitting auf Bildrauschen oder koppelt Verzeichnungsparameter
+fälschlicherweise an Kamerabewegungen. Als Produktionsstandard
 ist \texttt{OPENCV} gewählt; die Begründung aus der Matrixauswertung steht in
 Abschnitt~\ref{sec:produktionskonfiguration}.
 
 Die Modellbezeichnung ist dabei keine hinterlegte Objektivkalibrierung. Das
 Skript \texttt{run\_sfm.sh} übergibt COLMAP lediglich die Modellfamilie und mit
-\texttt{ImageReader.single\_camera=1} die Annahme eines gemeinsamen
+\mbox{\path{ImageReader.single_camera=1}} die Annahme eines gemeinsamen
 Kameramodells für alle Frames eines Laufs. Eine externe
 \texttt{camera\_params}-Datei oder eine Checkerboard-Kalibrierung wird nicht
 eingelesen. COLMAP initialisiert die Parameter intern und schätzt Brennweiten,
@@ -115,54 +118,29 @@ anschließende All-Object-Phase optimiert alle Objekte gemeinsam. In der
 Projektpipeline sind diese Masken die bereits segmentierten Eingabebilder in
 den drei Erosionsstufen (\texttt{default}, \texttt{middle}, \texttt{small}),
 nicht eine vom STS-System erzeugte Nachsegmentierung. Der Projektstandard
-umfasst 7000 Gesamtiterationen, davon 5000 innerhalb des Objektcurriculums;
-bei einem einzigen Objekt trägt die All-Object-Phase keine zusätzliche
-Objektrennung bei, bleibt aber Teil des übernommenen Trainingsschemas.
+umfasst 7000 Gesamtiterationen, aufgeteilt in 5000 Iterationen des
+Objektcurriculums und 2000 Iterationen der All-Object-Phase. Da im vorliegenden
+Einobjekt-Szenario keine weiteren Instanzen existieren, bewirkt die finale
+Phase keine zusätzliche semantische Entflechtung, sondern dient als konsistente
+Trainingsfortführung des isolierten Zielobjekts.
 
-Die beiden maskennutzenden Verlustpfade des Coarse-Trainings verwenden
-unterschiedliche Maskenstufen. Die RGB-Supervision vergleicht das
-Splat-Rendering jeder Trainingskamera pixelweise mit dem aufgenommenen Bild,
-begrenzt auf die Maskenpixel (maskierter L1-Anteil plus maskierter
-DSSIM-Anteil mit einem $11\times11$-Fenster; das lokale Fenster zieht am
-Maskenrand begrenzt Kontext von außen ein). Sie verwendet die unveränderte
-\texttt{default}-Maske, damit die Bildsupervision möglichst die volle
-Objektprojektion abdeckt und Positionen, Opazitäten und Farben der
-Objekt-Gaussians vollständig spezifiziert werden. Eine Farbprojektion auf
-eine Oberfläche findet dabei nicht statt; die Farbübertragung aus den
-Ansichten erfolgt erst in der nachgelagerten UV-Texturphase.
-
-Die Depth-Normal-Consistency (DN) vergleicht dagegen die aus der gerenderten
-Gaussian-Tiefe abgeleiteten Normalen mit den gerenderten Normalen und
-supervidiert bewusst auf der erodierten \texttt{middle}-Stufe ohne Dilatation.
-Der Grund ist die Silhouettenstabilität: Tiefe und daraus abgeleitete
-Normalen sind direkt an Objektkanten unzuverlässig, und genau dort kann eine
-\texttt{default}-Maske über die Objektsilhouette hinausragen. Ein solcher
-Maskenüberhang würde die Objektnormalen am Silhouettenrand in Richtung der
-Hintergrundtiefe ziehen und dadurch eine ausgestülpte oder abgeflachte
-Oberfläche erzeugen. \texttt{middle} entfernt diese unsichere Randzone von
-rund zwei Pixeln, sodass nur Pixel supervisiert werden, die sicher auf dem
-Objekt liegen.
-
-Diese Zuordnung von \texttt{middle} zur DN-Stufe ist historisch bedingt.
-Der DN-Term wird im projektinternen SuGaR-Fork erst oberhalb des
-Zählerstands 9000 aktiviert; der aktuelle Coarse-Standard beträgt
-\texttt{COARSE\_ITERATIONS=9000}, die aktuelle Matrix verwendet
-ausschließlich die \texttt{original\_gs}-Route ohne Coarse-Training, und die
-SuGaR-Folgeprüfung lief ebenfalls mit Zielzähler 9000
-(vgl. Abschnitt~\ref{sec:versuchsaufbau}). In keinem der ausgewerteten Läufe
-wurde der DN-Term daher tatsächlich ausgeführt — auch nicht im
-\texttt{sugar\_coarse}-Modus. Die DN-Rolle von \texttt{middle} ist damit ein
-historischer Entwicklungsstand ohne aktuell wirksamen Effekt auf die
-Geometrie; aktuell wirksam bleibt \texttt{middle} allein in der
-Coverage-Prüfung und der Kamera- beziehungsweise Eval-Split-Auswahl:
-Ansichten mit leerer \texttt{middle}-Maske werden vom STS-Training
-beziehungsweise von der Evaluation ausgeschlossen.
+Die Maskenstufen entfalten ihre Wirkung dabei je Komponente getrennt: STS
+setzt die bereitgestellten Masken für die Objektzuordnung und die
+Objektphasen-Supervision ein; darüber hinaus ist \texttt{middle} aktuell
+allein in der Coverage-Prüfung sowie der Kamera- und Eval-Split-Auswahl
+wirksam — Ansichten mit leerer \texttt{middle}-Maske werden vom STS-Training
+beziehungsweise von der Evaluation ausgeschlossen. Unabhängig davon belegen
+die historischen Zwischenstände in Abbildung~\ref{fig:pa-panel-mesh}, dass
+die \texttt{middle}-Stufe die Objektabgrenzung visuell stabilisiert. Der
+gezielte Einsatz unterschiedlicher Maskenstufen in den Verlustpfaden der
+SuGaR-Vergleichsroute gehört zum maskenbewussten SuGaR-Fork und wird deshalb
+zusammen mit diesem Verfahren in Abschnitt~\ref{subsec:meshgewinnung}
+beschrieben.
 
 \subsection{Objektselektion und Meshgewinnung}
+\label{subsec:meshgewinnung}
 
-Die Ziel-Gaussians werden über die konfigurierte Objekt-ID selektiert; die
-Zuordnung stammt aus den STS-Objektdateien (eigene \texttt{obj\_id}-Eigenschaft
-der PLY beziehungsweise die Objekt-ID-Tensoren der STS-Ausgabe). Bei einem
+Die Ziel-Gaussians werden über die konfigurierte Objekt-ID selektiert. Bei einem
 Datensatz mit genau einem linearen Objekt ist die Objekt-ID eine
 Formalschnittstelle des übernommenen STS-Schemas; die eigentliche Auswahl
 trifft der nachgelagerte Opazitäts- und Farbfilter. Ein Opazitätsfilter kann
@@ -186,36 +164,78 @@ Sigmoid-Aktivierung numerisch nicht erreichbar, weil er einen unendlichen
 Logit erfordern würde; der nahezu opake Wert stabilisiert die anschließende
 Dichte- und Normalenberechnung beim Surface-Sampling.
 
-SuGaR richtet in seiner vollständigen Route Gaussians durch
-Oberflächenregularisierung aus und rekonstruiert aus kamerabasierten
-Oberflächenstichproben ein Poisson-Mesh\footnote{Die Poisson-
-Oberflächenrekonstruktion legt durch eine Punktwolke mit orientierten
-Normalen eine glatte Oberfläche, indem sie ein Poisson-Gleichungssystem löst,
-dessen Lösungsfeld die gesuchte Indikatorfunktion der Oberfläche beschreibt
-\parencite{kazhdan2006poisson}.}
-\parencite{guedon2024sugar}. Der lokale Fork kann den
-photometrischen Verlust auf die Objektmaske begrenzen. Ein vereinfachter
-maskierter RGB-Verlust lautet
+SuGaR richtet in seiner vollständigen Route 3D-Gaussians durch
+Oberflächenregularisierung als flache Strukturen an einer Oberfläche aus und
+rekonstruiert daraus über kamerabasierte Stichproben ein
+Poisson-Mesh\footnote{Die Poisson-Oberflächenrekonstruktion legt durch eine
+Punktwolke mit orientierten Normalen eine glatte Oberfläche, indem sie ein
+Poisson-Gleichungssystem löst, dessen Lösungsfeld die gesuchte
+Indikatorfunktion der Oberfläche beschreibt \parencite{kazhdan2006poisson}.}
+\parencite{guedon2024sugar}. Im Standardverfahren vergleicht SuGaR stets das
+gesamte gerenderte Bild mit dem Trainingsfoto. Da für die Rohrrekonstruktion
+jedoch ausschließlich das freigestellte Zielobjekt optimiert werden soll,
+begrenzt der im Rahmen dieser Arbeit angepasste lokale SuGaR-Fork den
+photometrischen Optimierungsverlust gezielt auf die 2D-Objektmaske:
 
 \begin{equation}
- \mathcal{L}_{\mathrm{RGB}}^{M} =
- \frac{\sum_p M(p)\,\ell_{\mathrm{RGB}}(p)}
-			{\sum_p M(p)+\varepsilon},
- \label{eq:masked-rgb-loss}
+	\mathcal{L}_{\mathrm{RGB}}^{M} =
+	\frac{\sum_p M(p)\,\ell_{\mathrm{RGB}}(p)}
+	{\sum_p M(p) + \varepsilon}.
+	\label{eq:masked-rgb-loss}
 \end{equation}
 
-wobei $M$ die ausgewählte Objektmaske (ein binäres Bild) und $p$ eine einzelne
-Pixelposition innerhalb dieses Bildes bezeichnen. Der Ausdruck
-$\ell_{\mathrm{RGB}}$ kombiniert L1- und DSSIM-Abweichung. Die
-Depth-Normal-Consistency der
-SuGaR-Coarse-Route vergleicht innerhalb der konservativen Maske aus der
-gerenderten Tiefe abgeleitete Normalen mit den Gaussian-Normalen. Im lokalen
-Trainingsplan werden diese späten DN-/SDF-Terme erst oberhalb des Zählerstands
-9000 aktiviert.
+Hierbei ist $M(p) \in \{0, 1\}$ die binäre Objektmaske an Pixelposition $p$
+(1 auf dem Rohr, 0 im Hintergrund) und $\ell_{\mathrm{RGB}}(p)$ der kombinierte
+Farb- und Strukturfehler ($L_1$-Distanz und DSSIM). Durch die Multiplikation
+mit $M(p)$ wird der Fehler im Hintergrund zu null gesetzt, sodass der
+Optimierer ausschließlich Gradienten für die Gaussians des Zielobjekts
+berechnet und den Hintergrund ignoriert. Die Division durch die Summe aller
+Maskenpixel $\sum_p M(p)$ normiert den Verlust auf den Mittelwert pro
+Objektpixel; die winzige Konstante $\varepsilon = 10^{-7}$ schützt vor einer
+Division durch null bei temporär leeren Masken.
 
-Die Produktionsroute A überspringt die zusätzliche SuGaR-Coarse-Optimierung,
-das Gaussian-bound Refinement und das UV-Baking. Sie verwendet die
-Original-STS-Gaussians, die projizierte Diamond-Mesh-Tiefe\footnote{Die
+Beide maskennutzenden Verlustpfade des maskenbewussten SuGaR-Coarse-Trainings
+verwenden unterschiedliche Maskenstufen. Die RGB-Supervision nach
+Gl.~\ref{eq:masked-rgb-loss} vergleicht das Splat-Rendering jeder
+Trainingskamera pixelweise mit dem aufgenommenen Bild, begrenzt auf die
+Maskenpixel (maskierter L1-Anteil plus maskierter DSSIM-Anteil mit einem
+$11\times11$-Fenster; das lokale Fenster zieht am Maskenrand begrenzt Kontext
+von außen ein). Sie verwendet die unveränderte \texttt{default}-Maske, damit
+die Bildsupervision möglichst die volle Objektprojektion abdeckt und
+Positionen, Opazitäten und Farben der Objekt-Gaussians vollständig
+spezifiziert werden. Eine Farbprojektion auf eine Oberfläche findet dabei
+nicht statt; die Farbübertragung aus den Ansichten erfolgt erst in der
+nachgelagerten UV-Texturphase des Forks.
+
+Die Depth-Normal-Consistency (DN) vergleicht dagegen die aus der gerenderten
+Gaussian-Tiefe abgeleiteten Normalen mit den gerenderten Normalen und wird
+bewusst auf der erodierten \texttt{middle}-Stufe ohne Dilatation angewandt.
+Der Grund ist die Silhouettenstabilität: Tiefe und daraus abgeleitete Normalen
+sind direkt an Objektkanten unzuverlässig, und genau dort kann eine
+\texttt{default}-Maske über die Objektsilhouette hinausragen. Ein solcher
+Maskenüberhang würde die Objektnormalen am Silhouettenrand in Richtung der
+Hintergrundtiefe ziehen und dadurch eine ausgestülpte oder abgeflachte
+Oberfläche erzeugen. \texttt{middle} entfernt diese unsichere Randzone von
+rund zwei Pixeln, sodass nur Pixel supervisiert werden, die sicher auf dem
+Objekt liegen.
+
+Diese Aufteilung stammt aus der Entwicklung des Forks und ist dort Teil des
+Datenvertrags zwischen Maskenhierarchie und Trainingsplan. Da die
+DN-/SDF-Terme erst oberhalb des Zählerstands 9000 aktiviert werden und alle
+ausgewerteten Läufe — einschließlich sämtlicher \texttt{sugar\_coarse}-Arme
+der Vierfeld-Ablation und der Folgeprüfung — mit Zielzählerstand 9000 oder
+weniger trainiert wurden, trat der DN-Term in keinem ausgewerteten Lauf
+tatsächlich in Wirkung. Die \texttt{middle}-Zuordnung bleibt dennoch
+dokumentiert, weil sie den Fork-Vertrag definiert; Zählermechanik und
+Nachweislage der Läufe sind in Abschnitt~\ref{subsec:sugar-folgepruefung}
+erläutert. Standardläufe mit Zieliteration 9000 optimieren die Geometrie
+daher primär über den maskierten photometrischen Farbverlust.
+
+
+Auf dieser Basis definiert das Projekt eine direkte Meshroute, die ohne
+Coarse-Training auskommt: Sie überspringt die zusätzliche SuGaR-Coarse-
+Optimierung, das Gaussian-bound Refinement und das UV-Baking. Sie verwendet
+Original-STS-Gaussians mit projizierter Diamond-Mesh-Tiefe\footnote{Die
 Diamond-Mesh-Tiefe wird aus der Projektion der SuGaR-``Diamond''-Primitive
 gewonnen: Diese flachen, an den Gaussians ausgerichteten Vierecksflächen
 werden in einen Z-Buffer projiziert, aus dem je Pixel eine Tiefe abgelesen
@@ -226,7 +246,12 @@ Vertexprojektion. Die Dichtebereinigung entfernt Cluster mit zu wenigen
 Stützpunkten, die Decimation reduziert die Dreieckszahl auf das Ziel-Vertice-
 Budget, und die optionale Vertexprojektion verschiebt die verbliebenen
 Vertices auf die nächstgelegenen Oberflächenstichproben beziehungsweise deren
-Tiefenpunkte. Die vollständige SuGaR-Coarse-Route bleibt als
+Tiefenpunkte. Diese Konfiguration entspricht genau der Zelle A der
+kontrollierten Vierfeld-Ablation (Abschnitt~\ref{subsec:vierfeld-ablation});
+nach dieser Zelle wird sie im Folgenden durchgängig als \emph{Route A}
+bezeichnet, während die Coarse-Route entsprechend dem Modusnamen des
+Ausführungscodes \texttt{sugar\_coarse} heißt; Route A selbst trägt dort den
+Modusnamen \texttt{original\_gs}. Die vollständige SuGaR-Coarse-Route bleibt als
 wissenschaftlicher Vergleich erhalten. Damit werden zwei Fragen getrennt:
 Wie wird aus einer Gaussian-Wolke ein Mesh gewonnen, und wie verändert eine
 zusätzliche Coarse-Optimierung zuvor die Gaussian-Geometrie? SuGaR ist
@@ -276,9 +301,9 @@ Samples verändert nur die Diskretisierung der Kurve.
 
 Die Bildmetriken werden nicht auf dem Dreiecksnetz (Mesh), sondern auf den
 renderbaren 3D-Gaussian-Splatting-Repräsentationen ausgewertet. Dafür werden
-synthetische Ansichten für einen festen, beim Training ungesehenen Test-Kamerasplit
-(\path{eval_frames.txt}) gerendert und pixelweise mit den echten Referenzbildern
-verglichen.
+synthetische Ansichten für einen festen, beim Training ausgeschlossenen
+Test-Kamerasplit (\path{eval_frames.txt}) gerendert und pixelweise mit den
+echten Referenzbildern verglichen.
 
 \subsubsection*{Splat-Serialisierung: PLY- versus PT-Dateien}
 
@@ -288,7 +313,7 @@ auf:
   \item \textbf{PLY-Dateien (\path{.ply}):} Das standardisierte Polygon File
         Format wird von Vanilla 3DGS und STS (\path{point_cloud.ply}) verwendet. Es
         speichert die Gaussian-Eigenschaften als Punktattribute (Positionen $x,y,z$,
-        Normalen/Rotationsquaternionen, Skalierungsfaktoren, Logit-Opazität und
+        Normalen und Rotationsquaternionen, Skalierungsfaktoren, Logit-Opazität und
         Spherical-Harmonics-Koeffizienten) und ist in externen Visualisierern (z.\,B.
         CloudCompare oder SuperSplat) direkt darstellbar.
   \item \textbf{PyTorch-Checkpoints (\path{.pt}):} SuGaR speichert
@@ -297,15 +322,15 @@ auf:
         \texttt{torch.nn.Module} implementiert ist.
 \end{itemize}
 
-Mathematisch und rendertechnisch sind beide Formate bei identischem Trainingsstand
-vollständig äquivalent: Beide kapseln dieselben 3D-Gaussian-Parameter
-($\boldsymbol{\mu}_i, \mathbf{S}_i, \mathbf{R}_i, \alpha_i$ und SH-Farbwerte) mit
-voller 32-Bit-Gleitkommapräzision. Ein Laden der Tensoren aus einer \path{.pt}-Datei
-in ein \path{SuGaR}-Modell liefert für dieselbe Kamera exakt dasselbe Pixelbild wie
-eine hypothetisch daraus exportierte, standardkonforme \path{.ply}-Datei. Unterschiede
-in den resultierenden Bildmetriken entstehen daher ausschließlich aus dem
-unterschiedlichen Trainingszustand der Gaussians (z.\,B. 7000 Iterationen STS
-gegenüber 9000 Iterationen SuGaR-Coarse-Optimierung), nicht aus dem Dateiformat.
+Beide Formate beschreiben bei identischem Trainingsstand dieselben
+3D-Gaussian-Parameter ($\boldsymbol{\mu}_i, \mathbf{S}_i, \mathbf{R}_i,
+\alpha_i$ und SH-Farbwerte); bei vollständiger Attributübernahme in gleicher
+Präzision ist ein Laden aus einer \path{.pt}-Datei in das SuGaR-Modell
+inhaltlich gleichwertig zu einem Export in eine standardkonforme
+\path{.ply}-Datei. Unterschiede in den resultierenden Bildmetriken entstehen
+daher aus dem unterschiedlichen Trainingszustand der Gaussians (z.\,B. 7000
+Iterationen STS gegenüber 9000 Iterationen SuGaR-Coarse-Optimierung), nicht
+aus dem Dateiformat.
 
 \subsubsection*{Berechnung der Metriken}
 
@@ -319,7 +344,11 @@ mittlere quadratische Fehler als
 	\label{eq:masked-mse}
 \end{equation}
 
-berechnet. Daraus folgt bei einem Maximalwert von eins
+berechnet. Dabei ist $I(p)$ das gerenderte Bild der Gaussian-Repräsentation an
+Pixelposition $p$ und $\hat I(p)$ das zugehörige reale Referenzbild (Ground
+Truth) aus dem festen Test-Kamerasplit; summiert wird nur über Pixel mit
+$M(p)=1$, also innerhalb der Objektmaske. Daraus folgt bei einem Maximalwert
+von eins
 
 \begin{equation}
 	\operatorname{PSNR}_M=10\log_{10}\!\left(\frac{1}{\operatorname{MSE}_M}\right).
@@ -328,12 +357,20 @@ berechnet. Daraus folgt bei einem Maximalwert von eins
 
 Ein höherer PSNR-Wert bedeutet eine geringere pixelweise Abweichung. SSIM
 bewertet zusätzlich lokale Helligkeit, Kontrast und Struktur; höhere Werte
-sind besser \parencite{wang2004ssim}. Im aktuellen Evaluator wird zunächst eine
+sind besser \parencite{wang2004ssim}. Die lokale Fenstergröße von
+$11\times11$ Pixeln ist dabei der Literaturstandard nach Wang et al. (2004)
+\parencite{wang2004ssim}. Im aktuellen Evaluator wird zunächst eine
 vollständige SSIM-Karte berechnet und anschließend nur an gültigen
 Maskenpixeln aggregiert; der lokale SSIM-Fensterkontext kann daher weiterhin
-Randpixel außerhalb der Maske enthalten. LPIPS vergleicht Merkmale eines
+Randpixel außerhalb der Maske enthalten. Bei linearen Objekten fällt dieser
+Randeffekt stärker ins Gewicht, je kleiner das Objekt im Pixelraster ist:
+Rund fünf Randpixel bedeuten bei einem etwa 40 Pixel breiten Rohr (720p)
+nur einen Randanteil von etwa 12 Prozent, bei einem 20 Pixel breiten Rohr
+(Low-Auflösung) jedoch bereits etwa 25 Prozent. LPIPS vergleicht Merkmale eines
 vortrainierten Netzes; niedrigere Werte bedeuten eine größere perzeptuelle
-Ähnlichkeit \parencite{zhang2018lpips}. Full-frame-Metriken sind
+Ähnlichkeit \parencite{zhang2018lpips}. PSNR und SSIM bewerten stets nur das
+Signal im jeweiligen Pixelgitter der Renderauflösung – sie liefern kein
+absolutes Weltkoordinatenmaß. Full-frame-Metriken sind
 für den object-only Splat deaktiviert, weil sie überwiegend den nicht
 rekonstruierten Hintergrund bewerten würden.
 

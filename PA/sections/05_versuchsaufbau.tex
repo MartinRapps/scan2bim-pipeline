@@ -1,8 +1,7 @@
 \section{Versuchsaufbau}
 \label{sec:versuchsaufbau}
 
-Die Evaluation folgt einer gestuften Logik. Ein ressourcenschonender
-Smoke-Test prüft zunächst die Datenverträge. Separate COLMAP-Voruntersuchungen
+Die Evaluation folgt einer gestuften Logik. Separate COLMAP-Voruntersuchungen
 begründen den SfM-Standard. Danach untersuchen automatisierte Matrixläufe
 Kameramodell, FPS und Auflösung. Eine kontrollierte Vierfeld-Ablation lokalisiert
 den Einfluss von Gaussian-Optimierung und Tiefenroute\footnote{Die
@@ -34,7 +33,7 @@ Frameprofile & 2/5 FPS; $1280\times720$, $960\times540$, $640\times360$\\
 COLMAP-Standard & 4096 Plain-SIFT, Overlap 15, Guided Matching aus,
 Peak-Threshold 0,003\\
 STS & 7000 Gesamtiterationen, 5000 Objektcurriculum\\
-Mesh & 200000 Zielvertices, 5000000 Surface-Samples, Poisson-Tiefe 10,
+Mesh & 200.000 Zielvertices, 5.000.000 Surface-Samples, Poisson-Tiefe 10,
 Seed 42\\
 Masken & RGB \texttt{default}, DN \texttt{middle}, keine zusätzliche
 Dilatation\\
@@ -74,40 +73,47 @@ der konservativeren \texttt{middle}-Maske.
 Eine getrennte CPU-Voruntersuchung vergleicht die Sparse-SfM-Stufe. Sie umfasst
 unter anderem 4096 gegen 8192 SIFT-Merkmale, Guided Matching und zwei
 Kompressionsprofile. Alle fünf ausgewerteten Hauptläufe registrierten 240 von
-240 Bildern. Die Untersuchung begründet den Standard 4096 Plain-SIFT und
-deaktiviertes Guided Matching, ist aber kein vollständiger STS-/Meshvergleich.
+240 Bildern; die vollständige Tabelle mit Punktzahlen, Tracks,
+Reprojektionsfehlern und Laufzeiten steht in
+Tabelle~\ref{tab:colmap-vorstudie} im Anhang~A. Die Untersuchung begründet den Standard
+4096 Plain-SIFT und deaktiviertes Guided Matching, ist aber kein
+vollständiger STS-/Meshvergleich.
 
-\subsection{Smoke-Test und Replay}
+\subsection{Autopilot und Produktionslauf}
 
-Der Lauf \path{matrix_smoke_low_pipe_full} ist ein einzelner Low-
-Auflösungstest mit 5 FPS, \texttt{SIMPLE\_RADIAL} und Route A. Er prüft die Kette von den
-idealen Masken über einen vorhandenen STS-Checkpoint bis zu Mesh, Rendering,
-Metriken und Postprocessing. Der Zusatz \texttt{full} bedeutet, dass dieser
-einzelne Lauf nicht nach der Maskenprüfung beendet wurde; er bezeichnet keine
-vollständige Parameter-Matrix.
-
-Der Replay startet an einer Schrittgrenze und stellt nur die dafür notwendigen
-Artefakte wieder her. Dadurch können teure, bereits validierte Stufen
-wiederverwendet werden, ohne einen abgebrochenen Optimierer innerhalb einer
-Iteration fortzusetzen.
+Der kanonische Produktionslauf für den Testdatensatz verwendet das Video
+\path{Alurohr_THWS.mp4} mit OPENCV, 5 FPS, 720p und Route A bis zu Poisson-Mesh,
+B-Spline-Centerline und GeoJSON; er ist als Autopilot-Vollauf archiviert.
+Daneben existieren archivierte Autopilot-Volläufe für die übrigen
+Auflösungsstufen (Abschnitt~\ref{sec:versuchsaufbau}, Erfolgskriterium~6).
 
 \subsection{Kameramodell-/FPS-/Auflösungsmatrix}
 
-Die bereits ausgeführte A-Route wurde nicht erneut gerechnet. Die Folge-Matrix
-\path{matrix_rest} enthält PINHOLE-A und OPENCV-A. Die gezielte
-SuGaR-Folgeprüfung verwendet die separate Konfiguration
-\path{tools/experiment_matrix_sugar.tsv} mit SIMPLE-RADIAL-SuGaR und
-OPENCV-SuGaR. Damit werden Kameramodell, FPS und Auflösung getrennt von der
-Meshroute untersucht.
+Insgesamt umfasst die vorliegende Arbeit drei Versuchsreihen; die zugehörigen Ergebnisse
+zeigen die Grafiken in Kapitel~7 (Ergebnisse) sowie die Detailtabellen in den
+Anhängen:
 
-Die zusammengeführte Hauptauswertung enthält sechs historische
-\texttt{simple\_radial\_a}-Versuche und 18 Folgeexperimente. Die Folgeexperimente
-umfassen \texttt{PINHOLE}-A, \texttt{OPENCV}-A und die damalige
-\texttt{SIMPLE\_RADIAL}-SuGaR-Route über jeweils drei Auflösungen und zwei
-FPS-Profile. Der Runner arbeitet seriell, weil alle Versuche denselben
-Live-Workspace verwenden und zwischen den Läufen archiviert und bereinigt wird.
+\begin{itemize}
+  \item die zusammengeführte historische 24er-Matrix aus den sechs
+        Route-A-Versuchen von \path{matrix_full_pipe} (Kameramodell
+        \texttt{SIMPLE\_RADIAL}) und 18
+        Folgeexperimenten (\path{matrix_rest} mit den Kameramodellen
+        \texttt{PINHOLE} und \texttt{OPENCV} als Route-A-Ablationen sowie der
+        damaligen SuGaR-Variante mit \texttt{SIMPLE\_RADIAL}, jeweils über
+        drei Auflösungen und zwei FPS-Profile);
+  \item die Vierfeld-Ablation von Original-GS gegen SuGaR-Coarse mit zwei
+        Tiefenrouten (Abschnitt unten sowie
+        Abschnitt~\ref{sec:produktionskonfiguration});
+  \item die abgeschlossene zwölfteilige SuGaR-Coarse-Folgematrix
+        (\path{matrix_sugar_followup_12}).
+\end{itemize}
+
+Der Runner arbeitet seriell, weil alle Versuche denselben
+Live-Workspace verwenden und zwischen den Läufen archiviert und bereinigt
+wird.
 
 \subsection{Vierfeld-Ablation der Meshgewinnung}
+\label{subsec:vierfeld-ablation}
 
 Die Ursache sichtbarer Meshunterschiede wird mit vier Coarse-only-Varianten
 getrennt:
@@ -122,61 +128,24 @@ getrennt:
 Kameras, Eingabemasken, Surface-Level, Poisson-Tiefe, Dichtequantil,
 Vertexziel, Samplezahl, Projektion und Seed bleiben konstant. Dadurch werden
 Gaussian-Optimierung und Tiefenroute als getrennte Einflussfaktoren untersucht.
-Die aus gleichmäßig gesampelten Meshpunkten berechneten gerichteten Distanzen
-sind relative Vergleichsgrößen zwischen den Varianten, keine Abweichungen von
-einer Ground Truth.
+Die Auswertungsmethode der gerichteten Distanzen sowie ihre Grenzen sind in
+Abschnitt~\ref{sec:produktionskonfiguration} beschrieben.
 
 \subsection{Abgeschlossene SuGaR-Folgeprüfung}
+\label{subsec:sugar-folgepruefung}
 
-Die frühere SuGaR-Matrix scheiterte nach vorhandenen STS-Baselinewerten im
-separaten Renderpfad. Nach Korrektur von Importpfad und Tensorlayout wurde die
-Konfiguration mit zwölf Läufen ausgeführt: \texttt{SIMPLE\_RADIAL} und
-\texttt{OPENCV}, jeweils mit \texttt{sugar\_coarse}, drei Auflösungen und zwei
-FPS-Profilen. Alle zwölf Manifeste und Coarse-Metrikdateien sind erfolgreich
+Die Folgematrix umfasst zwölf Läufe über die Kameramodelle
+\texttt{SIMPLE\_RADIAL} und \texttt{OPENCV} (jeweils mit
+\texttt{sugar\_coarse}) bei drei Auflösungen und zwei FPS-Profilen. Alle zwölf
+Manifeste und Coarse-Metrikdateien sind erfolgreich
 archiviert. Ein verfeinertes PLY wurde in diesen Läufen nicht exportiert; die
-Folgematrix bewertet daher die Coarse-Route, nicht die SuGaR-Refined-Stufe.
+Folgematrix bewertet daher nur die Coarse-Route. Die Ergebnisse zeigen die
+Grafiken in Abschnitt~\ref{sec:sugar-folgepruefung} und die Fehlerchronik in
+Tabelle~\ref{tab:fehlerchronik}. Da sämtliche Coarse-Läufe dieser Prüfung wie
+auch die Coarse-Arme der Vierfeld-Ablation mit Zielzählerstand 9000 trainiert
+wurden, blieben die erst oberhalb dieses Zählerstands aktivierten DN-/SDF-
+Terme des Forks in allen ausgewerteten Läufen ohne Wirkung.
 
-\subsection{Historische SuGaR-Zählerstände}
-
-Während der Entwicklung wurden für die SuGaR-Coarse-Route unterschiedliche
-Zielzählerstände verwendet. Für die Auswertung ist eine klare Trennung wichtig,
-weil nicht alle genannten Werte durch Laufmanifeste belegt sind.
-Tabelle~\ref{tab:sugar-zaehlerstaende} ordnet die in Dokumentation und
-historischen Dateinamen vorkommenden Stände ein.
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{p{2.6cm}p{3.0cm}X}
-\toprule
-Bezeichnung & Zählerstand & Bedeutung und Nachweislage\\
-\midrule
-Aktueller Coarse-Standard & 9000 & Standard für Vierfeld-Ablation,
-Folgeprüfung und aktuelle Pipeline (Standardwert
-\texttt{COARSE\_ITERATIONS=9000}); durch Manifeste und
-Konfigurationsdateien belegt.\\
-Historische Ablationen & 9001, 10000, 18000 & In Exposé und
-Entwicklungsdokumentation aufgeführte Ablationsstufen; nicht der aktuelle
-Standard.\\
-Weitere historische Versuche & 12000, 15000 & In den Entwicklungsnotizen
-dokumentierte Vergleichsläufe.\\
-Historische Screenshots & 9200 & Kommt ausschließlich in zwei historischen
-Screenshot-Dateinamen vor; ein Zählerstand von 9200 ist nicht durch Manifest
-oder Log bestätigt. Die zugehörigen Bilder werden in der Arbeit einheitlich
-als historische Stände mit Zielzähler 9001 eingeordnet.\\
-\bottomrule
-\end{tabularx}
-\caption{In der Entwicklung verwendete SuGaR-Coarse-Zählerstände und ihre
-Nachweislage.}
-\label{tab:sugar-zaehlerstaende}
-\end{table}
-
-Die Abweichung zwischen dem früher üblichen Zielzähler 9001 und dem aktuellen
-Standardwert 9000 hat einen technischen Hintergrund: Die DN-/SDF-Terme des
-localen Forks werden erst oberhalb des Zählerstands 9000 aktiviert, sodass
-Läufe mit Zielzähler 9001 diese Terme gerade noch nicht erreichen. Für die
-Vergleichbarkeit gelten die in dieser Arbeit ausgewerteten Läufe
-(Folgeprüfung, Vierfeld-Ablation) einheitlich mit dem Standardwert 9000.
 
 \subsection{Evaluationsprotokoll}
 
@@ -186,6 +155,12 @@ SuGaR-Coarse-Checkpoint (\path{9000.pt}), Mesh-/Postprocess-Ausgaben, feste
 Eval-Frames und objektmaskierte PSNR-, SSIM- und LPIPS-Werte. Die Daten werden über
 \texttt{manifest.json}, \texttt{parameters.json}, \texttt{run.log} und
 \texttt{run.md} nachvollziehbar gehalten.
+
+Der feste Eval-Split teilt die 240 registrierten Kameras eines Laufs in 210
+Trainings- und 30 Evaluationsansichten. Die Evaluationsansichten sind genau
+deshalb aussagekräftig, weil ihre Bilder nicht am Training beteiligt waren;
+die Aufteilung ist als Liste archiviert und in allen Läufen identisch, sodass
+die Metriken zwischen den Konfigurationen vergleichbar bleiben.
 
 Die Matrixgrafiken verwenden den arithmetischen Mittelwert aus 2 und 5 FPS nur,
 wenn beide Läufe derselben Konfiguration vollständig erfolgreich waren. Ein
@@ -211,7 +186,7 @@ STS-Baseline und wird nicht als SuGaR-Messung gewertet.
 
 \subsection{Erfolgskriterien der Projektarbeit}
 
-Die PA gilt als technisch erfolgreich, wenn:
+Die vorliegende Arbeit gilt als technisch erfolgreich, wenn:
 
 \begin{enumerate}
   \item die zentrale Pipeline für den Testdatensatz durchläuft;
@@ -220,9 +195,11 @@ Die PA gilt als technisch erfolgreich, wenn:
   \item der Status jedes Matrixlaufs und die Fehlerursache archiviert sind;
   \item die Ergebnisse für eine spätere GNSS-basierte Bachelorbewertung
         geeignet abgelegt werden.
-    \item interaktiver Vollauf, Replay, Autopilot und Matrixrunner in ihrer
-      jeweiligen Funktion eindeutig dokumentiert und mindestens über einen
-      archivierten Lauf oder Vertragstest nachgewiesen sind.
+    \item interaktiver Vollauf, Autopilot und Matrixrunner in ihrer
+      jeweiligen Funktion eindeutig dokumentiert und über archivierte Läufe
+      nachgewiesen sind: neun erfolgreiche Autopilot-Volläufe (720p, qHD und
+      low), der kanonische Produktionslauf sowie die Matrix- und
+      Folgematrixbatches.
 \end{enumerate}
 
 Die PSNR-/SSIM-/LPIPS-Werte sind dabei Funktions- und Visualisierungsmetriken.
