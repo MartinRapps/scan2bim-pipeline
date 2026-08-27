@@ -24,8 +24,9 @@ Dieser Anhang fasst nur die konstanten Parameter der PA-Versuche zusammen:
 \begin{description}
   \item[Interaktiver Vollauf] führt durch Video-, COLMAP-, STS- und
     Meshroutenparameter sowie den optionalen GCP-Breakpoint.
-  \item[Autopilot] setzt die dokumentierten Standardwerte und überspringt den
-    manuellen GCP-Breakpoint, falls keine Matrix bereitsteht.
+  \item[Autopilot] fragt nach seiner Aktivierung nur Lauf-Preset und
+    Objekt-Prompt ab, setzt die übrigen dokumentierten Standardwerte und
+    überspringt den manuellen GCP-Breakpoint, falls keine Matrix bereitsteht.
   \item[Matrixrunner] führt deklarierte Varianten seriell aus, archiviert sie
     und bereinigt danach den Live-Workspace.
 \end{description}

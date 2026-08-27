@@ -30,8 +30,13 @@ Grad-10-B-Spline.\\
 GIS & \texttt{data/08\_gis/} & Lokale oder explizit als Fallback markierte
 GeoJSON-/CSV-Ausgaben.\\
 Laufarchive & \texttt{data/10\_runs/} & Manifeste, Parameter, Logs, Metriken und
-Artefakte der Einzel- und Matrixläufe; insbesondere der vollständige
-Repeat-Batch \path{matrix_repeat_20260812}.\\
+Artefakte der Einzel- und Matrixläufe; insbesondere der E2E-Verifikationsbatch
+\path{matrix_e2e_verifikation_260826} mit Prüfsummen (\path{SHA256SUMS.txt})
+und der Gegenprobelauf \path{matrix_qualitaetsvergleich_20260818}; historische
+Vollarchive liegen komprimiert im externen Backup.\\
+Laufzeitanalyse & \path{tools/analyze\_e2e\_times.py} & Rekonstruktion der
+Phasen- und Gesamtlaufzeiten aus den Batch-Logs; Ausgabe
+\path{e2e\_times.csv}/\path{e2e\_times.md} je Batch.\\
 Matrixgrafiken & \texttt{docs/grafiken/} & Repeat-basierte CSV mit getrennter
 Modellstufe sowie separate STS- und SuGaR-Coarse-Grafiken.\\
 COLMAP-Berichte & \texttt{docs/COLMAP\_Tests/} & Separate Sparse-SfM-

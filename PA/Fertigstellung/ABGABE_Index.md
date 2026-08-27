@@ -26,6 +26,7 @@ ABGABE/
 ├── 04_Run-Archive/                     ← Auszüge, keine Vollarchive (s. Empfehlung unten)
 │   ├── autopilot_720p/                 ← kanonischer Produktionslauf (OPENCV/5FPS/720p/A)
 │   ├── autopilot_qhd/  autopilot_low/  ← weitere Autopilot-Vollläufe
+│   ├── e2e_verifikation_260826/        ← 3 gemessene E2E-Läufe + e2e_times.csv/md
 │   ├── followup_12/                    ← 12 SuGaR-Coarse-Läufe (Manifeste + Metriken + Mesh)
 │   ├── matrix_24/                      ← Statusmanifeste der historischen Batches
 │   └── qualitaetsvergleich_20260818/   ← Golden-Run-Arm 5fps/720p/opencv_a (+ weitere Arme nach Bedarf)
@@ -58,6 +59,10 @@ ABGABE/
    – Produktionskonfiguration im Matrixverbund, failed=0.
 4. **SuGaR-Folgematrix `matrix_sugar_followup_12`** – alle zwölf Läufe
    (Manifeste + Metriken + Coarse-Mesh); belegt die Vergleichsroute vollständig.
+5. **E2E-Verifikationsbatch `matrix_e2e_verifikation_260826`** – drei
+   gemessene Gesamtlaufzeiten (720p 40:25, qHD 33:52, low 23:46 min) mit
+   Phasenaufteilung; Quelle der Laufzeitangaben in Kapitel 4/5 und Tabelle
+   `e2e_times.csv`/`e2e_times.md`.
 
 **Optional, wenn Speicherplatz erlaubt:**
 

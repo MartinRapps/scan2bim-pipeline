@@ -4,9 +4,10 @@ Die Ausführung erfolgt mit Docker Compose. Der nachgewiesene Matrix- und
 Replaypfad verwendet unmaskierte Bilder für COLMAP, hält das originale Modell
 für GCP/SfM vor und führt STS sowie SuGaR in der idealen PINHOLE-Bilddomäne
 aus. Bei Verzeichnungsmodellen werden die SAM-Masken dort mit derselben
-Kameramodellabbildung in die ideale Domäne gewarpt. Der historische Inline-
-Vollauf erzeugt die ideale Bildszene, besitzt aber noch keinen eigenen Aufruf
-des Maskenwarp-Skripts.
+Kameramodellabbildung in die ideale Domäne gewarpt. Interaktiver Vollauf,
+Replay-Dispatcher und Matrixpfad nutzen dabei dieselbe Warp- und
+Coverage-Kette; auch das Diagnoseprofil \texttt{colmap-stop} warpt vor dem
+Stopp, sodass ein Replay ab \texttt{sts} fortsetzen kann.
 
 Die wichtigsten konstanten Parameter der PA-Versuche sind:
 
@@ -28,10 +29,12 @@ Die wichtigsten konstanten Parameter der PA-Versuche sind:
   \begin{description}
     \item[Interaktiver Vollauf] führt durch Video-, COLMAP-, STS- und
       Meshroutenparameter sowie den optionalen GCP-Breakpoint.
-    \item[Autopilot] setzt die dokumentierten Standardwerte und überspringt den
-      manuellen GCP-Breakpoint, falls keine Matrix bereitsteht.
+    \item[Autopilot] fragt nach seiner Aktivierung nur Lauf-Preset und
+      Objekt-Prompt ab, setzt die übrigen dokumentierten Standardwerte und
+      überspringt den manuellen GCP-Breakpoint, falls keine Matrix bereitsteht.
     \item[Replay] startet mit \texttt{--from} an einer Schrittgrenze und setzt
-      konsistente vorhandene Artefakte voraus.
+      konsistente vorhandene Artefakte voraus; ein Replay ab
+      \texttt{colmap} schließt den Maskenwarp selbst ein.
     \item[Matrixrunner] führt deklarierte Varianten seriell aus, archiviert sie
       und bereinigt danach den Live-Workspace.
   \end{description}

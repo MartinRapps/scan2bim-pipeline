@@ -3,16 +3,20 @@
 Die PA kopiert keine großen Trainings- oder Renderarchive. Die vollständigen
 Experimente liegen unter:
 
-- `../../data/10_runs/matrix_full_pipe/`: historische sechs A-Tests;
-- `../../data/10_runs/matrix_rest/`: 18 Folgeexperimente mit PINHOLE, OPENCV und
-  der fehlgeschlagenen SuGaR-Coarse-Renderroute;
-- `../../data/10_runs/matrix_sugar_followup_12/`: abgeschlossene zwölf SuGaR-
-  Coarse-Folgeläufe mit SIMPLE_RADIAL und OPENCV bei 2/5 FPS und drei
-  Auflösungen;
-- `../../data/10_runs/matrix_repeat_20260812/`: vollständiger Repeat-Batch;
-  die zugehörige verdichtete Grafikquelle umfasst 30 erfolgreiche Läufe;
-- `../../data/10_runs/Alurohr_THWS_*`: sechs archivierte Autopilot-Volläufe
-  (18./20.08.2026, `AUTOPILOT: true`, Status SUCCESS);
+- `../../data/10_runs/matrix_e2e_verifikation_260826/`: E2E-Verifikationsbatch
+  (720p/qhd/low, Route A, OPENCV, 5 FPS) mit gemessenen Gesamtlaufzeiten
+  (40:25/33:52/23:46 min); Auswertung in `e2e_times.csv`/`e2e_times.md`,
+  Pflichtnachweis-Prüfsummen in `SHA256SUMS.txt`;
+- `../../data/10_runs/matrix_qualitaetsvergleich_20260818/`: unabhängiger
+  Gegenprobe-Batch (alle drei Kameramodelle Route A, SuGaR-Coarse-Arm,
+  failed=0); Golden-Run-Quelle und Bestätigung der E2E-Zeiten;
+- `../../data/10_runs/Alurohr_THWS_*`: archivierte Autopilot-Läufe
+  (18./20./26.08.2026, Status SUCCESS);
+- `../../data/10_runs/matrix_full_pipe/`, `matrix_rest/`,
+  `matrix_sugar_followup_12/`, `matrix_repeat_20260812/`: historische Batches;
+  die Vollarchive wurden nach externem Backup komprimiert (siehe
+  `Archivierungsempfehlung_Matrix.md`); Metrik-/Statusnachweise liegen im
+  Abgabepaket (`../Fertigstellung/ABGABE_Index.md`, Ordner `04_Run-Archive/`);
 - `../../data/10_runs/matrix_qualitaetsvergleich_20260818`: Qualitätsvergleichs-
   batch (3 Kameramodelle × Route A × 3 Auflösungen + SuGaR-Arme, failed=0,
   Golden-Run-Quelle für den Arm 5fps/720p/opencv_a);
