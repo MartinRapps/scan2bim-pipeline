@@ -52,9 +52,10 @@ Die nativen Bildmetriken werden in unterschiedlichen Pixelräumen berechnet.
 Downsampling wirkt dabei wie ein Tiefpassfilter: Feine Hochfrequenzfehler wie
 Metallreflexionen oder feine Kantenverschiebungen werden beim Herunterrechnen
 weggeglättet, sodass Low-Auflösung künstlich höhere Werte erreichen kann. Für
-BIM und Vermessung ist 720p trotzdem überlegen: Ein Pixel im 720p-Bild
-entspricht in der realen Welt nur wenigen Millimetern, während ein Pixel in
-Low einen deutlich größeren realen Lagefehler darstellt. Die Konsequenz ist
+BIM und Vermessung ist 720p trotzdem überlegen: Die Objektdetailgröße pro
+Pixel ist in 720p deutlich feiner als in low, sodass kleine Strukturmerkmale
+des Rohrs erhalten bleiben, die im low-Bild unterschritten werden. Eine echte
+GSD-Aussage wäre erst mit einer Maßstabsreferenz zulässig. Die Konsequenz ist
 zweifach: Auflösungen dürfen nicht in einer globalen Rangliste verglichen
 werden; belastbar sind nur gepaarte Vergleiche von STS gegen SuGaR innerhalb
 derselben Auflösung. Ein strengerer
@@ -62,14 +63,10 @@ Auflösungsvergleich müsste alle Renderings auf eine gemeinsame Zielauflösung
 und identische Eval-Views bringen. Die derzeitige Matrix ist deshalb ein
 Engineering-Screening.
 
-Die Auflösungen dürfen daher nicht zu einer globalen Qualitätsrangliste
-zusammengefasst werden. Ein Low-Lauf kann durch geglättete Kanten und kleinere
-hochfrequente Fehler höhere PSNR-/SSIM-Werte oder niedrigere LPIPS-Werte
-erreichen, ohne eine bessere 3D-Oberfläche zu besitzen. Wissenschaftlich
-belastbarer sind gepaarte Vergleiche innerhalb derselben Auflösung,
-Kameramodell- und FPS-Konfiguration. Die neue Boxplot-Auswertung ergänzt die
-Mittelwerte um die Streuung der einzelnen Testansichten; sie ersetzt aber
-nicht die geometrische Referenzmessung.
+Wissenschaftlich belastbar sind deshalb nur gepaarte Vergleiche innerhalb
+derselben Auflösungs-, Kameramodell- und FPS-Konfiguration. Die Boxplot-
+Auswertung ergänzt die Mittelwerte um die Streuung der einzelnen Testansichten;
+sie ersetzt aber nicht die geometrische Referenzmessung.
 
 Die Bildtafeln des Pipeline-Durchlaufs in
 Anhang~\ref{app:durchlauf} präzisieren diese Einschränkung: Trotz des gleichen
@@ -110,7 +107,7 @@ als Rendervergleich zu lesen: SuGaR-Coarse wird jeweils mit dem STS-Splat
 derselben Konfiguration verglichen. Über alle zwölf gepaarten Konfigurationen
 liegt die SuGaR-Coarse-Bildmetrik durchgängig unter der STS-Baseline. Diese
 konsistente Richtung ist eine zulässige Aussage der Delta-Grafik – SuGaR
-schneidet in den Ansichtsmetriken stringent schlechter ab. Sie bleibt
+schneidet in den Ansichtsmetriken durchgängig schlechter ab. Sie bleibt
 allerdings ein Rendervergleich und kein Meshgenauigkeitsnachweis; die
 Unterschiede können neben der zusätzlichen SuGaR-Optimierung auch aus dem
 unterschiedlichen Renderpfad entstehen.
