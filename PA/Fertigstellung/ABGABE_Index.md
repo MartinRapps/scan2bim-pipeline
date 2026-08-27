@@ -52,7 +52,7 @@ ABGABE/
 **Mindestumfang (konsistent mit dem Text der PA):**
 
 1. **Kanonischer Produktionslauf** – Autopilot-Vollauf `Alurohr_THWS.mp4`,
-   OPENCV / 5 FPS / 720p / Route A (inkl. 87/380-Centerline-Zahlen).
+   OPENCV / 5 FPS / 720p / Route A (mit Centerline-Nachweis 85/372 Punkte).
 2. **Autopilot-Volläufe der übrigen Stufen** – qHD und low (belegt
    Erfolgskriterium 6 über alle drei Auflösungsstufen).
 3. **Golden-Run-Arm** `matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_a`
@@ -99,12 +99,13 @@ Der Ordner `ABGABE/` ist nach dieser Struktur befüllt:
 
 | Ordner | Inhalt | Prüfsummen |
 |---|---|---|
-| `/` | `ABGABE_Index.md`, `pa.pdf` (= Arbeitsfassung, 60 S.), `Anlage_KI-Nutzung.pdf` + `.tex` | – |
+| `/` | `ABGABE_Index.md`, `pa.pdf` (= Arbeitsfassung, 62 S.), `Anlage_KI-Nutzung.pdf` + `.tex` | – |
 | `01_Rohdaten/` | `Alurohr_THWS.mp4` (H.264, 1920×1080, 30 FPS) | ✓ |
 | `02_COLMAP_Tests/` | Rohberichte der Voruntersuchung | ✓ |
 | `03_Grafiken/` | `matrix_repeat_2026-08-17/` (inkl. korrekt gelabelter `metric_vs_runtime.pdf`) + `verwendet_verbessert/` | ✓ |
 | `04_Run-Archive/e2e_verifikation_260826/` | Pflichtnachweis aller drei Läufe (Manifeste, Parameter, run.md/log, matrix.log, Metriken, eval_frames, Coverage-Reports) + `e2e_times.csv`/`.md` + Batch-Prüfsummen | ✓ |
 | `04_Run-Archive/autopilot_laeufe/` | `run.md`/`run.log` der archivierten Autopilot-Läufe | ✓ |
+| `04_Run-Archive/followup_12/` | vollständige `sugar_output`-Ordner der zwölf Folgematrix-Läufe (inkl. interner Refined-Mesh-Extraktion; Bewertung laut PA nur Coarse-Stufe — siehe README im Ordner) | ✓ |
 | `04_Run-Archive/golden_run_720p_opencv_a/` | **vollständiger** Arm aus `matrix_qualitaetsvergleich_20260818` (3,1 GB, inkl. live/) | ✓ |
 | `04_Run-Archive/sugar_vergleichsarm_720p/` | **vollständiger** SuGaR-Coarse-Vergleichslauf `opencv_sugar` (3,4 GB) | ✓ |
 | `05_SuGaR-Fork/` | `sugar_fork_diff_48bbfdd_a0fc37b.diff` + `FORK_README.md` (Commit-Kette) | ✓ |

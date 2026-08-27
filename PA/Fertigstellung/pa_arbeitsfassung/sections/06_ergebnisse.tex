@@ -81,7 +81,7 @@ Ebenso wurde vor den Matrixläufen eine Versuchsreihe mit COLMAP gestartet;
 dabei wurde geprüft, inwiefern sich einzelne Einstellungen im Hinblick auf den
 zeitlichen Aufwand und die Qualität der Sparse-Rekonstruktion lohnen. Alle
 fünf dokumentierten Hauptläufe registrierten 240 von 240 Bildern; die
-vollständige Tabelle steht in Anhang~\ref{tab:colmap-vorstudie}. Guided
+vollständige Übersicht steht in Tabelle~\ref{tab:colmap-vorstudie} im Anhang~A. Guided
 Matching erhöhte die Sparse-Punktzahl gegenüber Plain-SIFT 4096 nur um rund
 1,98\,\%, benötigte aber nahezu die doppelte Zeit und erhöhte den mittleren
 Reprojektionsfehler. 8192 Merkmale lieferten etwa 0,82\,\% mehr Punkte bei
@@ -468,9 +468,11 @@ Endstufen.
   \label{fig:pa-panel-alurohr}
 \end{figure}
 
-Beim kanonischen Produktionslauf (\path{Alurohr_THWS.mp4}, OPENCV, 5 FPS,
-720p, Route~A) extrahierte DGtal 87 Rohpunkte; der
-Grad-10-B-Spline erzeugte 380 Ausgabepunkte. Diese Zahlen belegen die
+Beim paketierten Golden-Run-Lauf (\path{matrix_qualitaetsvergleich_20260818},
+Arm 5~FPS/720p/\texttt{opencv\_a}; abgelegt unter \texttt{04\_Run-Archive/})
+extrahierte DGtal 85 Rohpunkte; der Grad-10-B-Spline erzeugte 372
+Ausgabepunkte (\path{centerline_local_raw.csv} beziehungsweise
+\path{centerline_local.csv}). Diese Zahlen belegen die
 Ausführbarkeit des Postprocessings. Sie bewerten weder die Lage der Linie im
 Rohr noch ihre Formabweichung gegen eine Referenz. Die anschaulichen
 Centerline-Bilder der drei Auflösungsstufen finden sich in
