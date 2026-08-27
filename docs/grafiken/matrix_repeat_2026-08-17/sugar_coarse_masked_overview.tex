@@ -27,7 +27,7 @@
 \pagestyle{empty}
 \begin{center}
 {\Large\bfseries SuGaR-Coarse-9000: objektmaskierte Bildmetriken}\\[3pt]
-{\small Explorative Darstellung; Laufzeit = vollständiger archivierter Pipeline-Lauf}\\[8pt]
+{\small Explorative Darstellung; Werte aus \texttt{sugar\_coarse\_masked.json}, Pool: vollständige Coarse-Läufe}\\[8pt]
 \begin{tikzpicture}
 \begin{axis}[height=5.6cm,width=0.98\linewidth,ybar,bar width=2.8pt,enlarge x limits=0.015,xmin=-0.7,ymin=20,ymax=31,xtick=data,xticklabels={{\shortstack{SR\\2/720p}},{\shortstack{SR\\2/qhd}},{\shortstack{SR\\2/low}},{\shortstack{SR\\5/720p}},{\shortstack{SR\\5/qhd}},{\shortstack{SR\\5/low}},{\shortstack{OPENCV\\2/720p}},{\shortstack{OPENCV\\2/qhd}},{\shortstack{OPENCV\\2/low}},{\shortstack{OPENCV\\5/720p}},{\shortstack{OPENCV\\5/qhd}},{\shortstack{OPENCV\\5/low}}},x tick label style={font=\tiny,rotate=55,anchor=east},ylabel style={font=\small},tick label style={font=\scriptsize},ylabel={PSNR (dB) $\uparrow$},grid=major,grid style={gray!20},xtick={0,1,2,3,4,5,6,7,8,9,10,11}]
 \addplot+[fill=srblue,draw=srblue,area legend] coordinates {(0,21.64427790) (1,21.78840496) (2,21.97335241) (3,21.22287166) (4,21.38360296) (5,21.77501791)};

@@ -1,13 +1,13 @@
 # Wiederholungsmatrix-Grafiken (2026-08-17)
 
-- 30 erfolgreiche Läufe aus `data/10_runs/matrix_repeat_20260812/`.
+- 30 erfolgreiche Läufe aus `matrix_repeat_20260812/` (Vollarchive extern komprimiert; verifizierbare Quelle sind die CSV-Dateien in diesem Ordner).
 - STS-/Original-GS-Kameras: `SIMPLE_RADIAL`, `PINHOLE` und `OPENCV`.
 - SuGaR-Coarse-Kameras: `SIMPLE_RADIAL` und `OPENCV`.
 - Alle Konfigurationen enthalten 2/5 FPS sowie 720p/QHD/Low.
 - STS-Übersicht und STS-Boxplots enthalten nur vollständige `original_gs`-Läufe.
 - SuGaR-Coarse verwendet ausschließlich `sugar_coarse_masked.json`.
 - Boxplots verwenden die `per_frame`-Werte; y-Ranges umfassen alle Einzelwerte.
-- Die Laufzeitgrafik verwendet die vollständige archivierte Laufdauer aus `run.md`.
+- Die Laufzeitgrafik verwendet die archivierte Pipeline-Segmentzeit STS→Postprocess (run.md-Fenster; SAM3/COLMAP nicht enthalten).
 - Grün/Lila kodieren STS/SuGaR-Coarse; kräftig/blass kodiert 5/2 FPS; Kreis/Quadrat/Dreieck kodiert 720p/QHD/Low.
 - In den STS-Übersichten und -Boxplots kodieren Blau/Orange/Grau die
   Kameramodelle SR/OPENCV/PINHOLE.
