@@ -113,6 +113,7 @@ Live-Workspace verwenden und zwischen den Läufen archiviert und bereinigt
 wird.
 
 \subsection{Vierfeld-Ablation der Meshgewinnung}
+\label{subsec:vierfeld-ablation}
 
 Die Ursache sichtbarer Meshunterschiede wird mit vier Coarse-only-Varianten
 getrennt:
@@ -131,6 +132,7 @@ Die Auswertungsmethode der gerichteten Distanzen sowie ihre Grenzen sind in
 Abschnitt~\ref{sec:produktionskonfiguration} beschrieben.
 
 \subsection{Abgeschlossene SuGaR-Folgeprüfung}
+\label{subsec:sugar-folgepruefung}
 
 Die Folgematrix umfasst zwölf Läufe über die Kameramodelle
 \texttt{SIMPLE\_RADIAL} und \texttt{OPENCV} (jeweils mit
@@ -139,7 +141,11 @@ Manifeste und Coarse-Metrikdateien sind erfolgreich
 archiviert. Ein verfeinertes PLY wurde in diesen Läufen nicht exportiert; die
 Folgematrix bewertet daher nur die Coarse-Route. Die Ergebnisse zeigen die
 Grafiken in Abschnitt~\ref{sec:sugar-folgepruefung} und die Fehlerchronik in
-Tabelle~\ref{tab:fehlerchronik}.
+Tabelle~\ref{tab:fehlerchronik}. Da sämtliche Coarse-Läufe dieser Prüfung wie
+auch die Coarse-Arme der Vierfeld-Ablation mit Zielzählerstand 9000 trainiert
+wurden, blieben die erst oberhalb dieses Zählerstands aktivierten DN-/SDF-
+Terme des Forks in allen ausgewerteten Läufen ohne Wirkung.
+
 
 \subsection{Evaluationsprotokoll}
 

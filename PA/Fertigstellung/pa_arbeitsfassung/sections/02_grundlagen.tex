@@ -124,48 +124,21 @@ Einobjekt-Szenario keine weiteren Instanzen existieren, bewirkt die finale
 Phase keine zusätzliche semantische Entflechtung, sondern dient als konsistente
 Trainingsfortführung des isolierten Zielobjekts.
 
-Die beiden maskennutzenden Verlustpfade des SuGaR-Coarse-Trainings verwenden
-unterschiedliche Maskenstufen. Die RGB-Supervision vergleicht das
-Splat-Rendering jeder Trainingskamera pixelweise mit dem aufgenommenen Bild,
-begrenzt auf die Maskenpixel (maskierter L1-Anteil plus maskierter
-DSSIM-Anteil mit einem $11\times11$-Fenster; das lokale Fenster zieht am
-Maskenrand begrenzt Kontext von außen ein). Sie verwendet die unveränderte
-\texttt{default}-Maske, damit die Bildsupervision möglichst die volle
-Objektprojektion abdeckt und Positionen, Opazitäten und Farben der
-Objekt-Gaussians vollständig spezifiziert werden. Eine Farbprojektion auf
-eine Oberfläche findet dabei nicht statt; die Farbübertragung aus den
-Ansichten erfolgt erst in der nachgelagerten UV-Texturphase.
-
-Die Depth-Normal-Consistency (DN) vergleicht dagegen die aus der gerenderten
-Gaussian-Tiefe abgeleiteten Normalen mit den gerenderten Normalen und wird
-bewusst auf der erodierten \texttt{middle}-Stufe ohne Dilatation angewandt.
-Der Grund ist die Silhouettenstabilität: Tiefe und daraus abgeleitete
-Normalen sind direkt an Objektkanten unzuverlässig, und genau dort kann eine
-\texttt{default}-Maske über die Objektsilhouette hinausragen. Ein solcher
-Maskenüberhang würde die Objektnormalen am Silhouettenrand in Richtung der
-Hintergrundtiefe ziehen und dadurch eine ausgestülpte oder abgeflachte
-Oberfläche erzeugen. \texttt{middle} entfernt diese unsichere Randzone von
-rund zwei Pixeln, sodass nur Pixel supervisiert werden, die sicher auf dem
-Objekt liegen.
-
-Diese Zuordnung von \texttt{middle} zur DN-Stufe ist historisch bedingt.
-Der DN-Term wird im projektinternen SuGaR-Fork erst oberhalb des
-Zählerstands 9000 aktiviert; der aktuelle Coarse-Standard beträgt
-\texttt{COARSE\_ITERATIONS=9000}, die aktuelle Matrix verwendet
-ausschließlich die \texttt{original\_gs}-Route ohne Coarse-Training, und die
-SuGaR-Folgeprüfung lief ebenfalls mit Zielzähler 9000
-(vgl. Abschnitt~\ref{sec:versuchsaufbau}). In keinem der ausgewerteten Läufe
-wurde der DN-Term daher tatsächlich ausgeführt — auch nicht im
-\texttt{sugar\_coarse}-Modus. Die DN-Rolle von \texttt{middle} ist damit ein
-historischer Entwicklungsstand ohne aktuell wirksamen Effekt auf die
-Geometrie; aktuell wirksam bleibt \texttt{middle} allein in der
-Coverage-Prüfung und der Kamera- beziehungsweise Eval-Split-Auswahl:
-Ansichten mit leerer \texttt{middle}-Maske werden vom STS-Training
+Die Maskenstufen entfalten ihre Wirkung dabei je Komponente getrennt: STS
+setzt die bereitgestellten Masken für die Objektzuordnung und die
+Objektphasen-Supervision ein; darüber hinaus ist \texttt{middle} aktuell
+allein in der Coverage-Prüfung sowie der Kamera- und Eval-Split-Auswahl
+wirksam — Ansichten mit leerer \texttt{middle}-Maske werden vom STS-Training
 beziehungsweise von der Evaluation ausgeschlossen. Unabhängig davon belegen
-die historischen Zwischenstände in Abbildung~\ref{fig:pa-panel-mesh}, dass die
-\texttt{middle}-Stufe die Objektabgrenzung visuell stabilisiert.
+die historischen Zwischenstände in Abbildung~\ref{fig:pa-panel-mesh}, dass
+die \texttt{middle}-Stufe die Objektabgrenzung visuell stabilisiert. Der
+gezielte Einsatz unterschiedlicher Maskenstufen in den Verlustpfaden der
+SuGaR-Vergleichsroute gehört zum maskenbewussten SuGaR-Fork und wird deshalb
+zusammen mit diesem Verfahren in Abschnitt~\ref{subsec:meshgewinnung}
+beschrieben.
 
 \subsection{Objektselektion und Meshgewinnung}
+\label{subsec:meshgewinnung}
 
 Die Ziel-Gaussians werden über die konfigurierte Objekt-ID selektiert. Bei einem
 Datensatz mit genau einem linearen Objekt ist die Objekt-ID eine
@@ -219,15 +192,49 @@ Optimierer ausschließlich Gradienten für die Gaussians des Zielobjekts
 berechnet und den Hintergrund ignoriert. Die Division durch die Summe aller
 Maskenpixel $\sum_p M(p)$ normiert den Verlust auf den Mittelwert pro
 Objektpixel; die winzige Konstante $\varepsilon = 10^{-7}$ schützt vor einer
-Division durch null bei temporär leeren Masken. Die weitergehende
-Oberflächenangleichung von SuGaR (Depth-Normal-Consistency, bei der Normalen
-aus der gerenderten Tiefe mit den Gaussian-Ausrichtungen abgeglichen werden)
-ist im lokalen Trainingsplan erst für Iterationen oberhalb von 9000
-vorgesehen. Standardläufe mit Zieliteration 9000 optimieren die Geometrie
-daher primär über diesen maskierten photometrischen Farbverlust.
+Division durch null bei temporär leeren Masken.
 
-Die Produktionsroute A überspringt die zusätzliche SuGaR-Coarse-Optimierung,
-das Gaussian-bound Refinement und das UV-Baking. Sie verwendet
+Beide maskennutzenden Verlustpfade des maskenbewussten SuGaR-Coarse-Trainings
+verwenden unterschiedliche Maskenstufen. Die RGB-Supervision nach
+Gl.~\ref{eq:masked-rgb-loss} vergleicht das Splat-Rendering jeder
+Trainingskamera pixelweise mit dem aufgenommenen Bild, begrenzt auf die
+Maskenpixel (maskierter L1-Anteil plus maskierter DSSIM-Anteil mit einem
+$11\times11$-Fenster; das lokale Fenster zieht am Maskenrand begrenzt Kontext
+von außen ein). Sie verwendet die unveränderte \texttt{default}-Maske, damit
+die Bildsupervision möglichst die volle Objektprojektion abdeckt und
+Positionen, Opazitäten und Farben der Objekt-Gaussians vollständig
+spezifiziert werden. Eine Farbprojektion auf eine Oberfläche findet dabei
+nicht statt; die Farbübertragung aus den Ansichten erfolgt erst in der
+nachgelagerten UV-Texturphase des Forks.
+
+Die Depth-Normal-Consistency (DN) vergleicht dagegen die aus der gerenderten
+Gaussian-Tiefe abgeleiteten Normalen mit den gerenderten Normalen und wird
+bewusst auf der erodierten \texttt{middle}-Stufe ohne Dilatation angewandt.
+Der Grund ist die Silhouettenstabilität: Tiefe und daraus abgeleitete Normalen
+sind direkt an Objektkanten unzuverlässig, und genau dort kann eine
+\texttt{default}-Maske über die Objektsilhouette hinausragen. Ein solcher
+Maskenüberhang würde die Objektnormalen am Silhouettenrand in Richtung der
+Hintergrundtiefe ziehen und dadurch eine ausgestülpte oder abgeflachte
+Oberfläche erzeugen. \texttt{middle} entfernt diese unsichere Randzone von
+rund zwei Pixeln, sodass nur Pixel supervisiert werden, die sicher auf dem
+Objekt liegen.
+
+Diese Aufteilung stammt aus der Entwicklung des Forks und ist dort Teil des
+Datenvertrags zwischen Maskenhierarchie und Trainingsplan. Da die
+DN-/SDF-Terme erst oberhalb des Zählerstands 9000 aktiviert werden und alle
+ausgewerteten Läufe — einschließlich sämtlicher \texttt{sugar\_coarse}-Arme
+der Vierfeld-Ablation und der Folgeprüfung — mit Zielzählerstand 9000 oder
+weniger trainiert wurden, trat der DN-Term in keinem ausgewerteten Lauf
+tatsächlich in Wirkung. Die \texttt{middle}-Zuordnung bleibt dennoch
+dokumentiert, weil sie den Fork-Vertrag definiert; Zählermechanik und
+Nachweislage der Läufe sind in Abschnitt~\ref{subsec:sugar-folgepruefung}
+erläutert. Standardläufe mit Zieliteration 9000 optimieren die Geometrie
+daher primär über den maskierten photometrischen Farbverlust.
+
+
+Auf dieser Basis definiert das Projekt eine direkte Meshroute, die ohne
+Coarse-Training auskommt: Sie überspringt die zusätzliche SuGaR-Coarse-
+Optimierung, das Gaussian-bound Refinement und das UV-Baking. Sie verwendet
 Original-STS-Gaussians mit projizierter Diamond-Mesh-Tiefe\footnote{Die
 Diamond-Mesh-Tiefe wird aus der Projektion der SuGaR-``Diamond''-Primitive
 gewonnen: Diese flachen, an den Gaussians ausgerichteten Vierecksflächen
@@ -239,7 +246,12 @@ Vertexprojektion. Die Dichtebereinigung entfernt Cluster mit zu wenigen
 Stützpunkten, die Decimation reduziert die Dreieckszahl auf das Ziel-Vertice-
 Budget, und die optionale Vertexprojektion verschiebt die verbliebenen
 Vertices auf die nächstgelegenen Oberflächenstichproben beziehungsweise deren
-Tiefenpunkte. Die vollständige SuGaR-Coarse-Route bleibt als
+Tiefenpunkte. Diese Konfiguration entspricht genau der Zelle A der
+kontrollierten Vierfeld-Ablation (Abschnitt~\ref{subsec:vierfeld-ablation});
+nach dieser Zelle wird sie im Folgenden durchgängig als \emph{Route A}
+bezeichnet, während die Coarse-Route entsprechend dem Modusnamen des
+Ausführungscodes \texttt{sugar\_coarse} heißt; Route A selbst trägt dort den
+Modusnamen \texttt{original\_gs}. Die vollständige SuGaR-Coarse-Route bleibt als
 wissenschaftlicher Vergleich erhalten. Damit werden zwei Fragen getrennt:
 Wie wird aus einer Gaussian-Wolke ein Mesh gewonnen, und wie verändert eine
 zusätzliche Coarse-Optimierung zuvor die Gaussian-Geometrie? SuGaR ist

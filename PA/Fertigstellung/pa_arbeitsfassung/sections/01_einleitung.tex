@@ -31,8 +31,13 @@ Durchführung und wissenschaftlichen Interpretation der Tests. STS und SuGaR
 sind dabei genutzte, nicht selbst entworfene Verfahren; der eigene Anteil in
 der Segmentierung liegt in der angepassten Maskenlogik: Dilatation und Erosion
 sowie die promptbasierte Auswahl sorgen dafür, dass automatisch genau ein
-segmentiertes Zielobjekt entsteht, statt wie in früheren Ansätzen mit SAM~2
-und CLIP mehrere Objektinstanzen zu erzeugen und extern filtern zu müssen.
+segmentiertes Zielobjekt entsteht. Das offizielle STS-Verfahren geht davon
+verschieden, indem es sämtliche Szenenobjekte automatisch in drei
+Granularitätsstufen erfasst und erst nach der Rekonstruktion eine offene
+Textabfrage ermöglicht; der Objektprompt legt das Ziel hier dagegen bereits
+vor dem Training fest, sodass Mehrfachsegmentierung und Nachabfrage
+entfallen. Die Funktionsweise ist in
+Abschnitt~\ref{sec:grundlagen} beschrieben.
 Der Einsatz von SAM~3.1 verdoppelt zudem die Verarbeitungsgeschwindigkeit für
 Videos mit mittlerer Objektanzahl (16 auf 32 Frames pro Sekunde auf einer
 einzelnen H100-GPU) \parencite{metaSam3}.
