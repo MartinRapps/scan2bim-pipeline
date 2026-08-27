@@ -136,14 +136,14 @@ Ablage & Physische Kopie? & Zweck und Bewertung\\
 \midrule
 \path{data/02_frames/} & Ja & Von SAM erzeugte Arbeitsframes. Sie bilden den
 gemeinsamen Rohbildsatz für SAM und COLMAP und sind funktional notwendig.\\
-\path{data/04_sfm/undistorted/images/} & Ja & Durch
+\path{04_sfm/undistorted/images/} & Ja & Durch
 \texttt{image\_undistorter} neu abgebildete ideale Bilder. Diese Kopie ist im
 aktuellen Domänenkonzept notwendig, weil STS nicht auf den verzerrten Rohpixeln,
 sondern auf der idealen PINHOLE-Szene arbeitet.\\
 \path{data/05_3dgs/images} & Nein, Symlink & STS benötigt den stabilen
 \texttt{source\_path/images}-Vertrag. Der Link verweist auf die ideale Szene
 und erzeugt keinen zweiten Bildbestand.\\
-\path{data/03_masks/_attempts/} & Ja & Prompt-Fallbacks werden getrennt
+\path{03_masks/_attempts/} & Ja & Prompt-Fallbacks werden getrennt
 gespeichert, damit bei OOM, leerer Maske oder ungeeignetem Prompt der beste
 Versuch ausgewählt werden kann. Nach der Auswahl sind diese Dateien für die
 Funktion nicht mehr nötig, aber als Diagnose wertvoll.\\
