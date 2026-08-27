@@ -40,3 +40,6 @@ bin/
 
 # Upload temp dir (streaming)
 .upload_tmp/
+
+# Abgabeordner (grosse Binaerdateien, wird separat ausgeliefert)
+ABGABE/

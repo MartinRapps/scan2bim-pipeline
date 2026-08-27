@@ -66,17 +66,43 @@ ABGABE/
 
 **Optional, wenn Speicherplatz erlaubt:**
 
-5. Ein Arm je weiterer Auflösung aus dem Qualitätsvergleichsbatch
+6. Ein Arm je weiterer Auflösung aus dem Qualitätsvergleichsbatch
    (`qhd/opencv_a`, `low/opencv_a`) für den gepaarten Vergleich innerhalb der
    Auflösungen.
-6. Vierfeld-Ablation-Artefakte (A–D) inklusive Seed-42-Manifeste.
+7. Vierfeld-Ablation-Artefakte (A–D) inklusive Seed-42-Manifeste.
 
 **Nicht mehr abgeben:** Der frühere Smoke-Lauf
 `matrix_smoke_low_pipe_full` existiert nicht mehr im Archivbestand und ist im
 Text auch nicht mehr referenziert.
 
+## Umgesetzter Stand (27.08.2026)
+
+Der Ordner `ABGABE/` ist nach dieser Struktur befüllt:
+
+| Ordner | Inhalt | Prüfsummen |
+|---|---|---|
+| `/` | `ABGABE_Index.md`, `pa.pdf` (= Arbeitsfassung, 60 S.), `Anlage_KI-Nutzung.pdf` + `.tex` | – |
+| `01_Rohdaten/` | `Alurohr_THWS.mp4` (H.264, 1920×1080, 30 FPS) | ✓ |
+| `02_COLMAP_Tests/` | Rohberichte der Voruntersuchung | ✓ |
+| `03_Grafiken/` | `matrix_repeat_2026-08-17/` (inkl. korrekt gelabelter `metric_vs_runtime.pdf`) + `verwendet_verbessert/` | ✓ |
+| `04_Run-Archive/e2e_verifikation_260826/` | Pflichtnachweis aller drei Läufe (Manifeste, Parameter, run.md/log, matrix.log, Metriken, eval_frames, Coverage-Reports) + `e2e_times.csv`/`.md` + Batch-Prüfsummen | ✓ |
+| `04_Run-Archive/autopilot_laeufe/` | `run.md`/`run.log` der archivierten Autopilot-Läufe | ✓ |
+| `04_Run-Archive/golden_run_720p_opencv_a/` | **vollständiger** Arm aus `matrix_qualitaetsvergleich_20260818` (3,1 GB, inkl. live/) | ✓ |
+| `04_Run-Archive/sugar_vergleichsarm_720p/` | **vollständiger** SuGaR-Coarse-Vergleichslauf `opencv_sugar` (3,4 GB) | ✓ |
+| `05_SuGaR-Fork/` | `sugar_fork_diff_48bbfdd_a0fc37b.diff` + `FORK_README.md` (Commit-Kette) | ✓ |
+| `06_Panels/` | `pa_panel_*.png` | ✓ |
+
+Historische Batches (`matrix_full_pipe`, `matrix_rest`,
+`matrix_sugar_followup_12`, `matrix_repeat_20260812`) liegen nicht mehr im
+Live-Archivbestand; ihre Metrik-/Statusnachweise sind über die
+Grafikquellen-CSVs in `03_Grafiken/` und die komprimierten externen Backups
+abgedeckt. Die Vierfeld-Ablation-Meshes (Position 7) liegen ebenfalls im
+komprimierten Band; Parameter und Seed sind in der PA dokumentiert.
+
 ## Offene Pflichten vor Abgabe
 
-- [ ] Prüfsummen je Archivordner ergänzen und hier eintragen
-- [ ] Tatsächliche Ordnerstruktur gegen diese Datei abgleichen
-- [ ] `data/10_runs`-Archive von VM/V-Laufwerk in `04_Run-Archive/` übernehmen
+- [x] Prüfsummen je Archivordner ergänzen (`SHA256SUMS.txt` je Ordner)
+- [x] Tatsächliche Ordnerstruktur gegen diese Datei abgleichen
+- [ ] `pa.pdf` vor Abgabe mit finalen Angaben (Deckblatt, Datum) neu bauen und ersetzen
+- [ ] Auf externes Backup der komprimierten historischen Batches verweisen
+      (Datenträger-Angabe hier ergänzen)

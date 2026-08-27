@@ -10,10 +10,14 @@
 
 | Werkzeug | Version / Anbieter | Einsatz |
 |---|---|---|
-| **opencode** (CLI-Agent) | aktuelle Version, verschiedene LLMs je nach Aufgabe | Code-Erstellung, Refactoring, Pipeline-Debugging, Textüberarbeitung |
+| **opencode** (CLI-Agent) | aktuelle Version, verschiedene LLMs je nach Aufgabe | Code-Erstellung, Refactoring, Pipeline-Debugging, Versuchsplanung, Text- und Grafikarbeit |
 | **VS Code** | aktuelle Version, integrierte KI-Unterstützung | Code-Editierung, Inline-Vorschläge, LaTeX-Bearbeitung |
 
-Die Modellwahl erfolgte je nach Aufgabenkomplexität und Kosten – für einfache Korrekturen schlanke Modelle, für konzeptionelle oder fachliche Fragen leistungsfähigere Modelle. Alle KI-Ausgaben wurden manuell geprüft, verstanden und verantwortet.
+Die Modellwahl innerhalb von **opencode** erfolgte je nach Aufgabenkomplexität und Kosten – für einfache Korrekturen schlanke Modelle, für konzeptionelle oder fachliche Fragen leistungsfähigere Modelle.
+
+**Beispielhafte Modelle:** Hauptsächlich genutzt wurden GPT-5.6 Luna (max), Gemini 3.5 Flash (max), Gemini 3.7 Flash (max), Kimi K3 (max), GLM 5.3 Flash (max) und GPT-5.6 Sol (max).
+
+Alle KI-Ausgaben wurden manuell geprüft, verstanden und verantwortet.
 
 ---
 
@@ -22,9 +26,9 @@ Die Modellwahl erfolgte je nach Aufgabenkomplexität und Kosten – für einfach
 **Worum es ging:** Aufbau und Pflege der Docker-basierten Pipeline (SAM-3.1-Segmentierung, COLMAP, STS, SuGaR-Fork, Centerline-Extraktion), insbesondere die Anpassung der Maskenlogik (Dilatation/Erosion für genau ein Zielobjekt), Fehlerbehandlung in Matrixläufen und die maskenbewusste Erweiterung des SuGaR-Forks.
 
 **Beispielhafte Prompts:**
-- „Die SAM-Masken enthalten mehrere Objekte. Passe die Logik so an, dass per Dilatation/Erosion automatisch genau ein zentrales Objekt übrig bleibt. Zeige nur die geänderte Funktion und erkläre die Parameter."
-- „Der Matrixrunner bricht ab, wenn die TSV-Datei per stdin konsumiert wird. Finde die Ursache und schlage eine stdin-unabhängige Schleife vor."
-- „Im SuGaR-Fork soll der RGB-Loss nur innerhalb der Objektmaske gewertet werden. Implementiere einen maskierten Loss L_RGB^M mit Normierung über die Maskenpixel und Schutz vor Division durch null."
+- „Die SAM-Masken sollen als Hierarchie vorliegen: `default` unverändert, `middle` einmal mit einem 5×5-Fenster erodiert, `small` zweifach erodiert, ohne zusätzliche Dilatation. Stelle zusammen mit der promptbasierten Auswahl sicher, dass automatisch genau ein Zielobjekt übrig bleibt. Zeige nur die geänderte Funktion und erkläre die Parameter."
+- „Der Matrixrunner führt von meiner TSV-Konfiguration nur die erste Variante aus und beendet sich danach. Finde die Ursache und schlage eine Korrektur vor, die alle geplanten Läufe nacheinander ausführt."
+- „Im SuGaR-Fork soll der Verlust nur innerhalb der Objektmaske gewertet werden. Implementiere einen maskierten Loss mit Normierung über die Maskenpixel und Schutz vor Division durch null."
 
 **Prüfung:** Jeder Vorschlag wurde im lokalen Docker-Setup ausgeführt und gegen Manifeste/Logs geprüft; unverstandene Änderungen wurden nicht übernommen.
 
@@ -35,8 +39,7 @@ Die Modellwahl erfolgte je nach Aufgabenkomplexität und Kosten – für einfach
 **Worum es ging:** Struktur der Arbeit, Versuchsplanung (Matrixdesign Kameramodell × FPS × Auflösung), Bewertung von Varianten (Route A vs. SuGaR-Coarse, Tiefenrouten), Interpretation von Metriken.
 
 **Beispielhafte Prompts:**
-- „Ich habe PinHole und OpenCV getestet, beide liefern ähnliche Metriken. Welche Argumente sprechen fachlich für welchen Standard, und wie formuliere ich das ehrlich ohne Überinterpretation?"
-- „Soll ich die Reproduzierbarkeit als eigenen Anhang oder im Methodenteil beschreiben? Nenne Vor- und Nachteile beider Varianten für diese Arbeit."
+- „Ich habe die Kameramodelle `PINHOLE` und `OPENCV` getestet, beide liefern ähnliche Metriken. Erkläre fachlich, welche Argumente für welchen Standard sprechen und wo die Grenzen dieser Aussage ohne unabhängige Kalibrierung liegen."
 - „Hilf mir, die Matrixläufe so zu planen, dass ich Kameramodell, FPS und Auflösung getrennt auswerten kann, ohne die Meshroute zu vermischen."
 
 **Prüfung:** Vorschläge wurden mit dem Betreuer und dem Zielrahmen abgeglichen; fachliche Entscheidungen (z. B. Produktionsstandard) blieben eigene Arbeit.
@@ -48,9 +51,9 @@ Die Modellwahl erfolgte je nach Aufgabenkomplexität und Kosten – für einfach
 **Worum es ging:** Gliederung, Formulierung, Kürzung und LaTeX-Feinschliff (Tabellen, Abbildungen, Literatur, Overfull-Boxen).
 
 **Beispielhafte Prompts:**
-- „Dieser Absatz über die Domänentrennung ist zu lang. Kürze ihn um 30 %, behalte aber COLMAP, Maskenwarp und ideale Domäne als Kernbegriffe."
+- „Dieser Absatz über die Domänentrennung ist zu lang. Gib mir ein Beispiel, wie ich ihn straffen kann, ohne die Kernbegriffe COLMAP, Maskenwarp und ideale Domäne zu verlieren."
 - „Formuliere diesen Satz wissenschaftlicher und ohne Füllwörter: ‚Das flexiblere Modell ist nicht grundsätzlich genauer, weil …' – gib zwei Alternativen."
-- „Die Tabelle tab:bildablagen ist zu breit. Schlage eine kompaktere Spaltenaufteilung vor, ohne Inhalt zu verlieren."
+- „Die Tabelle `tab:bildablagen` ist zu breit. Formatiere die Tabelle neu, ohne Inhalt zu verlieren."
 
 **Prüfung:** Alle Textvorschläge wurden satzweise gelesen, fachlich geprüft und in eigenen Worten überarbeitet; Zitate und Zahlen wurden gegen Manifeste und Tabellen verifiziert.
 
@@ -69,10 +72,12 @@ Die Modellwahl erfolgte je nach Aufgabenkomplexität und Kosten – für einfach
 
 ## 5. Grafiken und Auswertung
 
-**Worum es ging:** Erstellung der Panels (z. B. pa_panel_sugar_iteration), Metrikplots (STS vs. SuGaR, Delta, Runtime) und deren Beschriftung.
+**Worum es ging:** Erstellung der Panels (z. B. `pa_panel_sugar_iteration`), Metrikplots (STS vs. SuGaR, Delta, Laufzeit) und deren konsistente Beschriftung.
 
-**Beispielhafter Prompt:**
-- „Das Panel hat 9200er-Labels aus Dateinamen, soll aber konsistent 9001 zeigen. Schreibe ein Pillow-Skript, das die Kacheln neu zusammensetzt und nur 9001 ausgibt."
+**Beispielhafte Prompts:**
+- „Das Panel hat 9200er-Labels aus den historischen Dateinamen, soll aber konsistent 9001 zeigen. Schreibe ein Skript, das die Kacheln neu zusammensetzt und nur 9001 ausgibt."
+- „Lies aus den archivierten `sts_masked.json`-Dateien die objektmaskierten Werte PSNR, SSIM und LPIPS mit einem neuen Skript aus und erzeuge daraus eine übersichtliche Grafik je Kameramodell."
+- „Prüfe alle Metrikgrafiken auf konsistente Farb- und Symbolkodierung und korrigiere sie über alle Grafiken hinweg: `OPENCV` immer orange, `SIMPLE_RADIAL` immer blau, `PINHOLE` immer grau; je Auflösung ein eigener Formtyp (720p, QHD, low). Die Kodierung muss in jeder Grafik derselben Logik folgen."
 
 **Prüfung:** Generierte Grafiken wurden visuell und gegen die Quelldaten (JSON/CSVs) geprüft.
 
