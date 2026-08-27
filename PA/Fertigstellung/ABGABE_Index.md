@@ -92,13 +92,13 @@ Metriken) entspricht genau diesem Commit-Stand; die Replays sind über die im
 Repository enthaltenen Skripte reproduzierbar. Falls das Repository zum
 Abgabezeitpunkt privat ist, ist hier den Zugang für die Prüfer zu dokumentieren.
 
-## Umgesetzter Stand (27.08.2026)
+## Umgesetzter Stand
 
 Der Ordner `ABGABE/` ist nach dieser Struktur befüllt:
 
 | Ordner | Inhalt | Prüfsummen |
 |---|---|---|
-| `/` | `ABGABE_Index.md`, `pa.pdf` (Arbeitsfassung, 64 S. inkl. Erklärung + PlagAware-Einwilligung), `pa_anonym.pdf` (ohne Name/Matrikel — Fallback, falls die PlagAware-Einwilligung nicht erteilt wird; Fußnote 13 PABA), `Anlage_KI-Nutzung.pdf` + `.tex` | – |
+| `/` | `ABGABE_Index.md`, `pa.pdf` (Arbeitsfassung, 64 S. inkl. Erklärung + PlagAware-Einwilligung), `pa_anonym.pdf` (ohne Name/Matrikel — Fallback, falls die PlagAware-Einwilligung nicht erteilt wird; Fußnote 13 PABA), `Anlage_KI-Nutzung.pdf` + `.tex`, `Korrekturbericht_ProfPersona.md` + `Korrektur_Persona_und_Plan.md` (Prüfer-Simulation, siehe KI-Anlage) | – |
 | `01_Rohdaten/` | `Alurohr_THWS.mp4` (H.264, 1920×1080, 30 FPS) | ✓ |
 | `02_COLMAP_Tests/` | Rohberichte der Voruntersuchung | ✓ |
 | `03_Grafiken/` | `matrix_repeat_2026-08-17/` (inkl. korrekt gelabelter `metric_vs_runtime.pdf`) + `verwendet_verbessert/` | ✓ |
