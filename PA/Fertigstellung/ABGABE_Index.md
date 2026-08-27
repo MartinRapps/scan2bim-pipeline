@@ -99,7 +99,7 @@ Der Ordner `ABGABE/` ist nach dieser Struktur befüllt:
 
 | Ordner | Inhalt | Prüfsummen |
 |---|---|---|
-| `/` | `ABGABE_Index.md`, `pa.pdf` (= Arbeitsfassung, 62 S.), `Anlage_KI-Nutzung.pdf` + `.tex` | – |
+| `/` | `ABGABE_Index.md`, `pa.pdf` (= Arbeitsfassung, 63 S., Stand Fixliste), `Anlage_KI-Nutzung.pdf` + `.tex` | – |
 | `01_Rohdaten/` | `Alurohr_THWS.mp4` (H.264, 1920×1080, 30 FPS) | ✓ |
 | `02_COLMAP_Tests/` | Rohberichte der Voruntersuchung | ✓ |
 | `03_Grafiken/` | `matrix_repeat_2026-08-17/` (inkl. korrekt gelabelter `metric_vs_runtime.pdf`) + `verwendet_verbessert/` | ✓ |

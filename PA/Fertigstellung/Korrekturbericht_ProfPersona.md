@@ -839,3 +839,33 @@ ist aus meiner Sicht nichts, was die Note im Kern belasten würde.
 *Während dieser Prüfung bereits behoben:* JSON-Shorthand-Fehler (N24),
 STS-Overview-Untertitel (N30), Eval-Split-Erinnerungssatz, DN-Präzisierung
 Teilbild 4, Nachlauf-Benennung.
+
+---
+
+## Nachtrag — Umsetzung der Fixliste (27.08.2026)
+
+Die Vor-Abgabe-Fixliste (§5.6) wurde vollständig umgesetzt; Gegenprobe
+bestanden (alle Regression-Greps = 0, `??` = 0, Overfull auf Baseline 4):
+
+- 🔴 N8/N14: Deckblatt final (Name, Matrikel, Prüfer, fixes Datum 08.09.2026),
+  Kurzfassungs-Doppelüberschrift aufgelöst (N9) — pa.pdf und KI-Anlage neu
+  gebaut.
+- 🟠 N15: 1.2 + Tabelle-3-Zeile auf Erosionshierarchie umgestellt
+  (Regression: „Dilatation und Erosion" = 0 Treffer).
+- 🟠 N10: Zählung verifiziert und korrigiert — **neun erfolgreiche**
+  archivierte Autopilot-Volläufe (14 Ordner im Paket, davon 5 ohne
+  SUCCESS-Abschluss: 2 FAILED, 1 manuell, 2 ohne Abschlussmarker). Die im
+  Plan angenommene Zahl „14" hätte nicht der Datenlage entsprochen — die
+  Verifikation vor dem Commit hat das abgefangen.
+- 🟠 N28: „Anhang 9" → „Tabelle 9 im Anhang A" (6.2, 7.3).
+- 🟠 N29: 87/380 → 85/372 mit Golden-Run-ID und CSV-Pfaden.
+- 🟠 N31: followup_12 vollständig ins Paket (484 MB, 12 Ordner inkl. interner
+  Refined-Mesh-Extraktion) + README mit der präzisen Einordnung (Coarse-
+  Bewertung laut PA; Refined nicht gerendert/evaluiert).
+- 🟠 N17: „die PA" → 0 Treffer; Flowchart-Knoten neutral formuliert.
+- 🟡/⚪: N16 Aufbau-Absatz, N26 Panel-Kontext, N27 Nachweislage, N32
+  GSD-Relativierung, N33 Redundanz, N34 „durchgängig", N35 Replay im Fazit,
+  N36/N37 Paketpfad-Zuordnung, N18/N20/N22/N23 Umbrüche, N1 Grafikordner
+  gesäubert, N12 Seitenzahl 63.
+
+Kapitelnoten unverändert; die gemeldeten 🟠-Punkte sind damit alle geschlossen.
