@@ -35,12 +35,12 @@
 \usepackage[backend=biber,style=authoryear,sorting=nyt]{biblatex}
 
 % Vor Abgabe mit den offiziellen Angaben ersetzen.
-\newcommand{\thwsAuthor}{[Martin Rapps]}
-\newcommand{\thwsMatriculation}{[6323014]}
-\newcommand{\thwsDegree}{[B. Eng. Geovisualisierung]}
-\newcommand{\thwsFirstExaminer}{[Dr. Markus Müller]}
-\newcommand{\thwsSecondExaminer}{[Andreas Rupp]}
-\newcommand{\thwsSubmissionDate}{[08.09.2026]}
+\newcommand{\thwsAuthor}{Martin Rapps}
+\newcommand{\thwsMatriculation}{6323014}
+\newcommand{\thwsDegree}{B. Eng. Geovisualisierung}
+\newcommand{\thwsFirstExaminer}{Dr. Markus Müller}
+\newcommand{\thwsSecondExaminer}{Andreas Rupp}
+\newcommand{\thwsSubmissionDate}{08.09.2026}
 
 \addbibresource{references.bib}
 % URLs in the bibliography are allowed to use a little extra stretch locally;
@@ -83,7 +83,7 @@
 		Abgabetermin: & \thwsSubmissionDate
 	\end{tabular}
 	\vfill
-	Würzburg, den \today
+	Würzburg, den \thwsSubmissionDate
 \end{center}
 \clearpage
 
@@ -106,7 +106,6 @@ geprüft, vollständig verstanden und können selbstständig vertreten werden.
 \clearpage
 
 \section*{Kurzfassung}
-\begin{abstract}
 Diese Projektarbeit untersucht die Machbarkeit einer Docker-basierten Pipeline zur
 objektbezogenen Rekonstruktion eines linearen Testobjekts. Der Workflow verbindet
 SAM~3.1 für die temporale 2D-Segmentierung, COLMAP für die Kamerageometrie,
@@ -123,7 +122,6 @@ Funktionsfähigkeit, der sauberen Trennung von Bilddomänen und der reproduzierb
 Auswertung. Die Arbeit ist ein Machbarkeitsnachweis für die spätere
 Bachelorarbeit; ein geodätischer Genauigkeitsnachweis für reale Rohr- oder
 Kabeltrassen ist nicht Gegenstand.
-\end{abstract}
 \clearpage
 
 \tableofcontents
