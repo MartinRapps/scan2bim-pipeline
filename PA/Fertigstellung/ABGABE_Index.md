@@ -99,7 +99,7 @@ Der Ordner `ABGABE/` ist nach dieser Struktur befüllt:
 
 | Ordner | Inhalt | Prüfsummen |
 |---|---|---|
-| `/` | `ABGABE_Index.md`, `pa.pdf` (= Arbeitsfassung, 63 S., Stand Fixliste), `Anlage_KI-Nutzung.pdf` + `.tex` | – |
+| `/` | `ABGABE_Index.md`, `pa.pdf` (Arbeitsfassung, 64 S. inkl. Erklärung + PlagAware-Einwilligung), `pa_anonym.pdf` (ohne Name/Matrikel — Fallback, falls die PlagAware-Einwilligung nicht erteilt wird; Fußnote 13 PABA), `Anlage_KI-Nutzung.pdf` + `.tex` | – |
 | `01_Rohdaten/` | `Alurohr_THWS.mp4` (H.264, 1920×1080, 30 FPS) | ✓ |
 | `02_COLMAP_Tests/` | Rohberichte der Voruntersuchung | ✓ |
 | `03_Grafiken/` | `matrix_repeat_2026-08-17/` (inkl. korrekt gelabelter `metric_vs_runtime.pdf`) + `verwendet_verbessert/` | ✓ |
@@ -117,6 +117,14 @@ Live-Archivbestand; ihre Metrik-/Statusnachweise sind über die
 Grafikquellen-CSVs in `03_Grafiken/` und die komprimierten externen Backups
 abgedeckt. Die Vierfeld-Ablation-Meshes (Position 7) liegen ebenfalls im
 komprimierten Band; Parameter und Seed sind in der PA dokumentiert.
+
+## Abgabe-Hinweis (PABA 3.7)
+
+Die Arbeit ist **zweifach in digitaler Form** an Betreuer sowie Erst- und
+Zweitprüfer abzugeben (i. d. R. Cloud-Download). Die PlagAware-Einwilligung
+liegt unterschriftsbereit als Seite III in `pa.pdf` bei; damit ist eine
+anonymisierte Fassung laut Fußnote 13 nicht erforderlich — `pa_anonym.pdf`
+liegt dennoch als Fallback bereit.
 
 ## Offene Pflichten vor Abgabe
 
