@@ -130,6 +130,6 @@ liegt dennoch als Fallback bereit.
 
 - [x] Prüfsummen je Archivordner ergänzen (`SHA256SUMS.txt` je Ordner)
 - [x] Tatsächliche Ordnerstruktur gegen diese Datei abgleichen
-- [ ] `pa.pdf` vor Abgabe mit finalen Angaben (Deckblatt, Datum) neu bauen und ersetzen
+- [x] `pa.pdf` mit finalen Angaben (Deckblatt, fixes Datum) neu gebaut und ersetzt
 - [ ] Auf externes Backup der komprimierten historischen Batches verweisen
       (Datenträger-Angabe hier ergänzen)
