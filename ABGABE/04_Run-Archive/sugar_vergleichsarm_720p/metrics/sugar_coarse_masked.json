@@ -1,0 +1,736 @@
+{
+  "evaluation_scope": "object_masked_only",
+  "mask_level": "default",
+  "evaluation_frame_count": 30,
+  "evaluation_frames": [
+    "00000.jpg",
+    "00008.jpg",
+    "00016.jpg",
+    "00024.jpg",
+    "00032.jpg",
+    "00040.jpg",
+    "00048.jpg",
+    "00056.jpg",
+    "00064.jpg",
+    "00072.jpg",
+    "00080.jpg",
+    "00088.jpg",
+    "00096.jpg",
+    "00104.jpg",
+    "00112.jpg",
+    "00120.jpg",
+    "00128.jpg",
+    "00136.jpg",
+    "00144.jpg",
+    "00152.jpg",
+    "00160.jpg",
+    "00168.jpg",
+    "00176.jpg",
+    "00184.jpg",
+    "00192.jpg",
+    "00200.jpg",
+    "00208.jpg",
+    "00216.jpg",
+    "00224.jpg",
+    "00232.jpg"
+  ],
+  "psnr_masked": 20.966690355596832,
+  "ssim_masked": 0.7721241772174835,
+  "lpips_masked": 0.15418649030228457,
+  "valid_pixel_count_total": 1995858,
+  "lpips_padding": 16,
+  "lpips_error": null,
+  "duration_seconds": 5.7614236837252975,
+  "per_frame": [
+    {
+      "frame": "00000.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00000.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00000.png",
+      "psnr_masked": 20.33265912125032,
+      "mse_masked": 0.009262625128030777,
+      "ssim_masked": 0.7683727145195007,
+      "lpips_masked": 0.2012127786874771,
+      "valid_pixel_count": 55584,
+      "mask_area_fraction": 0.060255160833278226,
+      "mask_bbox": [
+        0,
+        249,
+        983,
+        352
+      ],
+      "crop_bbox": [
+        0,
+        233,
+        999,
+        368
+      ]
+    },
+    {
+      "frame": "00008.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00001.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00001.png",
+      "psnr_masked": 19.815628591076475,
+      "mse_masked": 0.010433671064674854,
+      "ssim_masked": 0.7592755556106567,
+      "lpips_masked": 0.21346302330493927,
+      "valid_pixel_count": 59528,
+      "mask_area_fraction": 0.06453060618313519,
+      "mask_bbox": [
+        0,
+        306,
+        1115,
+        377
+      ],
+      "crop_bbox": [
+        0,
+        290,
+        1131,
+        393
+      ]
+    },
+    {
+      "frame": "00016.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00002.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00002.png",
+      "psnr_masked": 19.313980582404216,
+      "mse_masked": 0.011711214669048786,
+      "ssim_masked": 0.7512601613998413,
+      "lpips_masked": 0.1613636165857315,
+      "valid_pixel_count": 63028,
+      "mask_area_fraction": 0.06832473871977296,
+      "mask_bbox": [
+        0,
+        305,
+        1283,
+        393
+      ],
+      "crop_bbox": [
+        0,
+        289,
+        1283,
+        409
+      ]
+    },
+    {
+      "frame": "00024.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00003.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00003.png",
+      "psnr_masked": 18.32644141023554,
+      "mse_masked": 0.014701304025948048,
+      "ssim_masked": 0.7501534819602966,
+      "lpips_masked": 0.19939005374908447,
+      "valid_pixel_count": 60435,
+      "mask_area_fraction": 0.06551382852905818,
+      "mask_bbox": [
+        0,
+        334,
+        1283,
+        416
+      ],
+      "crop_bbox": [
+        0,
+        318,
+        1283,
+        432
+      ]
+    },
+    {
+      "frame": "00032.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00004.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00004.png",
+      "psnr_masked": 17.364661839949132,
+      "mse_masked": 0.018345680087804794,
+      "ssim_masked": 0.7395924925804138,
+      "lpips_masked": 0.14946363866329193,
+      "valid_pixel_count": 59039,
+      "mask_area_fraction": 0.06400051166587352,
+      "mask_bbox": [
+        0,
+        334,
+        1283,
+        466
+      ],
+      "crop_bbox": [
+        0,
+        318,
+        1283,
+        482
+      ]
+    },
+    {
+      "frame": "00040.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00005.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00005.png",
+      "psnr_masked": 20.04393162314702,
+      "mse_masked": 0.009899353608489037,
+      "ssim_masked": 0.7171247601509094,
+      "lpips_masked": 0.05071337893605232,
+      "valid_pixel_count": 61550,
+      "mask_area_fraction": 0.06672253075144421,
+      "mask_bbox": [
+        0,
+        0,
+        1283,
+        487
+      ],
+      "crop_bbox": [
+        0,
+        0,
+        1283,
+        503
+      ]
+    },
+    {
+      "frame": "00048.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00006.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00006.png",
+      "psnr_masked": 19.147551885207502,
+      "mse_masked": 0.012168717570602894,
+      "ssim_masked": 0.7013902068138123,
+      "lpips_masked": 0.05715285986661911,
+      "valid_pixel_count": 52366,
+      "mask_area_fraction": 0.0567667269753067,
+      "mask_bbox": [
+        472,
+        0,
+        1283,
+        570
+      ],
+      "crop_bbox": [
+        456,
+        0,
+        1283,
+        586
+      ]
+    },
+    {
+      "frame": "00056.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00007.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00007.png",
+      "psnr_masked": 22.989101113920487,
+      "mse_masked": 0.00502446573227644,
+      "ssim_masked": 0.7805996537208557,
+      "lpips_masked": 0.09730760753154755,
+      "valid_pixel_count": 38552,
+      "mask_area_fraction": 0.04179182787213123,
+      "mask_bbox": [
+        509,
+        0,
+        666,
+        719
+      ],
+      "crop_bbox": [
+        493,
+        0,
+        682,
+        719
+      ]
+    },
+    {
+      "frame": "00064.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00008.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00008.png",
+      "psnr_masked": 22.287651984435144,
+      "mse_masked": 0.005905202589929104,
+      "ssim_masked": 0.7658177614212036,
+      "lpips_masked": 0.18231479823589325,
+      "valid_pixel_count": 32930,
+      "mask_area_fraction": 0.03569736698042336,
+      "mask_bbox": [
+        471,
+        161,
+        547,
+        719
+      ],
+      "crop_bbox": [
+        455,
+        145,
+        563,
+        719
+      ]
+    },
+    {
+      "frame": "00072.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00009.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00009.png",
+      "psnr_masked": 19.60005569489163,
+      "mse_masked": 0.010964641347527504,
+      "ssim_masked": 0.7095271348953247,
+      "lpips_masked": 0.18107394874095917,
+      "valid_pixel_count": 10258,
+      "mask_area_fraction": 0.011120060445951497,
+      "mask_bbox": [
+        478,
+        536,
+        546,
+        719
+      ],
+      "crop_bbox": [
+        462,
+        520,
+        562,
+        719
+      ]
+    },
+    {
+      "frame": "00080.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00010.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00010.png",
+      "psnr_masked": 14.479446412788144,
+      "mse_masked": 0.035649657249450684,
+      "ssim_masked": 0.6850221753120422,
+      "lpips_masked": 0.07806321978569031,
+      "valid_pixel_count": 61779,
+      "mask_area_fraction": 0.06697077542312709,
+      "mask_bbox": [
+        422,
+        0,
+        796,
+        719
+      ],
+      "crop_bbox": [
+        406,
+        0,
+        812,
+        719
+      ]
+    },
+    {
+      "frame": "00088.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00011.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00011.png",
+      "psnr_masked": 26.11828885638264,
+      "mse_masked": 0.002444393467158079,
+      "ssim_masked": 0.8540399670600891,
+      "lpips_masked": 0.137726292014122,
+      "valid_pixel_count": 65345,
+      "mask_area_fraction": 0.07083645445902716,
+      "mask_bbox": [
+        633,
+        0,
+        810,
+        719
+      ],
+      "crop_bbox": [
+        617,
+        0,
+        826,
+        719
+      ]
+    },
+    {
+      "frame": "00096.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00012.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00012.png",
+      "psnr_masked": 20.645528700465512,
+      "mse_masked": 0.00861880648881197,
+      "ssim_masked": 0.8090097904205322,
+      "lpips_masked": 0.057745009660720825,
+      "valid_pixel_count": 83233,
+      "mask_area_fraction": 0.090227723834849,
+      "mask_bbox": [
+        601,
+        0,
+        1283,
+        719
+      ],
+      "crop_bbox": [
+        585,
+        0,
+        1283,
+        719
+      ]
+    },
+    {
+      "frame": "00104.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00013.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00013.png",
+      "psnr_masked": 18.593357879402593,
+      "mse_masked": 0.013824970461428165,
+      "ssim_masked": 0.7560628652572632,
+      "lpips_masked": 0.07074560225009918,
+      "valid_pixel_count": 58638,
+      "mask_area_fraction": 0.06356581248096159,
+      "mask_bbox": [
+        538,
+        0,
+        1283,
+        492
+      ],
+      "crop_bbox": [
+        522,
+        0,
+        1283,
+        508
+      ]
+    },
+    {
+      "frame": "00112.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00014.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00014.png",
+      "psnr_masked": 20.932105005439922,
+      "mse_masked": 0.008068438619375229,
+      "ssim_masked": 0.7018308639526367,
+      "lpips_masked": 0.19292262196540833,
+      "valid_pixel_count": 72794,
+      "mask_area_fraction": 0.07891145253485994,
+      "mask_bbox": [
+        113,
+        504,
+        1283,
+        600
+      ],
+      "crop_bbox": [
+        97,
+        488,
+        1283,
+        616
+      ]
+    },
+    {
+      "frame": "00120.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00015.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00015.png",
+      "psnr_masked": 20.293012679324942,
+      "mse_masked": 0.00934757012873888,
+      "ssim_masked": 0.7284806370735168,
+      "lpips_masked": 0.25985777378082275,
+      "valid_pixel_count": 74185,
+      "mask_area_fraction": 0.08041934920870655,
+      "mask_bbox": [
+        0,
+        402,
+        1283,
+        464
+      ],
+      "crop_bbox": [
+        0,
+        386,
+        1283,
+        480
+      ]
+    },
+    {
+      "frame": "00128.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00016.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00016.png",
+      "psnr_masked": 20.813686673272013,
+      "mse_masked": 0.008291466161608696,
+      "ssim_masked": 0.7577570676803589,
+      "lpips_masked": 0.24781882762908936,
+      "valid_pixel_count": 74672,
+      "mask_area_fraction": 0.08094727565023302,
+      "mask_bbox": [
+        0,
+        376,
+        1283,
+        453
+      ],
+      "crop_bbox": [
+        0,
+        360,
+        1283,
+        469
+      ]
+    },
+    {
+      "frame": "00136.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00017.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00017.png",
+      "psnr_masked": 20.841952568488242,
+      "mse_masked": 0.008237676694989204,
+      "ssim_masked": 0.7841680645942688,
+      "lpips_masked": 0.24885302782058716,
+      "valid_pixel_count": 82613,
+      "mask_area_fraction": 0.08955562035693031,
+      "mask_bbox": [
+        0,
+        395,
+        1283,
+        464
+      ],
+      "crop_bbox": [
+        0,
+        379,
+        1283,
+        480
+      ]
+    },
+    {
+      "frame": "00144.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00018.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00018.png",
+      "psnr_masked": 23.120214300501377,
+      "mse_masked": 0.004875044338405132,
+      "ssim_masked": 0.8033394813537598,
+      "lpips_masked": 0.22486478090286255,
+      "valid_pixel_count": 87188,
+      "mask_area_fraction": 0.09451509360124968,
+      "mask_bbox": [
+        0,
+        412,
+        1124,
+        522
+      ],
+      "crop_bbox": [
+        0,
+        396,
+        1140,
+        538
+      ]
+    },
+    {
+      "frame": "00152.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00019.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00019.png",
+      "psnr_masked": 23.103988491866918,
+      "mse_masked": 0.004893292207270861,
+      "ssim_masked": 0.8033539652824402,
+      "lpips_masked": 0.11605125665664673,
+      "valid_pixel_count": 99106,
+      "mask_area_fraction": 0.10743465690743509,
+      "mask_bbox": [
+        0,
+        292,
+        1283,
+        514
+      ],
+      "crop_bbox": [
+        0,
+        276,
+        1283,
+        530
+      ]
+    },
+    {
+      "frame": "00160.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00020.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00020.png",
+      "psnr_masked": 18.86529595097788,
+      "mse_masked": 0.012985850684344769,
+      "ssim_masked": 0.7850696444511414,
+      "lpips_masked": 0.09599961340427399,
+      "valid_pixel_count": 92368,
+      "mask_area_fraction": 0.10013040975547358,
+      "mask_bbox": [
+        0,
+        301,
+        1283,
+        535
+      ],
+      "crop_bbox": [
+        0,
+        285,
+        1283,
+        551
+      ]
+    },
+    {
+      "frame": "00168.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00021.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00021.png",
+      "psnr_masked": 19.860681564011085,
+      "mse_masked": 0.010325993411242962,
+      "ssim_masked": 0.8100423812866211,
+      "lpips_masked": 0.0734538733959198,
+      "valid_pixel_count": 78239,
+      "mask_area_fraction": 0.0848140387240007,
+      "mask_bbox": [
+        0,
+        259,
+        1283,
+        491
+      ],
+      "crop_bbox": [
+        0,
+        243,
+        1283,
+        507
+      ]
+    },
+    {
+      "frame": "00176.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00022.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00022.png",
+      "psnr_masked": 19.688499307875095,
+      "mse_masked": 0.01074360590428114,
+      "ssim_masked": 0.7871911525726318,
+      "lpips_masked": 0.0901128426194191,
+      "valid_pixel_count": 83012,
+      "mask_area_fraction": 0.08998815146610702,
+      "mask_bbox": [
+        0,
+        256,
+        1283,
+        474
+      ],
+      "crop_bbox": [
+        0,
+        240,
+        1283,
+        490
+      ]
+    },
+    {
+      "frame": "00184.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00023.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00023.png",
+      "psnr_masked": 19.493241314474,
+      "mse_masked": 0.011237659491598606,
+      "ssim_masked": 0.7482249736785889,
+      "lpips_masked": 0.11138951778411865,
+      "valid_pixel_count": 66489,
+      "mask_area_fraction": 0.07207659377957391,
+      "mask_bbox": [
+        148,
+        285,
+        1283,
+        473
+      ],
+      "crop_bbox": [
+        132,
+        269,
+        1283,
+        489
+      ]
+    },
+    {
+      "frame": "00192.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00024.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00024.png",
+      "psnr_masked": 18.713993297623666,
+      "mse_masked": 0.013446234166622162,
+      "ssim_masked": 0.7419421672821045,
+      "lpips_masked": 0.21382753551006317,
+      "valid_pixel_count": 43467,
+      "mask_area_fraction": 0.04711987399143827,
+      "mask_bbox": [
+        465,
+        546,
+        1283,
+        632
+      ],
+      "crop_bbox": [
+        449,
+        530,
+        1283,
+        648
+      ]
+    },
+    {
+      "frame": "00200.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00025.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00025.png",
+      "psnr_masked": 22.54241354918038,
+      "mse_masked": 0.005568761844187975,
+      "ssim_masked": 0.8076883554458618,
+      "lpips_masked": 0.07668480277061462,
+      "valid_pixel_count": 58978,
+      "mask_area_fraction": 0.06393438535594925,
+      "mask_bbox": [
+        450,
+        0,
+        809,
+        719
+      ],
+      "crop_bbox": [
+        434,
+        0,
+        825,
+        719
+      ]
+    },
+    {
+      "frame": "00208.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00026.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00026.png",
+      "psnr_masked": 27.689048804870563,
+      "mse_masked": 0.0017025313572958112,
+      "ssim_masked": 0.8684905767440796,
+      "lpips_masked": 0.1789456605911255,
+      "valid_pixel_count": 78299,
+      "mask_area_fraction": 0.08487908099605736,
+      "mask_bbox": [
+        551,
+        0,
+        697,
+        719
+      ],
+      "crop_bbox": [
+        535,
+        0,
+        713,
+        719
+      ]
+    },
+    {
+      "frame": "00216.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00027.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00027.png",
+      "psnr_masked": 24.514446040077992,
+      "mse_masked": 0.0035363512579351664,
+      "ssim_masked": 0.8461104035377502,
+      "lpips_masked": 0.1946234107017517,
+      "valid_pixel_count": 65925,
+      "mask_area_fraction": 0.07146519642224142,
+      "mask_bbox": [
+        562,
+        0,
+        678,
+        719
+      ],
+      "crop_bbox": [
+        546,
+        0,
+        694,
+        719
+      ]
+    },
+    {
+      "frame": "00224.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00028.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00028.png",
+      "psnr_masked": 25.041189935733847,
+      "mse_masked": 0.003132427344098687,
+      "ssim_masked": 0.8429443836212158,
+      "lpips_masked": 0.2183874249458313,
+      "valid_pixel_count": 86910,
+      "mask_area_fraction": 0.09421373107405388,
+      "mask_bbox": [
+        558,
+        0,
+        709,
+        719
+      ],
+      "crop_bbox": [
+        542,
+        0,
+        725,
+        719
+      ]
+    },
+    {
+      "frame": "00232.jpg",
+      "render": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/renders/00029.png",
+      "ground_truth": "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/splats/sugar_coarse/gt/00029.png",
+      "psnr_masked": 24.428655488630497,
+      "mse_masked": 0.003606902901083231,
+      "ssim_masked": 0.7998424768447876,
+      "lpips_masked": 0.24406591057777405,
+      "valid_pixel_count": 89348,
+      "mask_area_fraction": 0.09685661539528899,
+      "mask_bbox": [
+        694,
+        0,
+        853,
+        719
+      ],
+      "crop_bbox": [
+        678,
+        0,
+        869,
+        719
+      ]
+    }
+  ]
+}

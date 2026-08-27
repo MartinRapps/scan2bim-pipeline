@@ -1,0 +1,33 @@
+{
+  "frames_dir": "/data/02_frames",
+  "masks_dir": "/data/03_masks",
+  "mask_name": "middle",
+  "requested_indices": [
+    0,
+    80,
+    160,
+    239
+  ],
+  "exported_file_count": 12,
+  "empty_mask_count": 0,
+  "resolutions": [
+    {
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "files": [
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/grundlagen/frame_00000_middle_overlay.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/grundlagen/frame_00000_middle_cutout.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/panels/frame_00000_middle_panel.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/grundlagen/frame_00080_middle_overlay.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/grundlagen/frame_00080_middle_cutout.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/panels/frame_00080_middle_panel.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/grundlagen/frame_00160_middle_overlay.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/grundlagen/frame_00160_middle_cutout.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/panels/frame_00160_middle_panel.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/grundlagen/frame_00239_middle_overlay.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/grundlagen/frame_00239_middle_cutout.png",
+    "/data/10_runs/matrix_qualitaetsvergleich_20260818/5fps/720p/opencv_sugar/masks/review_raw/panels/frame_00239_middle_panel.png"
+  ]
+}

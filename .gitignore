@@ -41,5 +41,8 @@ bin/
 # Upload temp dir (streaming)
 .upload_tmp/
 
-# Abgabeordner (grosse Binaerdateien, wird separat ausgeliefert)
-ABGABE/
+# ABGABE: kleine Dateien ins Git; Schwerlast (Dateien >100MB GitHub-Limit)
+# und Rohvideo laufen ueber das Cloud-/USB-Paket (siehe ABGABE_Index.md)
+ABGABE/01_Rohdaten/
+ABGABE/04_Run-Archive/golden_run_720p_opencv_a/live/
+ABGABE/04_Run-Archive/sugar_vergleichsarm_720p/live/
