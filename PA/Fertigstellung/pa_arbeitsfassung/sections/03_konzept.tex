@@ -60,7 +60,7 @@ Bachelorarbeit vorbehalten.
       \node[box, below=of input] (sam) {\textbf{Container A: SAM 3.1}\\Temporale Segmentierung\\default / middle / small};
       \node[box, below=of sam] (colmap) {\textbf{Container B: COLMAP}\\Unmaskiertes SfM\\Originales Kameramodell und Sparse-Modell};
       \node[box, below left=1.55cm and 2.4cm of colmap] (ideal) {Idealbilddomäne\\\texttt{image\_undistorter}\\Maskenwarp mit identischer Abbildung};
-      \node[box, below right=1.55cm and 2.4cm of colmap] (gcp) {Originalmodell\\GCP-/CloudCompare-Zweig\\Matrix optional und PA-seitig nicht validiert};
+      \node[box, below right=1.55cm and 2.4cm of colmap] (gcp) {Originalmodell\\GCP-/CloudCompare-Zweig\\Matrix optional und in dieser Arbeit nicht validiert};
       \node[box, below=1.55cm of ideal] (sts) {\textbf{Container C: STS}\\Objekt-ID-Zuordnung\\Objektbezogene Gaussian-Repräsentation};
       \node[decision, below=1.55cm of sts] (meshroute) {Meshroute};
       \node[route, below left=1.55cm and 1.7cm of meshroute] (original) {\textbf{Route A: Original-GS}\\Surface-Sampling, Poisson, Decimation\\kein SuGaR-Coarse/Refinement/UV};
